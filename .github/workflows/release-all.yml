@@ -404,7 +404,7 @@ jobs:
       # in $PWD) is unchanged from the old fork.
       - name: Check out the patches
         if: ${{ env.BUILD_THIS == 'true' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: _patches
 
@@ -440,12 +440,27 @@ jobs:
           # was built from. The tag names the release; this pins the bytes.
           COMMIT="$(git -C nodesrc rev-parse HEAD)"
           echo "Cloned nodejs/node tag ${V} at commit ${COMMIT} (depth 1, single branch)."
-          # Move the upstream tree (including its .git) into the workspace root,
-          # beside _patches/, so the build steps see a normal node tree at $PWD.
+          # Move the upstream tree into the workspace root, beside _patches/, so
+          # the build steps see a normal node tree at $PWD.
+          #
+          # dotglob is what moves the DOTFILES - .git, .gitignore, .github and
+          # the rest - so `nodesrc/*` is the WHOLE tree and there is nothing left
+          # to move afterwards. A second, explicit `mv nodesrc/.git .` used to
+          # follow this line, and it could only ever fail: the glob above had
+          # already taken .git, so mv answered "cannot stat 'nodesrc/.git': No
+          # such file or directory" and, under `set -e`, killed the step. That is
+          # what failed all thirteen builds of the first run - every job died
+          # here, seconds after cloning, before a compiler ever started, and the
+          # publish job then had no artifact to attach and failed too.
           shopt -s dotglob
           mv nodesrc/* .
-          mv nodesrc/.git .
+          shopt -u dotglob
+          # Nothing may be left behind: rmdir REFUSES a non-empty directory, so
+          # this is the assertion that the move was complete, not just cleanup.
           rmdir nodesrc
+          # And the .git the build was moved for is really here - `git apply`
+          # below and every `git` the build runs need it.
+          [ -d .git ] || { echo "::error::The upstream tree's .git did not reach the workspace root."; exit 1; }
           # Apply each section's patches - checksum-verified first, in name order -
           # onto the pristine upstream tree. dist/all first, then the platform's
           # families. No single build applies two sections that touch the same
@@ -648,7 +663,7 @@ jobs:
             echo "::warning::Release/node.lib not found; native addons cannot link against node-${{ matrix.platform }} without it."
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ env.BUILD_THIS == 'true' }}
         with:
           name: node-${{ matrix.platform }}
@@ -665,9 +680,9 @@ jobs:
     if: ${{ always() && inputs.publish }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -716,8 +731,12 @@ jobs:
           # what was actually wrong. The empty case is handled below, where it
           # can say so.
           # grep -v the checksum files: dist/ now holds node-i386 AND
-          # node-i386.sha256sum, and only the first is a platform.
-          present="$( (ls dist 2>/dev/null || true) | grep -v '\.sha256sum$' \
+          # node-i386.sha256sum, and only the first is a platform. `.lib` goes
+          # the same way and for the same reason - the Windows jobs also upload
+          # node-win32.lib (the import library native addons link against), and
+          # without this it became a "platform" called `win32.lib`, listed on the
+          # release beside the real ones by the unknown-platform loop below.
+          present="$( (ls dist 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
             | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' | sort -u)"
           plats=""
           for a in x64 arm64 i386 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64; do
@@ -735,22 +754,35 @@ jobs:
           # it is read as.
           plats_csv="$(printf '%s' "$plats" | sed 's/ /, /g')"
 
-          # 2. The upstream release notes for this exact version, out of the
-          #    upstream changelog in the cloned Node.js tree. Sections are anchored
+          # 2. The upstream release notes for this exact version, out of
+          #    upstream's own changelog. Sections are anchored
           #    `<a id="24.18.1"></a>` and run to the next `<a id="`, which is a
           #    firmer boundary than the `## <date>, Version ...` heading.
+          #
+          #    FETCHED from nodejs/node at the tag, not read from the workspace.
+          #    This job checks out THIS repo - which carries patches, not a
+          #    Node.js tree - so `doc/changelogs/CHANGELOG_V24.md` was never
+          #    there to read and the notes could only ever come out as the header
+          #    with nothing under it. The build jobs have the upstream tree; this
+          #    job never did. The tag is immutable, so the file at that tag is
+          #    the changelog of exactly the source that was built.
           CHANGELOG="doc/changelogs/CHANGELOG_V${MAJOR}.md"
+          URL="https://raw.githubusercontent.com/nodejs/node/${V}/${CHANGELOG}"
           : > upstream-notes.md
-          if [ -f "$CHANGELOG" ]; then
+          # --fail so a 404 is an empty file and the warning below, not an HTML
+          # error page pasted into the release notes. The notes are worth having
+          # and not worth failing the publish over, hence `|| true`.
+          curl -fsSL --retry 3 --retry-delay 2 -o upstream-changelog.md "$URL" || true
+          if [ -s upstream-changelog.md ]; then
             awk -v ver="$BARE" '
               $0 ~ ("^<a id=\"" ver "\"></a>") { inblock=1; next }
               inblock && /^<a id="/ { exit }
               inblock { print }
-            ' "$CHANGELOG" > upstream-notes.md
+            ' upstream-changelog.md > upstream-notes.md
             sed -i -e '/./,$!d' upstream-notes.md
           fi
           if [ ! -s upstream-notes.md ]; then
-            echo "::warning::No $CHANGELOG section for $BARE - the notes will carry the header only."
+            echo "::warning::No $BARE section in upstream's $CHANGELOG ($URL) - the notes will carry the header only."
           fi
 
           # 3. The header xet7 asked for, then the platforms, then upstream's

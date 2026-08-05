@@ -40,6 +40,9 @@ node-patches/
   releases/
     newest-release.sh          resolve the newest upstream v<MAJOR>.x release
     dist-dirs-for.sh           the apply-map: platform -> dist/ sections
+  tests/
+    workflow-logic.sh          offline: runs the workflows' own shell blocks
+    patches-apply.sh           network: applies every section to upstream
   dist/
     README.md                  the sections and the apply-map, in prose
     all/                       common: applied to EVERY platform
@@ -97,6 +100,26 @@ releases. The rules:
 Fix from source and verify — do not guess. If this environment cannot run a full
 13-platform build, reconstruct the source from upstream + patches and say clearly what
 was and was not verified.
+
+## Tests
+
+Two scripts, and both run here — a 13-platform build does not, so these check
+what can be checked without one:
+
+- `./tests/workflow-logic.sh` — no network. It EXTRACTS the shell blocks out of
+  `release-all.yml` and runs them, rather than restating them, so a passing test
+  means the workflow's own lines behave. It also checks the three platform lists
+  agree, that the apply-map answers for every platform in the build matrix, that
+  every patch is a complete checksummed trio, and that no build applies two
+  sections touching one file. Run it after ANY workflow edit: the first run's
+  failure — all thirteen builds dead three seconds in, on a `mv` that could never
+  work — is exactly what it now catches in a second.
+- `./tests/patches-apply.sh [version]` — needs the network. It reconstructs the
+  files the patches touch from upstream at the resolved release and `git apply`s
+  each platform's sections cumulatively, checksum first, the same way the build
+  does. It does not clone Node.js (a gigabyte to answer a question about
+  thirteen files) and exits 77 when upstream is unreachable, so a sandbox with no
+  network says so instead of reporting a green run it did not do.
 
 ## CHANGELOG
 

@@ -58,7 +58,7 @@ jobs:
       platforms: ${{ steps.plan.outputs.platforms }}
       count: ${{ steps.plan.outputs.count }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: plan
         env:

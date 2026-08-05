@@ -65,8 +65,11 @@ workflows clone the newest upstream release, verify and apply each platform's
 sections, and build the thirteen-platform binary set that WeKan embeds. The patches
 restore **32-bit Windows**, add the **32-bit x86** and **32-bit ARM** SIMD/build
 flags, fix the **s390x** cross-build, and correct **Apple Clang** and **V8** compile
-errors. Below that: the design docs and the maintainer instructions the repo is set
-up with.
+errors. Below that: the fixes the **first run** turned up — a `mv` that could never
+work and killed all thirteen builds seconds after cloning, release notes read from a
+tree this repo does not have, and a `.lib` listed as a platform — the two **test
+scripts** that now catch that class of failure in a second instead of hours, and the
+design docs and maintainer instructions the repo is set up with.
 
 This release adds the following patch sections for the upstream Node.js v24.x line:
 
@@ -177,6 +180,106 @@ Upstream stopped building 32-bit Windows in Node 23
 `/arch:SSE2` in `toolchain.gypi`, the `x86` argument and `amd64_x86` cross toolchain
 in `vcbuild.bat`, and the Windows x86 row in `BUILDING.md`. The generic 32-bit x86
 pieces a win32 build also needs are in the ia32 section.
+
+</details>
+
+and fixes the following in the release workflows:
+
+**Release All** - the workflow that clones upstream, applies the patches and
+publishes.
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The upstream tree is moved into the workspace once, not twice, so the builds get past the clone</a>. Thanks to xet7.</summary>
+
+The first run failed all thirteen builds, three seconds after cloning, before a
+compiler ever started - and the publish job with them, since it then had no
+artifact to attach. The step moves the cloned Node.js tree up beside
+`_patches/`:
+
+```
+shopt -s dotglob
+mv nodesrc/* .
+mv nodesrc/.git .
+```
+
+`dotglob` is what makes `nodesrc/*` include the dotfiles, so the glob had
+ALREADY moved `.git`. The second `mv` could only ever answer `cannot stat
+'nodesrc/.git': No such file or directory`, and under `set -e` that ended the
+step. The line is gone; `rmdir nodesrc` is now the assertion that the move was
+complete, since it refuses a non-empty directory, and a check that `.git` really
+arrived says so in one line rather than leaving `git apply` to fail obscurely.
+
+Verified end to end here, not only read: a real shallow clone of `v24.19.0`,
+moved, checksum-verified and patched, for `x64` (one section) and for `win32`
+(five patches across three sections), after which the patched tree's own
+`./configure` completes.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The release notes carry upstream's own notes again, fetched from the tag rather than read from a tree that is not there</a>. Thanks to xet7.</summary>
+
+The publish job composed the notes by reading
+`doc/changelogs/CHANGELOG_V24.md` out of the workspace. That job checks out THIS
+repository - which carries patches, not a Node.js tree - so the file was never
+there and the notes could only ever come out as the header with nothing under
+it. It now fetches that changelog from `nodejs/node` at the tag that was built.
+A tag is immutable, so the file it reads is the changelog of exactly the source
+the binaries were built from, and a 404 leaves the header alone instead of
+pasting an error page into the release.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The Windows import library stops appearing on the release as a platform of its own</a>. Thanks to xet7.</summary>
+
+The Windows jobs upload `node-win32.lib` beside `node-win32.exe` - the import
+library native addons link against. The notes step turned every downloaded
+artifact into a platform name and dropped only the `.sha256sum` files, so the
+`.lib` became a platform called `win32.lib`, listed beside the real ones. It is
+filtered out with the checksums now.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The actions are off the deprecated Node 20 runtime</a>. Thanks to xet7.</summary>
+
+Every job warned that `actions/checkout@v4` and `actions/download-artifact@v4`
+target Node.js 20 and were being forced onto Node 24. They move to the majors
+WeKan's own release workflow already runs - `checkout@v7`,
+`upload-artifact@v7`, `download-artifact@v8` - which target Node 24 themselves.
+
+</details>
+
+and adds the following tests:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">Two test scripts that run without a 13-platform build</a>. Thanks to xet7.</summary>
+
+A build takes hours on thirteen platforms and cannot run in the sandbox at all,
+so the failures worth catching are the ones that kill a job in its first
+seconds - which is precisely what the `mv` above was.
+
+`tests/workflow-logic.sh` needs no network and no runner. It EXTRACTS the shell
+blocks out of `release-all.yml` and RUNS them against a fabricated workspace,
+rather than restating them in a test, so a pass means the workflow's own lines
+behave. Its negative test puts the removed `mv nodesrc/.git .` back and requires
+the block to fail, which is what proves it can tell the two apart. It also
+checks that the build matrix, `release-all-missing.yml`'s platform list and the
+release notes' list name the same platforms, that the apply-map answers for
+every platform, that each patch is a complete `.patch`/`.sha256sum`/`.md` trio
+whose checksum matches, and that no build applies two sections touching one
+file.
+
+`tests/patches-apply.sh` answers the question the repository lives or dies on:
+does every platform's patch set still apply to the upstream release the build
+would clone. It reconstructs a tree of exactly the files the patches touch -
+derived from their own headers, so a patch that starts touching another file is
+fetched without anyone remembering - and applies each platform's sections
+cumulatively, checksum first, as the workflow does. No clone: a gigabyte to
+answer a question about thirteen files. It exits 77 when upstream is
+unreachable, so a sandbox without network says so instead of reporting a green
+run it did not do.
 
 </details>
 
