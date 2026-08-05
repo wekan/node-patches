@@ -1,0 +1,172 @@
+diff --git a/BUILDING.md b/BUILDING.md
+index b54a167b0f8..ee6b37bac65 100644
+--- a/BUILDING.md
++++ b/BUILDING.md
+@@ -116,6 +116,7 @@ platforms. This is true regardless of entries in the table below.
+ | GNU/Linux        | loong64          | kernel >= 5.19, glibc >= 2.36     | Experimental |                                      |
+ | GNU/Linux        | riscv64          | kernel >= 5.19, glibc >= 2.36     | Experimental |                                      |
+ | Windows          | x64              | >= Windows 10/Server 2016         | Tier 1       | [^2],[^3]                            |
++| Windows          | x86 (32-bit)     | >= Windows 10/Server 2016         | Tier 2       | rebuilt by this fork; nodejs.org removed it in Node 23 (#53184) |
+ | Windows          | arm64            | >= Windows 10                     | Tier 2       |                                      |
+ | macOS            | x64              | >= 13.5                           | Tier 1       | For notes about compilation see [^4] |
+ | macOS            | arm64            | >= 13.5                           | Tier 1       |                                      |
+diff --git a/common.gypi b/common.gypi
+index a2cd172f102..449dd9ac53a 100644
+--- a/common.gypi
++++ b/common.gypi
+@@ -403,6 +403,32 @@
+         'conditions': [
+           ['target_arch=="ia32"', {
+             'TargetMachine' : 1,              # /MACHINE:X86
++            # /SAFESEH:NO, and it has to be HERE rather than in node.gyp.
++            #
++            # gyp turns /SAFESEH on by ITSELF for every x86 link -
++            # tools/gyp/pylib/gyp/msvs_emulation.py sets
++            # safeseh_default = "true" when the arch is x86 - so opting out is
++            # not a preference, it is the only way to link an object that
++            # carries no safe-exception-handler table. ICU's genccode writes
++            # exactly such an object: icudt<ver>l_dat.obj is generated data
++            # with no code and no SEH table in it, and the sixth workflow run
++            # died on it - "lld-link : error : /safeseh:
++            # ../obj/global_intermediate/icudt78l_dat.obj is not compatible
++            # with SEH" - while linking gen-regexp-special-case, one of V8's
++            # build tools.
++            #
++            # node.gyp already carried this setting, restored with 32-bit
++            # Windows, but a target_defaults in node.gyp reaches only the
++            # targets node.gyp DEFINES. The object is linked by targets in
++            # tools/v8_gypfiles/v8.gyp and tools/icu/icu-generic.gyp, which
++            # never saw it. common.gypi is included into every .gyp in the tree
++            # (tools/gyp_node.py passes it with -I), so one rule here covers
++            # node, V8 and ICU alike - and it is scoped to ia32, which is the
++            # only architecture /SAFESEH means anything on.
++            #
++            # Refs: https://github.com/nodejs/node/pull/25852 and
++            # https://docs.microsoft.com/en-us/cpp/build/reference/safeseh-image-has-safe-exception-handlers
++            'ImageHasSafeExceptionHandlers': 'false',
+           }],
+           ['target_arch=="x64"', {
+             'TargetMachine' : 17,             # /MACHINE:X64
+diff --git a/configure.py b/configure.py
+index a9910d038f0..cd764c2f4c1 100755
+--- a/configure.py
++++ b/configure.py
+@@ -1546,7 +1546,11 @@ def host_arch_win():
+     'AMD64'  : 'x64',
+     'arm'    : 'arm',
+     'mips'   : 'mips',
+-    'ARM64'  : 'arm64'
++    'ARM64'  : 'arm64',
++    # Restored with 32-bit Windows (removed upstream in 7ad0cc3e571). The
++    # DEFAULT below stays x64 on purpose - what was wrong before that commit was
++    # defaulting to a 32-bit HOST, not knowing what x86 means.
++    'x86'    : 'ia32'
+   }
+ 
+   return matchup.get(arch, 'x64')
+diff --git a/node.gyp b/node.gyp
+index bd66c9b4982..ea763519235 100644
+--- a/node.gyp
++++ b/node.gyp
+@@ -545,6 +545,10 @@
+         'libraries': ['-latomic'],
+       }],
+     ],
++    # The x86 /SAFESEH:NO opt-out that used to sit here - restored with 32-bit
++    # Windows, removed upstream in 7ad0cc3e571 - moved to common.gypi, where it
++    # reaches V8's and ICU's targets as well as node's own. See the comment
++    # there for what it is for and why it has to be global.
+   },
+ 
+   'targets': [
+diff --git a/src/node_metadata.cc b/src/node_metadata.cc
+index 1458bf48d6b..efdd72289f4 100644
+--- a/src/node_metadata.cc
++++ b/src/node_metadata.cc
+@@ -196,7 +196,12 @@ Metadata::Release::Release() : name(NODE_RELEASE) {
+   source_url = NODE_RELEASE_URLFPFX ".tar.gz";
+   headers_url = NODE_RELEASE_URLFPFX "-headers.tar.gz";
+ #ifdef _WIN32
+-  lib_url = NODE_RELEASE_URLPFX "win-" NODE_ARCH "/node.lib";
++  // ia32 uses the "win-x86" directory name, every other arch uses "win-<arch>".
++  // Restored from the 32-bit-Windows removal (nodejs/node#53184): process.release
++  // .libUrl must name win-x86 on ia32, the way the Windows node.lib is published.
++  lib_url = strcmp(NODE_ARCH, "ia32") ? NODE_RELEASE_URLPFX "win-" NODE_ARCH
++                                                            "/node.lib"
++                                      : NODE_RELEASE_URLPFX "win-x86/node.lib";
+ #endif  // _WIN32
+ 
+ #endif  // NODE_HAS_RELEASE_URLS
+diff --git a/tools/v8_gypfiles/toolchain.gypi b/tools/v8_gypfiles/toolchain.gypi
+index e614c39a6b5..7bebdcdc485 100644
+--- a/tools/v8_gypfiles/toolchain.gypi
++++ b/tools/v8_gypfiles/toolchain.gypi
+@@ -527,6 +527,17 @@
+           },
+         },
+       }],
++      # Restored with 32-bit Windows (removed upstream in 7ad0cc3e571): x87 math
++      # on x86 computes doubles at 80 bits and rounds on store, so the same
++      # expression can answer differently than on every other platform. SSE2
++      # makes them plain 64-bit doubles.
++      ['OS=="win" and v8_target_arch=="ia32"', {
++        'msvs_settings': {
++          'VCCLCompilerTool': {
++            'AdditionalOptions': ['/arch:SSE2'],
++          },
++        },
++      }],
+       ['OS=="win" and v8_enable_prof==1', {
+         'msvs_settings': {
+           'VCLinkerTool': {
+diff --git a/vcbuild.bat b/vcbuild.bat
+index 9e1f7136393..ef344a14c08 100644
+--- a/vcbuild.bat
++++ b/vcbuild.bat
+@@ -252,10 +252,11 @@ if defined compile_commands set configure_flags=%configure_flags% -C
+ if defined cfg              set configure_flags=%configure_flags% --control-flow-guard
+ if defined v8windbg         set configure_flags=%configure_flags% --enable-v8windbg
+ 
+-if "%target_arch%"=="x86" (
+-  echo "32-bit Windows builds are not supported anymore."
+-  exit /b 1
+-)
++@rem 32-bit Windows, restored (removed upstream in 7ad0cc3e571). An x64 Windows
++@rem runs x86 binaries natively through WoW64, so the build's own tools - v8's
++@rem mksnapshot above all - run on the host and this is not a cross compile.
++@rem The toolchain is selected as amd64_x86 by msvs_host_arch below.
++if "%target_arch%"=="x86" if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set configure_flags=%configure_flags% --no-cross-compiling
+ 
+ if not exist "%~dp0deps\icu" goto no-depsicu
+ if "%target%"=="Clean" echo deleting %~dp0deps\icu
+@@ -272,7 +273,7 @@ if "%target%"=="TestClean" (
+ call tools\msvs\find_python.cmd
+ if errorlevel 1 goto :exit
+ 
+-REM NASM is only needed on x86_64.
++REM NASM is only needed on IA32 and x86_64.
+ if not defined openssl_no_asm if "%target_arch%" NEQ "arm64" call tools\msvs\find_nasm.cmd
+ if errorlevel 1 echo Could not find NASM, install it or build with openssl-no-asm. See BUILDING.md.
+ 
+@@ -435,6 +436,12 @@ set "msbcpu=/m:2"
+ if "%NUMBER_OF_PROCESSORS%"=="1" set "msbcpu=/m:1"
+ set "msbplatform=x64"
+ if "%target_arch%"=="arm64" set "msbplatform=ARM64"
++@rem Restored with 32-bit Windows (removed upstream in 7ad0cc3e571). gyp names
++@rem the ia32 solution configuration "Win32" - common.gypi sets
++@rem msvs_configuration_platform for x64 and arm64 only, and "Win32" is gyp's
++@rem default - so without this line an x86 build generates Release|Win32 and
++@rem then asks msbuild for Release|x64, which answers MSB4126.
++if "%target_arch%"=="x86" set "msbplatform=Win32"
+ if "%target%"=="Build" (
+   if defined no_cctest set target=node
+   if "%test_args%"=="" set target=node
+@@ -881,7 +888,7 @@ set exit_code=1
+ goto exit
+ 
+ :help
+-echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [nocorepack] [ltcg] [thin-lto] [lto] [pgo-generate] [pgo-use] [licensetf] [sign] [x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
++echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [nocorepack] [ltcg] [thin-lto] [lto] [pgo-generate] [pgo-use] [licensetf] [sign] [ia32/x86/x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
+ echo Examples:
+ echo   vcbuild.bat                          : builds release build
+ echo   vcbuild.bat debug                    : builds debug build

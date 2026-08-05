@@ -1,0 +1,171 @@
+name: Release All Missing
+
+# Build only the Node.js binaries a release does not already carry.
+#
+# WHY: this fork builds thirteen platforms, and several of them take hours -
+# armhf and armv7 are cross builds that compile V8 twice and have been killed at
+# the 360-minute mark, loong64 takes about 150 minutes, i386 about 115. When one
+# platform fails, or is added, or a run is cancelled, re-running release-all.yml
+# rebuilds all thirteen to obtain the one that is missing. This builds the one.
+#
+# HOW: work out which platforms are absent from the release, then call
+# release-all.yml with exactly those. The build steps are not duplicated here -
+# release-all.yml is a reusable workflow now, and this passes it a `platforms`
+# filter. That matters more here than anywhere else in this repo: a second copy
+# of thirteen platforms' compile flags would drift, and a binary added to a
+# release months later would then differ from the ones beside it.
+#
+# A platform counts as present only when BOTH node-<platform>[.exe] and its
+# .sha256sum are on the release. A binary whose checksum upload failed is the
+# half-published state this is for, and calling it present would leave it that
+# way.
+#
+# Usage:
+#   gh workflow run release-all-missing.yml                    # newest upstream v24.x release
+#   gh workflow run release-all-missing.yml -f version=v24.19.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to complete, e.g. v24.19.0 (empty = newest upstream v24.x release)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+# A DISTINCT group from release-all.yml's `node-32bit-*`. This workflow CALLS
+# release-all.yml (the `build` job below, `uses:`), and a reusable workflow that
+# requests a concurrency group already held by its caller deadlocks: GitHub
+# cancels the run with "a deadlock was detected for concurrency group
+# 'node-32bit-<version>' between a top level workflow and 'build what is
+# missing'" - which is why a run only ever reached the "what is missing" list and
+# never built anything. Mutual exclusion with a full run is still enforced where
+# it matters: the actual build+upload happens inside release-all.yml, which keeps
+# its own `node-32bit-*` group, so this workflow's inner call and a direct full
+# run still serialize on it and cannot upload to one release at the same time.
+concurrency:
+  group: node-missing-${{ inputs.version || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: what the release is missing
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      platforms: ${{ steps.plan.outputs.platforms }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Default: the newest upstream v<MAJOR>.x release (node-major.txt) - the
+          # same resolution release-all.yml does. release-all.yml receives this as
+          # its version override, so plan and build agree on the version.
+          V="$(bash releases/newest-release.sh . "${{ inputs.version }}")"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Release: $V"
+
+          # The platforms release-all.yml builds, and the asset each one leaves.
+          # Windows binaries carry .exe; everything else is bare. Kept in step
+          # with that workflow's matrix - if a platform is added there it must be
+          # added here, or this will never notice it is missing.
+          PLATFORMS="i386 armhf armv7 loong64 x64 arm64 ppc64le s390x riscv64 win64 win32 mac-x64 mac-arm64"
+
+          if gh release view "$V" >/dev/null 2>&1; then
+            gh release view "$V" --json assets --jq '.assets[].name' | sort > existing.txt
+          else
+            echo "No release $V yet - every platform is missing."
+            : > existing.txt
+          fi
+          echo "The release carries $(wc -l < existing.txt | tr -d ' ') asset(s)."
+
+          missing=""
+          have=""
+          for p in $PLATFORMS; do
+            case "$p" in win64|win32) asset="node-${p}.exe" ;; *) asset="node-${p}" ;; esac
+            # The checksum is named after the PLATFORM, not the .exe binary: the
+            # build writes `sha256sum node-win64.exe > node-win64.sha256sum` (see
+            # release-all.yml), so the file is node-<p>.sha256sum, NOT
+            # node-<p>.exe.sha256sum. Checking "${asset}.sha256sum" looked for
+            # node-win64.exe.sha256sum, which never exists, so win64/win32 were
+            # ALWAYS reported missing and rebuilt even when already published.
+            # Non-Windows was unaffected (asset == node-<p>, so the two spellings
+            # coincide).
+            sha="node-${p}.sha256sum"
+            # BOTH the binary and its checksum, so a half-published platform is
+            # rebuilt rather than left broken.
+            if grep -qxF "$asset" existing.txt && grep -qxF "$sha" existing.txt; then
+              have="$have $p"
+            else
+              missing="$missing $p"
+            fi
+          done
+
+          # A JSON array, because that is what release-all.yml's `platforms`
+          # filter reads with fromJSON().
+          json="$(printf '%s\n' $missing | sed '/^$/d' | jq -R . | jq -sc .)"
+          [ -n "$json" ] || json='[]'
+          n="$(printf '%s\n' $missing | sed '/^$/d' | wc -l | tr -d ' ')"
+          echo "platforms=$json" >> "$GITHUB_OUTPUT"
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### $V"
+            echo ""
+            if [ -n "${have# }" ]; then echo "Already published:\`${have# }\`"; fi
+            if [ "$n" -eq 0 ]; then
+              echo ""
+              echo "Nothing is missing - the release is complete."
+            else
+              echo ""
+              echo "Missing ($n): \`${missing# }\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing ($n): ${missing# }"
+
+  # Only the missing platforms, through the SAME build release-all.yml runs.
+  build:
+    name: build what is missing
+    needs: plan
+    if: ${{ needs.plan.outputs.count != '0' }}
+    uses: ./.github/workflows/release-all.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ needs.plan.outputs.version }}
+      publish: true
+      platforms: ${{ needs.plan.outputs.platforms }}
+
+  done:
+    name: what the release has now
+    needs: [plan, build]
+    # always(), so "nothing was missing" still reports rather than being skipped
+    # along with the build it correctly did not run.
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.plan.outputs.version }}
+          N: ${{ needs.plan.outputs.count }}
+        run: |
+          set -euo pipefail
+          if [ "$N" = "0" ]; then
+            echo "::notice::$V was already complete - nothing was built."
+            exit 0
+          fi
+          # --repo, because this job has no checkout: gh works out which
+          # repository to talk to from the git remote, and without one it fails
+          # with "failed to run git: fatal: not a git repository".
+          left="$(gh release view "$V" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '[.assets[].name | select(endswith(".sha256sum") | not)] | length')"
+          echo "$V now carries $left binaries."
+          echo "$V now carries $left binaries." >> "$GITHUB_STEP_SUMMARY"

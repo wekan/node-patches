@@ -1,0 +1,824 @@
+name: Release All
+
+# Build patched Node.js 24.x for EVERY platform WeKan ships a bundle for, and
+# attach one executable per platform to the GitHub Release of that version — the
+# same shape wekan/FerretDB's release-all.yml has: individual per-arch assets, no
+# zip, so a consumer downloads only the one file for the platform it targets.
+#
+# This repo carries only PATCHES. Each build CLONES the newest UPSTREAM Node.js
+# v<MAJOR>.x RELEASE tag from nodejs/node (MAJOR from node-major.txt), applies the
+# checksum-verified patches for its platform - dist/all plus the family sections
+# the apply-map assigns it (see releases/dist-dirs-for.sh) - and builds that. So
+# there is no Node.js fork to maintain, only the patch sections in dist/. See
+# docs/Design/Directory-structure.md.
+#
+# WHY ALL OF THEM, when nodejs.org publishes several. Two reasons.
+#
+# The fixes. CHANGELOG.md lists what these patches carry that upstream does
+# not, and they are not all 32-bit-only: the ICU, /SAFESEH and zlib flag fixes
+# are build-configuration fixes that any platform benefits from. WeKan takes its
+# Node.js from here for every bundle now, and a bundle set should not be half
+# built on one Node.js and half on another depending on which CPU it is for.
+#
+# The backstop. A fallback only works if it covers everything. When nodejs.org
+# or unofficial-builds has not published a version yet — riscv64 was two
+# releases behind when this was written, and unofficial-builds had only x64-musl
+# for v24.19.0 — this repo is what fills the gap, and it can only fill a gap it
+# builds.
+#
+#   node-x64       64-bit x86 Linux          native
+#   node-arm64     64-bit ARM Linux          native
+#   node-i386      32-bit x86                (--dest-cpu=x86)
+#   node-armhf     32-bit ARM                hard-float, VFPv3-D16 — the Debian
+#                                            armhf baseline, so it runs on any
+#                                            ARMv7-A without assuming NEON
+#   node-armv7     32-bit ARM                hard-float, NEON — ARMv7-A tuned,
+#                                            for boards that have it
+#   node-ppc64le   PowerPC 64 LE             cross
+#   node-s390x     IBM Z                     cross
+#   node-riscv64   RISC-V 64                 cross
+#   node-loong64   LoongArch64               (--dest-cpu=loong64) — V8 has the
+#                                            port, nobody else publishes it
+#   node-win64.exe 64-bit Windows
+#   node-win32.exe 32-bit Windows            upstream REMOVED the build in
+#                                            7ad0cc3e571; the 32bit-windows-build
+#                                            patch puts the removed pieces back, ClangCL
+#   node-mac-x64   macOS Intel               native
+#   node-mac-arm64 macOS Apple silicon       native
+#
+# armhf and armv7 are both 32-bit hard-float ARM: the difference is the FPU
+# baseline, which is the difference that matters on the older boards this exists
+# for. Keeping both is deliberate.
+#
+# NOTHING has been removed from UPSTREAM's source for these platforms - the
+# 32-bit support is upstream's and it is intact:
+#   * configure.py's valid_arch still has `arm`, `ia32` and `x86`, and
+#     --with-arm-float-abi / --with-arm-fpu still take their full range;
+#   * V8's 32-bit ports are present (deps/v8/src/codegen/arm and .../ia32);
+#   * BUILDING.md lists x86 and armv7 as Experimental - which means "buildable,
+#     not released", not "gone". The only commit that ever removed a 32-bit
+#     target was 7ad0cc3e571, and that is 32-bit WINDOWS.
+# So what was missing was the BUILD, not the code, and the 32bit-windows-build
+# patch in dist/ adds it back.
+#
+# What is deliberately NOT here, of the platforms wekan/FerretDB builds for:
+#   armel (ARMv5, soft-float) - V8 has not supported ARMv5 for many years. There
+#     is no Node.js for it anywhere and this repo cannot make one either; a build
+#     target that can only ever fail is worse than an honest gap.
+#   win-arm64 / win64 - nodejs.org publishes both, so there is nothing to add.
+#   freebsd-* - it needs a FreeBSD host, and there is no FreeBSD runner. FreeBSD
+#     builds Node from ports, which is the answer there anyway.
+#   (macOS used to be on this list, on the grounds that nodejs.org publishes it.
+#   It is built here now, for the two reasons at the top: the patch set's fixes, and
+#   a backstop that covers everything.)
+#
+# A release ACCUMULATES: a run's freshly built platforms overwrite their own old
+# copies (gh release upload --clobber) and every other platform's binary is left
+# in place, so all platforms of a version collect on one release across however
+# many runs it takes to build them all (that is what Release All Missing is for).
+# Each version has its own tag, so accumulating within a tag only gathers builds
+# of that one version.
+#
+# Run it from the Actions page (Run workflow) or:
+#   gh workflow run release-all.yml -f version=v24.19.0
+#
+# Leave `version` empty and it defaults to the newest upstream v<MAJOR>.x
+# release (node-major.txt, e.g. v24.19.0 or newer).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag, e.g. v24.18.1 (empty = newest upstream v24.x release)'
+        required: false
+        type: string
+      publish:
+        description: 'Attach the binaries to the GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      platforms:
+        description: 'JSON array of platforms to build, e.g. ["armhf","win32"] (empty = all of them)'
+        required: false
+        default: ''
+        type: string
+
+  # Called by release-all-missing.yml, which works out which platforms a release
+  # is short of and passes them as `platforms`. The build itself is HERE and
+  # only here: a second copy of thirteen platforms' compile steps would drift
+  # from this one, and then a binary added later would not match the binaries
+  # beside it on the same release.
+  workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
+      publish:
+        required: false
+        default: true
+        type: boolean
+      platforms:
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+# Two runs against one release would race on the same assets. A second run waits
+# for the first rather than clobbering it half way through.
+concurrency:
+  group: node-32bit-${{ inputs.version || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # One job per platform, so the three build in PARALLEL and one failing does
+  # not take the other two down (fail-fast: false) - a platform that breaks is
+  # then a single red job with its own log, not "the build failed".
+  build:
+    name: build ${{ matrix.platform }}
+    # Linux platforms cross compile (or build in a container) on the Linux
+    # runner; win32 needs a Windows one with MSVC, so the runner comes from the
+    # matrix rather than being fixed.
+    runs-on: ${{ matrix.runs_on || 'ubuntu-latest' }}
+    # The rule is still "roughly twice a good build" - a hang should be stopped,
+    # not left to burn the runner's whole allowance - but the number is per
+    # platform now, and MEASURED rather than predicted. A flat 180 was set when
+    # no build had yet run far enough to time, on the reasoning that nothing is
+    # emulated any more so every job compiles at the runner's own speed. Half of
+    # that held: nothing is emulated. What it missed is that a CROSS build
+    # compiles V8 TWICE - once for the host, to get mksnapshot, and once for the
+    # target - and for ARM the host half is itself 32-bit.
+    #
+    # The sixth run measured all four: win32 22 min, i386 115, loong64 148, and
+    # armhf/armv7 killed at 180 with the target compiles ~85% done, an hour of
+    # which had gone on the host half alone. i386 is the fast one because it is
+    # the only Linux job that is NOT a cross build - a native i386 container has
+    # no host toolset to build.
+    #
+    # ARM gets 360 rather than twice its build, because 360 is the ceiling: a
+    # job on a GitHub-hosted runner is killed at six hours whatever this says.
+    # It cannot be avoided by cross compiling from a 64-bit host either - V8
+    # refuses, "Target architecture arm is only supported on arm and ia32 host"
+    # (deps/v8/include/v8config.h), so the ia32 host container is forced and its
+    # slow host half with it.
+    timeout-minutes: ${{ matrix.timeout_minutes || 180 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 32-bit x86 builds INSIDE an i386 container rather than cross
+          # compiling: an x86_64 CPU runs i386 code natively, so this is a
+          # native build at native speed, and configure sees a real i386 host
+          # instead of having to be told it is cross compiling.
+          #
+          # `docker run`, NOT the job-level `container:` key: the Actions runner
+          # injects its own x86_64 Node.js into a job container to run the
+          # actions with, and an i386 image has no 64-bit loader to start it -
+          # checkout itself would fail. Checking out on the HOST and compiling
+          # in the container keeps the actions on x64 and the compiler on i386.
+          - platform: i386
+            mode: container
+            image: i386/debian:bookworm
+            docker_platform: linux/386
+            # --openssl-no-asm: deps/openssl's pregenerated x86 assembly is
+            # written for NASM - `%ifdef __CET__` and friends - and the build
+            # feeds those .S files to GNU as, which answers "junk at end of
+            # line, first unrecognized character is `%'" for every one of them.
+            # Nobody has assembled these since nodejs.org stopped building
+            # linux-x86, so they rotted. The C implementations are slower at
+            # crypto and they compile.
+            configure_flags: --dest-cpu=x86 --dest-os=linux --openssl-no-asm
+            timeout_minutes: 240        # measured 115: native container, no host toolset
+          # 32-bit ARM CROSS COMPILES, from a 32-bit x86 host. V8 states the
+          # rule itself, in deps/v8/include/v8config.h:
+          #
+          #     #if (V8_TARGET_ARCH_ARM && !(V8_HOST_ARCH_IA32 || V8_HOST_ARCH_ARM))
+          #     #error Target architecture arm is only supported on arm and ia32 host
+          #
+          # An ARM32 target needs an ARM or a 32-bit x86 host - and ia32 IS
+          # allowed, which is what this uses. The half that was missing before
+          # is in deps/v8/src/common/globals.h:
+          #
+          #     #if (V8_TARGET_ARCH_ARM && !V8_HOST_ARCH_ARM)
+          #     #define USE_SIMULATOR 1
+          #
+          # V8 turns its ARM simulator on BY ITSELF whenever the host is not
+          # ARM, so mksnapshot - a host binary that has to run ARM code to
+          # write the snapshot - simulates it. Nothing in the gyp files has to
+          # ask for that, and the earlier x64-host attempt did not fail for
+          # want of a simulator: it failed on the v8config.h check above,
+          # because an x86_64 host is not one of the two hosts it allows.
+          #
+          # This replaces the arm32v7-container-under-QEMU build these two jobs
+          # used to be. That one could never have finished: ../log/node3/armhf.txt
+          # is still compiling V8 five hours and fifty minutes in when the
+          # 350-minute limit kills it, and six hours is GitHub's ceiling for a
+          # job. The i386 container is not emulated - an x86_64 runner runs
+          # i386 natively - so the compiler runs at full speed and only the
+          # snapshot is simulated.
+          #
+          # What it costs: a cross build cannot run the binary it just made, so
+          # configure turns node_use_node_snapshot off (it does the same for
+          # loong64) and these two start a little slower than a natively built
+          # node. V8's own snapshot is still there - that is the simulated one
+          # above. A runtime that starts slightly slower beats the one nobody
+          # can build.
+          - platform: armhf
+            mode: cross-container
+            image: i386/debian:bookworm
+            docker_platform: linux/386
+            triple: arm-linux-gnueabihf
+            apt_packages: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            configure_flags: >-
+              --dest-cpu=arm --dest-os=linux --cross-compiling
+              --with-arm-float-abi=hard --with-arm-fpu=vfpv3-d16
+            timeout_minutes: 360        # measured >180, ~85% of the target compiles done; 360 is the runner ceiling
+          - platform: armv7
+            mode: cross-container
+            image: i386/debian:bookworm
+            docker_platform: linux/386
+            triple: arm-linux-gnueabihf
+            apt_packages: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            configure_flags: >-
+              --dest-cpu=arm --dest-os=linux --cross-compiling
+              --with-arm-float-abi=hard --with-arm-fpu=neon
+            timeout_minutes: 360        # measured >180, ~88% of the target compiles done; 360 is the runner ceiling
+          # LoongArch64. Node has supported it since configure.py learned
+          # `loong64` and V8 carries a full port (deps/v8/src/codegen/loong64),
+          # but neither nodejs.org nor unofficial-builds publishes a binary - so
+          # a LoongArch machine has no runtime to run anything Node with, which
+          # is exactly the gap this repo exists to fill. wekan/FerretDB builds
+          # for loong64, so WeKan can now ship a bundle for it.
+          # LoongArch64 DOES cross compile - v8config.h allows a loong64 target
+          # on an x64 host, unlike ARM32 above - but Ubuntu has no
+          # gcc-loongarch64-linux-gnu to cross compile WITH: the first run
+          # answered "E: Unable to locate package". Debian trixie has it, so the
+          # cross build happens inside a Debian container on the x64 runner.
+          # The container is the toolchain, not the target: this is still a
+          # cross compile and still runs at native speed.
+          - platform: loong64
+            mode: cross-container
+            image: debian:trixie
+            triple: loongarch64-linux-gnu
+            apt_packages: gcc-loongarch64-linux-gnu g++-loongarch64-linux-gnu
+            # --openssl-no-asm: deps/openssl ships ONE loongarch config and it
+            # is config/archs/linux64-loongarch64/no-asm - there is no asm one.
+            # openssl_asm.gypi has no loong64 branch either, so with asm the
+            # build silently fell through to its default, linux-x86_64/asm, and
+            # handed the LoongArch compiler x86_64 flags: "loongarch64-linux-gnu-gcc:
+            # error: unrecognized command-line option '-m64'". Asking for the
+            # no-asm build is asking for the only openssl this architecture has.
+            configure_flags: >-
+              --dest-cpu=loong64 --dest-os=linux --cross-compiling
+              --openssl-no-asm
+            timeout_minutes: 300        # measured 148: cross build, but its host half is native amd64
+          # ── The architectures somebody else also builds ──────────────────
+          #
+          # These are on nodejs.org (x64, arm64, ppc64le, s390x) or on
+          # unofficial-builds (riscv64, loong64) already, so for a long time the
+          # old fork did not build them: there was nothing to add.
+          #
+          # What changed is WHY this repo exists. It is no longer only "the CPUs
+          # nobody publishes" - it is where WeKan takes its Node.js from, for
+          # every platform, because the fixes in CHANGELOG.md are fixes
+          # every platform benefits from and a bundle should not be built on two
+          # different Node.js builds depending on which CPU it is for. And a
+          # backstop only works if it covers everything: when nodejs.org or
+          # unofficial-builds has not published a version yet - riscv64 was two
+          # releases behind when this was written - this repo is what fills the
+          # gap, and it can only fill a gap it builds.
+          #
+          # x64 and arm64 build natively on a runner of their own CPU. The rest
+          # cross compile in a container that carries the toolchain, exactly as
+          # loong64 does above: the container is the toolchain, not the target,
+          # so these run at the runner's own speed.
+          - platform: x64
+            mode: native
+            runs_on: ubuntu-24.04
+            configure_flags: ''
+            timeout_minutes: 240
+          - platform: arm64
+            mode: native
+            runs_on: ubuntu-24.04-arm
+            configure_flags: ''
+            timeout_minutes: 240
+          - platform: ppc64le
+            mode: cross-container
+            image: debian:trixie
+            triple: powerpc64le-linux-gnu
+            apt_packages: gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
+            configure_flags: >-
+              --dest-cpu=ppc64 --dest-os=linux --cross-compiling
+            timeout_minutes: 300
+          - platform: s390x
+            mode: cross-container
+            image: debian:trixie
+            triple: s390x-linux-gnu
+            apt_packages: gcc-s390x-linux-gnu g++-s390x-linux-gnu
+            configure_flags: >-
+              --dest-cpu=s390x --dest-os=linux --cross-compiling
+            timeout_minutes: 300
+          # riscv64: openssl has no riscv64 asm config either, same story as
+          # loong64 - ask for the no-asm build, which is the only one there is.
+          - platform: riscv64
+            mode: cross-container
+            image: debian:trixie
+            triple: riscv64-linux-gnu
+            apt_packages: gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
+            configure_flags: >-
+              --dest-cpu=riscv64 --dest-os=linux --cross-compiling
+              --openssl-no-asm
+            timeout_minutes: 300
+          # 64-bit Windows. On nodejs.org, and built here for the same reason as
+          # the rest: WeKan's win64 bundle should carry the same Node.js as
+          # every other bundle.
+          - platform: win64
+            mode: windows
+            runs_on: windows-2022
+            vcbuild_arch: x64
+            timeout_minutes: 240
+          # macOS. Both are on nodejs.org; built here so the mac-arm64 bundle is
+          # not the one platform taking its Node.js from somewhere else.
+          # macOS Intel. Node 24 needs Xcode >= 16.1 (its V8 uses C++20
+          # parenthesized aggregate initialization, P0960, which Xcode 15's Apple
+          # Clang lacks - the same feature that broke mac-arm64 on macos-14 and
+          # crypto_kmac.cc). When this was first written no Intel runner offered
+          # Xcode 16, so x64 was CROSS-COMPILED on an arm64 macos-15 runner with
+          # --dest-cpu=x64 --cross-compiling. That failed compiling OpenSSL's
+          # deps/openssl/.../asm/x86_64-gcc.c with "invalid output constraint '=a'
+          # in asm": the x86_64 target arch never reached the openssl compile, so
+          # clang read the x86 register asm as arm64. GitHub now publishes
+          # macos-15-intel (macOS 15 Sequoia on Intel hardware, with Xcode 16),
+          # so x64 is built NATIVELY there - no cross-compile, no snapshot
+          # simulation, no -arch flag to drop. (macos-13, the old Intel runner,
+          # is retired and only had Xcode 15.)
+          - platform: mac-x64
+            mode: mac
+            runs_on: macos-15-intel
+            configure_flags: ''
+            timeout_minutes: 240
+          # macos-15 (Sequoia) ships Xcode 16 by default; macos-14's default is
+          # Xcode 15, whose Apple Clang lacks C++20 parenthesized aggregate
+          # initialization (P0960). Node 24's V8 uses it (e.g.
+          # deps/v8/src/wasm/value-type.h: `TypeIndex(uint)`), so on macos-14 the
+          # build died with "no matching conversion ... from 'unsigned int' to
+          # 'TypeIndex'" - the same feature that broke crypto_kmac.cc. Node 24
+          # requires Xcode >= 16.1 on macOS (see BUILDING.md); its own deployment
+          # target keeps the binary compatible with older macOS.
+          - platform: mac-arm64
+            mode: mac
+            runs_on: macos-15
+            timeout_minutes: 240
+          # 32-bit Windows. nodejs.org stopped publishing it and upstream removed
+          # the build itself in 7ad0cc3e571 ("build: remove support for 32-bit
+          # Windows"); the 32bit-windows-build patch puts the removed pieces back
+          # - see dist/win32/32bit-windows-build.md for what and why.
+          # wekan/FerretDB builds win32, so
+          # a 32-bit Windows machine has a database and, with this, a runtime.
+          #
+          # Built with ClangCL, not cl.exe: V8's ia32 stack-scanning routine is
+          # `push_registers_asm.cc`, whose Windows branch is written in Clang's
+          # inline-asm syntax. The masm file the upstream removal referenced no
+          # longer exists in this V8, so Clang is not a preference here.
+          - platform: win32
+            mode: windows
+            runs_on: windows-2022
+            vcbuild_arch: x86
+    # WHICH entries this run wants, decided here because it cannot be decided
+    # where it belongs. A job-level `if:` cannot see `matrix` - GitHub exposes
+    # that context to runs-on, env, name, steps and a few others, but not to a
+    # job's own condition - and a workflow that tries answers
+    #   Unrecognized named-value: 'matrix'
+    # and refuses to load at all, taking every workflow that CALLS it with it.
+    # A job-level env CAN see matrix, so the answer is computed once here and
+    # every step below asks for it.
+    env:
+      BUILD_THIS: ${{ inputs.platforms == '' || contains(fromJSON(inputs.platforms), matrix.platform) }}
+
+    steps:
+      # This repo carries only PATCHES, not a Node.js tree. So: check the patches
+      # out into _patches/, clone the matching UPSTREAM Node.js tag into the
+      # workspace root, and apply every patch on top - after which the workspace
+      # is an ordinary Node.js source tree and every build step below (which works
+      # in $PWD) is unchanged from the old fork.
+      - name: Check out the patches
+        if: ${{ env.BUILD_THIS == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          path: _patches
+
+      - name: Fetch upstream Node.js and apply the patches
+        if: ${{ env.BUILD_THIS == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No version to type: resolve the NEWEST upstream release of the major
+          # this repo carries patches for (node-major.txt -> newest v24.x, e.g.
+          # v24.19.0 or newer). release-all-missing.yml passes the version its
+          # plan already picked as the override, so a full run and a fill-in run
+          # agree.
+          V="$(bash _patches/releases/newest-release.sh _patches "${{ inputs.version }}")"
+          MAJOR="${V#v}"; MAJOR="${MAJOR%%.*}"
+          # The dist/ sections this platform gets: dist/all (common), then each
+          # family/platform section the apply-map assigns it. dist-dirs-for.sh is
+          # the one place that mapping lives.
+          DIRS="$(bash _patches/releases/dist-dirs-for.sh "${{ matrix.platform }}")"
+          echo "Building upstream Node.js ${V} for ${{ matrix.platform }}."
+          echo "Patch sections: $(printf '%s ' $DIRS)"
+          # Clone ONLY that one upstream release, shallow:
+          #   --branch "$V"     the newest v${MAJOR}.x RELEASE tag, never a branch
+          #                     head or a commit between releases;
+          #   --single-branch   fetch that one ref and no other heads;
+          #   --depth 1         just the tag's commit, no history behind it.
+          # Node vendors its deps (v8, zlib, icu) in-tree at a release tag, so
+          # there are no submodules to init.
+          git clone --quiet --depth 1 --single-branch --branch "$V" \
+            https://github.com/nodejs/node.git nodesrc
+          # The exact commit that tag resolved to - recorded on the release and in
+          # the run summary, so a binary can be traced to the upstream source it
+          # was built from. The tag names the release; this pins the bytes.
+          COMMIT="$(git -C nodesrc rev-parse HEAD)"
+          echo "Cloned nodejs/node tag ${V} at commit ${COMMIT} (depth 1, single branch)."
+          # Move the upstream tree (including its .git) into the workspace root,
+          # beside _patches/, so the build steps see a normal node tree at $PWD.
+          shopt -s dotglob
+          mv nodesrc/* .
+          mv nodesrc/.git .
+          rmdir nodesrc
+          # Apply each section's patches - checksum-verified first, in name order -
+          # onto the pristine upstream tree. dist/all first, then the platform's
+          # families. No single build applies two sections that touch the same
+          # file, so order within a build never conflicts.
+          applied=0
+          for d in $DIRS; do
+            dir="_patches/dist/$d"
+            [ -d "$dir" ] || continue
+            for p in "$dir"/*.patch; do
+              [ -e "$p" ] || continue
+              n="$(basename "$p")"
+              ( cd "$dir" && sha256sum -c "${n%.patch}.sha256sum" )
+              echo "Applying ${d}/${n}"
+              git apply "$p"
+              applied=$((applied+1))
+            done
+          done
+          echo "Applied ${applied} patches (sections: $(printf '%s ' $DIRS)) onto upstream ${V}."
+          {
+            echo "### Source for ${{ matrix.platform }} (${V})"
+            echo ""
+            echo "| Upstream | Branch | Tag | Commit | Patch sections |"
+            echo "|----------|--------|-----|--------|----------------|"
+            echo "| nodejs/node | v${MAJOR}.x | ${V} | \`${COMMIT}\` | $(printf '%s ' $DIRS) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "UPSTREAM_COMMIT=$COMMIT" >> "$GITHUB_ENV"
+
+      # There is no QEMU step any more, and there is nothing left to register
+      # it for: i386 and the i386 cross containers run natively on an x86_64
+      # runner, and loong64 is a cross compile in an x86_64 container. Every
+      # job here builds on the CPU it is running on.
+
+      - name: Build (in a container of the target architecture)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'container') }}
+        run: |
+          set -euo pipefail
+          # The build tools INSIDE the target's own image, so the compiler, the
+          # linker and every library are the target's - and, which is the point,
+          # so is the HOST as far as V8 is concerned. V8 refuses an ia32 target
+          # on any other host (deps/v8/include/v8config.h), so this is not a
+          # convenience: it is the only arrangement that builds.
+          #
+          # i386 needs no emulation - an x86_64 CPU runs it natively.
+          docker run --rm --platform ${{ matrix.docker_platform }} \
+            -v "$PWD":/src -w /src \
+            -e MAKEFLAGS="-j$(nproc)" \
+            ${{ matrix.image }} \
+            sh -c '
+              set -eu
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential python3 ninja-build ca-certificates
+              ./configure ${{ matrix.configure_flags }}
+              make -j"$(nproc)"
+              strip out/Release/node
+            '
+
+      - name: Build (cross compile, in a container that has the toolchain)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'cross-container') }}
+        run: |
+          set -euo pipefail
+          # The container supplies the CROSS COMPILER, not the CPU: this runs on
+          # the runner's own x86_64 and produces loong64 or ARM32 objects, so it
+          # is as fast as any other cross build. CC_host/CXX_host are the host
+          # half of the split toolset - mksnapshot and the other build tools
+          # have to run here, so they are built with the container's native
+          # compiler while everything shipped is built with the cross one.
+          #
+          # LINK_host and AR_host have to be named too, and the reason is a
+          # fallback rather than a default. gyp's make generator resolves each
+          # host tool as GetEnvironFallback(("<TOOL>_host", "<TOOL>"), default)
+          # (tools/gyp/pylib/gyp/generator/make.py), so an unset LINK_host does
+          # NOT fall back to $(CXX.host) - it falls back to LINK, which is set
+          # just above to the CROSS linker. The host compiles then happen with
+          # g++ and the host LINK with the cross compiler, which is what the
+          # fifth run died of: node_js2c is a host tool built from obj.host
+          # objects, and linking it ran "arm-linux-gnueabihf-g++ ... -m32" -
+          # the host's own 32-bit flag handed to a compiler that has never
+          # heard of it ("unrecognized command-line option '-m32'; did you mean
+          # '-mbe32'?", and '-m64' in the loong64 container). AR_host had the
+          # same fallback and was archiving host objects with the cross ar.
+          #
+          # --platform is what picks WHICH host: loong64 cross compiles from the
+          # runner's own x86_64, but ARM32 has to be cross compiled from a
+          # 32-bit x86 host (v8config.h - see the matrix), so its container is
+          # an i386 one. Either way the CPU underneath is the runner's, and
+          # nothing is emulated.
+          docker run --rm --platform "${{ matrix.docker_platform || 'linux/amd64' }}" \
+            -v "$PWD":/src -w /src \
+            -e CC="${{ matrix.triple }}-gcc" \
+            -e CXX="${{ matrix.triple }}-g++" \
+            -e AR="${{ matrix.triple }}-ar" \
+            -e RANLIB="${{ matrix.triple }}-ranlib" \
+            -e LINK="${{ matrix.triple }}-g++" \
+            -e CC_host=gcc -e CXX_host=g++ -e LINK_host=g++ -e AR_host=ar \
+            ${{ matrix.image }} \
+            sh -c '
+              set -eu
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential python3 ninja-build ca-certificates \
+                ${{ matrix.apt_packages }}
+              ./configure ${{ matrix.configure_flags }}
+              make -j"$(nproc)"
+              ${{ matrix.triple }}-strip out/Release/node
+            '
+
+      # openssl's 32-bit Windows assembly is NASM syntax and the runner image
+      # has no NASM, so the first run answered "Could not find NASM" and
+      # configure quietly fell back to openssl_no_asm - a working binary with
+      # the slow C implementations of every cipher. Installing it takes seconds
+      # and gets the assembly back. continue-on-error because that fallback is
+      # automatic (configure.py sets openssl_no_asm when nasm is missing): if
+      # the install flakes, the build is slower, not broken.
+      - name: Install NASM, so openssl keeps its assembly
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'windows') }}
+        continue-on-error: true
+        shell: cmd
+        run: choco install nasm -y --no-progress
+
+      - name: Build (Windows)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'windows') }}
+        shell: cmd
+        run: |
+          call vcbuild.bat ${{ matrix.vcbuild_arch }} clang-cl release
+          if errorlevel 1 exit /b 1
+
+      # x64 and arm64 on Linux, and both macOS builds, run on a runner that IS
+      # the target CPU, so there is no container, no toolchain to install and no
+      # cross flags - just configure and make, which is also the configuration
+      # upstream builds these on.
+      - name: Build (natively, on a runner of this CPU)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'native' || matrix.mode == 'mac') }}
+        run: |
+          set -euo pipefail
+          if [ '${{ matrix.mode }}' = 'native' ]; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              build-essential python3 ninja-build ca-certificates
+            JOBS="$(nproc)"
+          else
+            # The macOS runners have Xcode and python3 already; ninja is the one
+            # thing worth adding, and it is what upstream uses too.
+            brew install ninja || true
+            JOBS="$(sysctl -n hw.ncpu)"
+          fi
+          ./configure ${{ matrix.configure_flags }}
+          make -j"$JOBS"
+          strip out/Release/node 2>/dev/null || true
+
+      - name: Name it for the release, and say what it is
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp out/Release/node "dist/node-${{ matrix.platform }}"
+          chmod +x "dist/node-${{ matrix.platform }}"
+          # `file` on the result is the one check worth having in the log: it is
+          # how a build that quietly produced an x86_64 binary - because a
+          # cross-compile flag was dropped - is caught before it is published as
+          # an ARM one.
+          file "dist/node-${{ matrix.platform }}"
+          ls -l "dist/node-${{ matrix.platform }}"
+          # A checksum beside the binary, so a consumer can tell a truncated or
+          # tampered download from a good one. nodejs.org publishes a
+          # SHASUMS256.txt and this repo published nothing, which is why WeKan's
+          # build could verify an official download and not this one.
+          ( cd dist && sha256sum "node-${{ matrix.platform }}" \
+              > "node-${{ matrix.platform }}.sha256sum" )
+          cat "dist/node-${{ matrix.platform }}.sha256sum"
+
+      - name: Name it for the release (Windows)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'windows') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          # `.exe`, like wekan/FerretDB's win32 asset: a Windows binary without
+          # it is not executable by double-click and confuses every tool that
+          # goes by extension.
+          cp Release/node.exe "dist/node-${{ matrix.platform }}.exe"
+          ls -l "dist/node-${{ matrix.platform }}.exe"
+          ( cd dist && sha256sum "node-${{ matrix.platform }}.exe" \
+              > "node-${{ matrix.platform }}.sha256sum" )
+          cat "dist/node-${{ matrix.platform }}.sha256sum"
+
+          # The IMPORT LIBRARY (node.lib), so native addons (bcrypt, ...) can LINK
+          # against this Node. node-gyp needs win-<arch>/node.lib, and nodejs.org
+          # no longer publishes it for 32-bit Windows (removed in Node 23), so a
+          # consumer must get it here: ship node-<platform>.lib beside the .exe and
+          # point node-gyp at it (npm_config_nodedir / a dist layout). vcbuild
+          # leaves node.lib in the same Release\ directory as node.exe.
+          if [ -f Release/node.lib ]; then
+            cp Release/node.lib "dist/node-${{ matrix.platform }}.lib"
+            ( cd dist && sha256sum "node-${{ matrix.platform }}.lib" \
+                > "node-${{ matrix.platform }}.lib.sha256sum" )
+            ls -l "dist/node-${{ matrix.platform }}.lib"
+          else
+            echo "::warning::Release/node.lib not found; native addons cannot link against node-${{ matrix.platform }} without it."
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ env.BUILD_THIS == 'true' }}
+        with:
+          name: node-${{ matrix.platform }}
+          path: dist/node-${{ matrix.platform }}*
+          if-no-files-found: error
+          retention-days: 7
+
+  # Every binary that built, attached to the release of this version, with the
+  # notes composed here. `always()` so two good platforms are still published
+  # when a third fails - the release then simply lists the two it has.
+  publish:
+    name: attach to the release
+    needs: build
+    if: ${{ always() && inputs.publish }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Resolve the version
+        id: ver
+        run: |
+          set -euo pipefail
+          # The newest upstream v<MAJOR>.x release (node-major.txt), or the version
+          # input when given. The node-patches release is tagged with that exact
+          # upstream version, since it IS upstream Node.js plus the patches.
+          V="$(bash releases/newest-release.sh . "${{ inputs.version }}")"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Release version: $V"
+
+      - name: Compose the release notes
+        id: notes
+        env:
+          # It asks the release what it already carries, so the notes describe
+          # what will be downloadable rather than only what this run built.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          BARE="${V#v}"                 # 24.18.1
+          MAJOR="${BARE%%.*}"           # 24
+
+          # The exact upstream commit this version's tag resolves to. The build
+          # jobs shallow-cloned nodejs/node at tag "$V"; a tag is immutable, so
+          # `git ls-remote` here resolves to the SAME commit they built from. The
+          # `^{}` line is the commit the (annotated) tag points at; fall back to
+          # the tag object's own line if there is no dereferenced one.
+          COMMIT="$(git ls-remote https://github.com/nodejs/node.git "refs/tags/$V^{}" \
+            | cut -f1)"
+          [ -n "$COMMIT" ] || COMMIT="$(git ls-remote https://github.com/nodejs/node.git \
+            "refs/tags/$V" | cut -f1)"
+
+          # 1. Which platforms THIS RUN built - reported so the run's own log
+          #    says what it produced. The release itself ACCUMULATES (the publish
+          #    step leaves other runs' assets in place), so what is downloadable
+          #    is whatever gh release view reports, printed at the end.
+          #
+          # `|| true`: when EVERY build fails there are no artifacts, dist/ does
+          # not exist, and `ls` exits 2 - which under `set -e` killed this step
+          # with a bare "Process completed with exit code 2" and no word about
+          # what was actually wrong. The empty case is handled below, where it
+          # can say so.
+          # grep -v the checksum files: dist/ now holds node-i386 AND
+          # node-i386.sha256sum, and only the first is a platform.
+          present="$( (ls dist 2>/dev/null || true) | grep -v '\.sha256sum$' \
+            | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' | sort -u)"
+          plats=""
+          for a in x64 arm64 i386 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64; do
+            printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
+          done
+          for a in $present; do
+            printf ' %s ' "x64 arm64 i386 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64" | grep -q " $a " || plats="${plats:+$plats }$a"
+          done
+          if [ -z "$plats" ]; then
+            echo "::error::No platform produced a binary - every build job failed. Their logs say why; nothing is published."
+            exit 1
+          fi
+          # Comma-separated for the `Platforms:` line, which is the form the
+          # FerretDB releases use; the sentence above it keeps the plain spaces
+          # it is read as.
+          plats_csv="$(printf '%s' "$plats" | sed 's/ /, /g')"
+
+          # 2. The upstream release notes for this exact version, out of the
+          #    upstream changelog in the cloned Node.js tree. Sections are anchored
+          #    `<a id="24.18.1"></a>` and run to the next `<a id="`, which is a
+          #    firmer boundary than the `## <date>, Version ...` heading.
+          CHANGELOG="doc/changelogs/CHANGELOG_V${MAJOR}.md"
+          : > upstream-notes.md
+          if [ -f "$CHANGELOG" ]; then
+            awk -v ver="$BARE" '
+              $0 ~ ("^<a id=\"" ver "\"></a>") { inblock=1; next }
+              inblock && /^<a id="/ { exit }
+              inblock { print }
+            ' "$CHANGELOG" > upstream-notes.md
+            sed -i -e '/./,$!d' upstream-notes.md
+          fi
+          if [ ! -s upstream-notes.md ]; then
+            echo "::warning::No $CHANGELOG section for $BARE - the notes will carry the header only."
+          fi
+
+          # 3. The header xet7 asked for, then the platforms, then upstream's
+          #    own notes for that version underneath.
+          {
+            echo "Node.js JavaScript runtime ✨🐢🚀✨"
+            echo ""
+            echo "$plats that are not at https://nodejs.org/dist/$V/ and https://unofficial-builds.nodejs.org/download/release/$V/"
+            echo ""
+            echo "Platforms: $plats_csv"
+            echo ""
+            echo "Built by Release All from wekan/node-patches: upstream Node.js of this version plus the per-platform patch sections in dist/ (all/ plus the target's families). One node-<platform> executable per platform, no archive. A release ACCUMULATES - a re-run replaces the platforms it rebuilds and leaves the rest, so all platforms for a version collect on one release."
+            echo ""
+            echo "Cloned from (shallow, single branch, --depth 1):"
+            echo ""
+            echo "| Upstream | Branch | Tag | Commit |"
+            echo "|----------|--------|-----|--------|"
+            echo "| [nodejs/node](https://github.com/nodejs/node) | v${MAJOR}.x | [$V](https://github.com/nodejs/node/releases/tag/$V) | [\`$COMMIT\`](https://github.com/nodejs/node/commit/$COMMIT) |"
+            echo ""
+            cat upstream-notes.md
+          } > release-notes.md
+
+          echo "----- release notes for $V -----"
+          cat release-notes.md
+          echo "notes_file=release-notes.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update the release, with a binary per platform
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
+          shopt -s nullglob
+          assets=(dist/node-*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "::error::No binaries were built - nothing to publish."
+            exit 1
+          fi
+          # --clobber lets a re-run replace an asset of the same name in place
+          # rather than failing the upload on it, so a fixed build of a platform
+          # is published over the broken one on the release it is attached to.
+          # Assets this run did NOT build are LEFT ALONE (see the note below the
+          # upload) - the release ACCUMULATES every platform of this version.
+          # --target pins a NEW tag to the commit that was built rather than to
+          # whatever the default branch has moved to since.
+          if gh release view "$V" >/dev/null 2>&1; then
+            gh release upload "$V" "${assets[@]}" --clobber
+            gh release edit "$V" --title "$V" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$V" "${assets[@]}" \
+              --title "$V" \
+              --target "${{ github.sha }}" \
+              --notes-file "$NOTES_FILE"
+          fi
+
+          # The release ACCUMULATES: assets from earlier runs that this run did
+          # not rebuild are LEFT IN PLACE, so every platform's binary for this
+          # version collects on one release across however many runs it takes to
+          # build them all. This is the whole point of "release all missing" -
+          # one CPU that fails today must not cost the release the binaries the
+          # others already published, and the ones that DID build here overwrite
+          # their old copies via --clobber above.
+          #
+          # (An earlier version SWEPT away every node-* not built by the current
+          # run, to keep a release to a single run's binaries. That deleted the
+          # platforms a partial run did not touch - the opposite of "add the
+          # missing ones" - so it is gone. Each version has its own tag, so
+          # accumulating within a tag only ever gathers builds of that version.)
+          echo "The release now carries these binaries (accumulated across runs):"
+          gh release view "$V" --json assets --jq '.assets[].name'

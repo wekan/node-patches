@@ -1,0 +1,82 @@
+diff --git a/deps/zlib/zlib.gyp b/deps/zlib/zlib.gyp
+--- a/deps/zlib/zlib.gyp
++++ b/deps/zlib/zlib.gyp
+@@ -38,6 +38,15 @@
+             }],
+             ['arm_fpu=="neon"', {
+               'defines': [ 'ADLER32_SIMD_NEON' ],
++              'conditions': [
++                # On arm64 NEON is part of the architecture and the compiler
++                # needs no telling. On 32-bit ARM it is an extension: the file
++                # is compiled as plain ARMv7-A and every NEON intrinsic in it
++                # then fails to inline - "target specific option mismatch".
++                ['target_arch=="arm"', {
++                  'cflags': [ '-mfpu=neon' ],
++                }],
++              ],
+             }],
+           ],
+           'include_dirs': [ '<(ZLIB_ROOT)' ],
+@@ -156,6 +181,10 @@
+                 ['target_arch=="arm64"', {
+                   'defines': [ 'INFLATE_CHUNK_READ_64LE' ],
+                 }],
++                # See zlib_adler32_simd above: 32-bit ARM has to be told.
++                ['target_arch=="arm"', {
++                  'cflags': [ '-mfpu=neon' ],
++                }],
+               ],
+             }],
+           ],
+@@ -236,7 +279,19 @@
+                     ['OS!="ios"', {
+                       'dependencies': [
+                         'zlib_adler32_simd',
+-                        'zlib_arm_crc32',
++                      ],
++                      'conditions': [
++                        # zlib_arm_crc32 is ARMv8, not NEON: its one source
++                        # file is compiled -march=armv8-a+aes+crc, and a
++                        # 32-bit ARM compiler rejects that outright (+aes is
++                        # an AArch64-only modifier). An ARMv7 binary has no
++                        # business carrying ARMv8 CRC instructions either.
++                        # arm_fpu=="neon" means "this target has NEON", which
++                        # every arm64 has and an ARMv7-A board may; only arm64
++                        # implies ARMv8, so only arm64 takes this dependency.
++                        ['target_arch=="arm64"', {
++                          'dependencies': [ 'zlib_arm_crc32' ],
++                        }],
+                       ],
+                     }],
+                   ],
+@@ -244,6 +299,30 @@
+                 ['target_arch=="arm64"', {
+                   'defines': [ 'INFLATE_CHUNK_READ_64LE' ],
+                 }],
++                # deflate.c's slide_hash_simd.h is NEON here. 32-bit ARM has
++                # to be told it may use it; on arm64 NEON is the baseline.
++                ['target_arch=="arm"', {
++                  'cflags': [ '-mfpu=neon' ],
++                  # ADLER32_SIMD_NEON (propagated by zlib_adler32_simd, which
++                  # 32-bit ARM+NEON depends on above) makes adler32.c call
++                  # cpu_check_features(). cpu_features.c only compiles that
++                  # function when an ARMV8_OS_* macro names the platform, and on
++                  # arm64 that macro arrives with the ARMv8-only zlib_arm_crc32
++                  # dependency - which a 32-bit ARM target deliberately does NOT
++                  # take. Set it directly here, or openssl-cli fails to link with
++                  # "adler32.c: undefined reference to cpu_check_features".
++                  'conditions': [
++                    ['OS=="android"', {
++                      'defines': [ 'ARMV8_OS_ANDROID' ],
++                    }],
++                    ['OS=="linux" or OS=="openharmony"', {
++                      'defines': [ 'ARMV8_OS_LINUX' ],
++                    }],
++                    ['OS=="mac"', {
++                      'defines': [ 'ARMV8_OS_MACOS' ],
++                    }],
++                  ],
++                }],
+               ],
+             }],
+           ],

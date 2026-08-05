@@ -1,0 +1,41 @@
+diff --git a/tools/icu/icu-generic.gyp b/tools/icu/icu-generic.gyp
+index f49b4ddba74..6e8692ccdc3 100644
+--- a/tools/icu/icu-generic.gyp
++++ b/tools/icu/icu-generic.gyp
+@@ -11,6 +11,22 @@
+       '<(icu_path)/source/tools/genrb/derb.c',
+       '<(icu_path)/source/tools/genrb/derb.cpp'
+     ],
++    # genccode's -c takes ICU's name for the CPU, not node's. The two agree on
++    # x64, arm64 and arm purely by coincidence; on 32-bit x86 node says ia32
++    # and ICU says x86, and checkCpuArchitecture() in
++    # source/tools/toolutil/pkg_genc.cpp accepts only x64/x86/arm64/arm. That
++    # is why a ClangCL x86 build stopped with "CPU architecture "ia32" is
++    # unknown." and MSB8066 on icudt<ver>l.dat. x86 is the right answer: the
++    # same file maps it to IMAGE_FILE_MACHINE_I386, which is the machine type
++    # a 32-bit .obj needs. Nothing upstream hit this because upstream no
++    # longer builds 32-bit Windows.
++    'conditions': [
++      [ 'target_arch=="ia32"', {
++        'icu_cpu_arch%': 'x86',
++      }, {
++        'icu_cpu_arch%': '<(target_arch)',
++      }],
++    ],
+   },
+   'includes': [ '../../icu_config.gypi' ],
+   'targets': [
+@@ -148,10 +164,11 @@
+                       'inputs': [ '<(icu_data_in)' ],
+                       'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.<(icu_asm_ext)' ],
+                       # on Windows, we can go directly to .obj file (-o) option.
+-                      # for Clang use "-c <(target_arch)" option
++                      # for Clang use "-c <(icu_cpu_arch)" option - ICU's name
++                      # for the CPU, which is not always node's (see above)
+                       'action': [ '<(PRODUCT_DIR)/genccode<(EXECUTABLE_SUFFIX)',
+                                   '<@(icu_asm_opts)', # -o
+-                                  '-c', '<(target_arch)',
++                                  '-c', '<(icu_cpu_arch)',
+                                   '-d', '<(SHARED_INTERMEDIATE_DIR)',
+                                   '-n', 'icudata',
+                                   '-e', 'icudt<(icu_ver_major)',

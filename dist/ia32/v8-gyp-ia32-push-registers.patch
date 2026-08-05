@@ -1,0 +1,21 @@
+diff --git a/tools/v8_gypfiles/v8.gyp b/tools/v8_gypfiles/v8.gyp
+--- a/tools/v8_gypfiles/v8.gyp
++++ b/tools/v8_gypfiles/v8.gyp
+@@ -2056,6 +2087,17 @@
+                   '<(V8_ROOT)/src/heap/base/asm/x64/push_registers_masm.asm',
+                 ],
+               }],
++              # 32-bit Windows, restored (removed upstream in 7ad0cc3e571).
++              # NOT the push_registers_masm.asm that removal named: this V8 has
++              # no ia32 masm any more, only push_registers_asm.cc - whose
++              # top-level asm() carries a _WIN32 branch, so it is meant for
++              # Windows but written in Clang's syntax. That is why the win32
++              # build below uses ClangCL and not cl.exe.
++              ['_toolset == "host" and host_arch == "ia32" or _toolset == "target" and target_arch=="ia32"', {
++                'sources': [
++                  '<(V8_ROOT)/src/heap/base/asm/ia32/push_registers_asm.cc',
++                ],
++              }],
+               ['_toolset == "host" and host_arch == "arm64" or _toolset == "target" and target_arch=="arm64"', {
+                 'conditions': [
+                   ['clang==1', {

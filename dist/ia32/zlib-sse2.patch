@@ -1,0 +1,47 @@
+diff --git a/deps/zlib/zlib.gyp b/deps/zlib/zlib.gyp
+--- a/deps/zlib/zlib.gyp
++++ b/deps/zlib/zlib.gyp
+@@ -148,6 +157,22 @@
+                 ['target_arch=="x64"', {
+                   'defines': [ 'INFLATE_CHUNK_READ_64LE' ],
+                 }],
++                # SSE2 is part of x86_64 and needs no flag there. On 32-bit x86
++                # it is not: gcc targets plain i686 and rejects every SSE2
++                # intrinsic this file uses. Node's ia32 build already requires
++                # an SSE2 CPU - V8's ia32 code generator emits SSE2 - so this
++                # asks the compiler for what the binary needs anyway.
++                ['target_arch=="ia32" and (OS!="win" or clang==1)', {
++                  'cflags': [ '-msse2' ],
++                  'xcode_settings': {
++                    'OTHER_CFLAGS': [ '-msse2' ],
++                  },
++                  'msvs_settings': {
++                    'VCCLCompilerTool': {
++                      'AdditionalOptions': [ '-msse2' ],
++                    },
++                  },
++                }],
+               ],
+             }],
+             ['arm_fpu=="neon"', {
+@@ -221,6 +250,20 @@
+                 ['target_arch=="x64"', {
+                   'defines': [ 'INFLATE_CHUNK_READ_64LE' ],
+                 }],
++                # deflate.c pulls in slide_hash_simd.h, which is SSE2 for x86.
++                # Same reason as zlib_data_chunk_simd above: x86_64 has SSE2,
++                # 32-bit x86 has to be told it may use it.
++                ['target_arch=="ia32" and (OS!="win" or clang==1)', {
++                  'cflags': [ '-msse2' ],
++                  'xcode_settings': {
++                    'OTHER_CFLAGS': [ '-msse2' ],
++                  },
++                  'msvs_settings': {
++                    'VCCLCompilerTool': {
++                      'AdditionalOptions': [ '-msse2' ],
++                    },
++                  },
++                }],
+               ],
+             }],
+             ['arm_fpu=="neon"', {
