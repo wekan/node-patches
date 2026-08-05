@@ -189,7 +189,7 @@ and fixes the following in the release workflows:
 publishes.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The upstream tree is moved into the workspace once, not twice, so the builds get past the clone</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/6f673ce1536f17cdd1d90e5e7366a54137919173">The upstream tree is moved into the workspace once, not twice, so the builds get past the clone</a>. Thanks to xet7.</summary>
 
 The first run failed all thirteen builds, three seconds after cloning, before a
 compiler ever started - and the publish job with them, since it then had no
@@ -217,7 +217,7 @@ moved, checksum-verified and patched, for `x64` (one section) and for `win32`
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The release notes carry upstream's own notes again, fetched from the tag rather than read from a tree that is not there</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/6f673ce1536f17cdd1d90e5e7366a54137919173">The release notes carry upstream's own notes again, fetched from the tag rather than read from a tree that is not there</a>. Thanks to xet7.</summary>
 
 The publish job composed the notes by reading
 `doc/changelogs/CHANGELOG_V24.md` out of the workspace. That job checks out THIS
@@ -231,7 +231,7 @@ pasting an error page into the release.
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The Windows import library stops appearing on the release as a platform of its own</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/6f673ce1536f17cdd1d90e5e7366a54137919173">The Windows import library stops appearing on the release as a platform of its own</a>. Thanks to xet7.</summary>
 
 The Windows jobs upload `node-win32.lib` beside `node-win32.exe` - the import
 library native addons link against. The notes step turned every downloaded
@@ -242,7 +242,7 @@ filtered out with the checksums now.
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">The actions are off the deprecated Node 20 runtime</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/6f673ce1536f17cdd1d90e5e7366a54137919173">The actions are off the deprecated Node 20 runtime</a>. Thanks to xet7.</summary>
 
 Every job warned that `actions/checkout@v4` and `actions/download-artifact@v4`
 target Node.js 20 and were being forced onto Node 24. They move to the majors
@@ -254,7 +254,7 @@ WeKan's own release workflow already runs - `checkout@v7`,
 and adds the following tests:
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/COMMITHASH">Two test scripts that run without a 13-platform build</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/6f673ce1536f17cdd1d90e5e7366a54137919173">Two test scripts that run without a 13-platform build</a>. Thanks to xet7.</summary>
 
 A build takes hours on thirteen platforms and cannot run in the sandbox at all,
 so the failures worth catching are the ones that kill a job in its first
