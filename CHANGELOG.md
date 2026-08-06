@@ -251,6 +251,73 @@ WeKan's own release workflow already runs - `checkout@v7`,
 
 </details>
 
+and fixes the three builds the second run lost:
+
+**Windows** - both builds, dead in their first seconds, on the first thing the
+build does.
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/6e2cc9e">The Windows builds get past their first step: patches are checked out byte-exact</a>. Thanks to xet7.</summary>
+
+win64 and win32 both died seconds after cloning:
+
+```
+sha256sum: 'v8-turboshaft-template-disambiguator.patch'$'\r': No such file
+sha256sum: WARNING: 1 listed file could not be read
+```
+
+and the step ended with exit code 1.
+
+Git for Windows checks text files out with CRLF — `core.autocrlf=true` is its
+default and `actions/checkout` does not turn it off — so the `.sha256sum` files
+arrived with a trailing carriage return and `sha256sum -c`, which reads the
+FILENAME out of that file, went looking for a file whose name ends in one. The
+`.patch` files had been converted too, so had the checksum somehow passed,
+`git apply` would have failed next on a patch whose every line ends CRLF while
+the upstream file it patches ends LF.
+
+`.gitattributes` now marks `*.patch` and `*.sha256sum` as `-text`: no checkout
+converts them, on any platform, which also matters because a patch's own content
+may legitimately be CRLF — `win32/32bit-windows-build` patches `vcbuild.bat`.
+The build's check no longer hands the file to `sha256sum -c` either; it compares
+the recorded hash itself, with any CR stripped. That is the belt to the braces,
+since `.gitattributes` only helps a checkout that happens after it.
+
+</details>
+
+**IBM Z** - the one platform whose mksnapshot runs a big-endian guest on a
+little-endian host.
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/6e2cc9e">The s390x mksnapshot gets a bigger simulated stack, and the platform is best-effort for now</a>. Thanks to xet7.</summary>
+
+s390x segfaulted three and a half hours in, generating the V8 snapshot:
+
+```
+"/src/out/Release/mksnapshot" --turbo_instruction_scheduling --target_os=linux
+  --target_arch=s390x ... --single-threaded --no-native-code-counters
+Segmentation fault (core dumped)
+make[1]: *** [tools/v8_gypfiles/v8_snapshot.target.mk:17: ...] Error 139
+```
+
+The command line shows the two fixes it already has — fully single-threaded, and
+the register-allocator stress flag gone — so what is left is not concurrency. The
+next explanation that fits a bare `SIGSEGV` with no V8 message at all is the
+SIMULATED stack: it is a malloc'd buffer of `v8_flags.sim_stack_size`, 2 MB by
+default (`deps/v8/src/flags/flag-definitions.h`), and running off the end of it
+segfaults exactly like this. `dist/s390x/v8-gyp-s390x-mksnapshot` now asks for
+16 MB.
+
+It is a hypothesis until a run proves it, and a platform whose build has failed
+twice should not hold up the eleven that work, so s390x is BEST-EFFORT in the
+matrix — `continue-on-error`, and the only platform that is. nodejs.org publishes
+linux-s390x for every release and WeKan's `resolve-node-source.sh` takes its
+Node.js from nodejs.org first, so the gap costs a WeKan bundle nothing meanwhile,
+and the platform comes back by itself the day it builds. The same arrangement
+WeKan's own release gives its emulated extra-arch bundles.
+
+</details>
+
 and adds the following tests:
 
 <details>
@@ -280,6 +347,19 @@ cumulatively, checksum first, as the workflow does. No clone: a gigabyte to
 answer a question about thirteen files. It exits 77 when upstream is
 unreachable, so a sandbox without network says so instead of reporting a green
 run it did not do.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/6e2cc9e">Guards so the second run's two failures cannot come back unnoticed</a>. Thanks to xet7.</summary>
+
+`tests/workflow-logic.sh` now also checks that `.gitattributes` marks `*.patch`
+and `*.sha256sum` as `-text`, since a repository without that line is one
+Windows checkout away from the failure above; that the build's checksum check —
+extracted from the workflow and run, as everything else in that file is —
+accepts a `.sha256sum` written with CRLF and still rejects a wrong hash; and
+that s390x is the ONLY platform marked best-effort, because a platform that
+quietly stops building is a platform nobody notices is gone.
 
 </details>
 
