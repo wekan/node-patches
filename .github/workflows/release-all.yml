@@ -315,26 +315,34 @@ jobs:
             configure_flags: >-
               --dest-cpu=ppc64 --dest-os=linux --cross-compiling
             timeout_minutes: 300
-          # s390x is BEST-EFFORT, and it is the only platform here that is.
-          # It is the one target whose mksnapshot runs a BIG-ENDIAN guest on a
-          # little-endian host, and that simulator keeps segfaulting during
-          # snapshot generation: the second run died after three and a half
-          # hours with "Segmentation fault (core dumped)" and v8_snapshot
-          # Error 139, having already been made single-threaded and had the
-          # register-allocator stress flag removed for exactly this reason.
-          # dist/s390x/v8-gyp-s390x-mksnapshot now also raises the simulated
-          # stack, which is the next thing that explains a bare SIGSEGV with no
-          # V8 message - but that is a hypothesis until a run proves it.
+          # s390x is the one BIG-ENDIAN target, and it needs its own build MODE
+          # (cross-qemu). Every other cross target runs mksnapshot as a HOST
+          # (x86_64) binary that SIMULATES the target inside V8; the little-endian
+          # ones (ppc64le, riscv64, loong64) simulate fine, but the big-endian
+          # s390x simulator segfaults during snapshot generation every time -
+          # "Segmentation fault (core dumped)", v8_snapshot Error 139 - and no
+          # amount of simulator flags (single-threaded, dropped stress flag,
+          # raised sim-stack-size, all tried) fixed it.
           #
-          # Best-effort means the release does not hang on it: nodejs.org
-          # publishes linux-s390x for every release and WeKan's
-          # resolve-node-source.sh takes its Node.js from nodejs.org FIRST, so
-          # an s390x binary missing here costs a WeKan bundle nothing. The job
-          # still runs, still logs, and the platform comes back by itself the
-          # day it builds - which is the same arrangement WeKan's own release
-          # gives its emulated extra-arch bundles.
+          # cross-qemu builds it the way nodejs.org does - a REAL s390x
+          # mksnapshot, no simulator - only the CPU is emulated: the object files
+          # are still cross-compiled at native speed, and the few build-tools that
+          # must RUN (mksnapshot, torque, ...) are built for s390x and executed
+          # through qemu-user (registered via binfmt). want_separate_host_toolset
+          # is turned off so those tools build for the target instead of the host;
+          # QEMU_LD_PREFIX points qemu at the cross toolchain's s390x libraries.
+          # Because it is a clean native-style build, s390x needs NO source
+          # patches now (the old dist/s390x simulator patches are gone).
+          #
+          # Still BEST-EFFORT until a run proves it: the release does not hang on
+          # it - nodejs.org publishes linux-s390x for every release and WeKan's
+          # resolve-node-source.sh takes its Node.js from nodejs.org FIRST, so an
+          # s390x binary missing here costs a WeKan bundle nothing. The job still
+          # runs, still logs, and the platform comes back by itself the day it
+          # builds - the same arrangement WeKan's own release gives its emulated
+          # extra-arch bundles.
           - platform: s390x
-            mode: cross-container
+            mode: cross-qemu
             image: debian:trixie
             triple: s390x-linux-gnu
             apt_packages: gcc-s390x-linux-gnu g++-s390x-linux-gnu
@@ -527,10 +535,17 @@ jobs:
           echo "VERSION=$V" >> "$GITHUB_ENV"
           echo "UPSTREAM_COMMIT=$COMMIT" >> "$GITHUB_ENV"
 
-      # There is no QEMU step any more, and there is nothing left to register
-      # it for: i386 and the i386 cross containers run natively on an x86_64
-      # runner, and loong64 is a cross compile in an x86_64 container. Every
-      # job here builds on the CPU it is running on.
+      # QEMU is registered for exactly ONE platform: s390x (mode cross-qemu).
+      # Every other job builds tools that run on the CPU it is running on -
+      # i386 and the i386 cross containers run natively on an x86_64 runner, and
+      # loong64/ppc64le/riscv64 run their build-tools as host-arch V8 simulators.
+      # s390x is the one whose (big-endian) simulator segfaults, so it runs a
+      # real s390x mksnapshot under qemu-user instead - which needs binfmt
+      # registered on the runner, with the F flag so the interpreter is visible
+      # inside the build container too. --install <arch> uses that flag.
+      - name: Register qemu-user for the target CPU (cross-qemu only)
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'cross-qemu' }}
+        run: docker run --privileged --rm tonistiigi/binfmt:latest --install ${{ matrix.platform }}
 
       - name: Build (in a container of the target architecture)
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'container') }}
@@ -603,6 +618,53 @@ jobs:
                 build-essential python3 ninja-build ca-certificates \
                 ${{ matrix.apt_packages }}
               ./configure ${{ matrix.configure_flags }}
+              make -j"$(nproc)"
+              ${{ matrix.triple }}-strip out/Release/node
+            '
+
+      - name: Build (cross compile, run target build-tools under qemu-user)
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'cross-qemu') }}
+        run: |
+          set -euo pipefail
+          # Option B for the big-endian s390x, whose host-arch V8 simulator
+          # segfaults generating the snapshot. The cross compiler still produces
+          # every .o at native speed; the difference is HOW the build-tools that
+          # must RUN (mksnapshot, torque, ...) are made and run:
+          #
+          #   want_separate_host_toolset = 0  - build those tools for the TARGET
+          #     (a real s390x mksnapshot) instead of for the host (an x86_64
+          #     mksnapshot that SIMULATES s390x). It is edited into config.gypi
+          #     after ./configure; out/Makefile depends on config.gypi, so `make`
+          #     re-runs gyp and picks it up.
+          #   qemu-user (binfmt, registered above) then RUNS those s390x tools,
+          #     with QEMU_LD_PREFIX pointing at the cross toolchain's s390x
+          #     libraries (/usr/<triple>, installed by g++-<triple>) so the
+          #     dynamically-linked tools find their libc/libstdc++.
+          #
+          # This is how nodejs.org builds s390x - a real mksnapshot, no simulator
+          # - only the CPU is emulated, and only for the seconds a tool runs.
+          docker run --rm --platform linux/amd64 \
+            -v "$PWD":/src -w /src \
+            -e CC="${{ matrix.triple }}-gcc" \
+            -e CXX="${{ matrix.triple }}-g++" \
+            -e AR="${{ matrix.triple }}-ar" \
+            -e RANLIB="${{ matrix.triple }}-ranlib" \
+            -e LINK="${{ matrix.triple }}-g++" \
+            -e QEMU_LD_PREFIX="/usr/${{ matrix.triple }}" \
+            ${{ matrix.image }} \
+            sh -c '
+              set -eu
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential python3 ninja-build ca-certificates \
+                ${{ matrix.apt_packages }}
+              ./configure ${{ matrix.configure_flags }}
+              # Build the V8 build-tools for the target and run them under qemu,
+              # instead of simulating the target inside a host mksnapshot.
+              sed -i "/want_separate_host_toolset/ s/: 1/: 0/" config.gypi
+              echo "config.gypi now has:"; grep -n want_separate_host_toolset config.gypi
+              grep -q "want_separate_host_toolset': 0" config.gypi \
+                || { echo "::error::could not set want_separate_host_toolset=0 in config.gypi"; exit 1; }
               make -j"$(nproc)"
               ${{ matrix.triple }}-strip out/Release/node
             '

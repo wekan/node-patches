@@ -277,10 +277,11 @@ fi
 # ── 8. Only a platform that is meant to be best-effort is one ────────────────
 #
 # `continue-on-error` on a matrix entry means a failure of that platform does not
-# fail the workflow. That is right for s390x - its mksnapshot segfaults in the
-# big-endian simulator, and nodejs.org publishes linux-s390x anyway - and wrong
-# for anything else, because a platform that quietly stops building is a platform
-# nobody notices is gone.
+# fail the workflow. That is right for s390x - the only big-endian target, built
+# with a real mksnapshot under qemu-user (cross-qemu mode), which is unproven
+# until a run confirms it, and nodejs.org publishes linux-s390x anyway - and
+# wrong for anything else, because a platform that quietly stops building is a
+# platform nobody notices is gone.
 echo
 echo "Best-effort is a per-platform decision, and only s390x makes it:"
 grep -q 'continue-on-error: \${{ matrix.best_effort == true }}' "$ALL" \

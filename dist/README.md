@@ -13,7 +13,6 @@ sections are version-agnostic and carry forward across upstream releases.
 | `all/` | every platform | Cross-cutting source fixes valid everywhere (V8 Turboshaft template disambiguator). |
 | `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping. |
 | `arm/` | armhf, armv7 | 32-bit ARM: zlib `-mfpu=neon`, ARMv8-only CRC path kept off ARMv7. |
-| `s390x/` | s390x | IBM Z cross-build under the V8 simulator: mksnapshot single-threaded, simulator const-cast. |
 | `mac/` | mac-x64, mac-arm64 | Apple Clang: KMAC brace initialisation. |
 | `win32/` | win32 | Windows 32-bit build restoration (upstream removed it in Node 23). |
 
@@ -29,7 +28,7 @@ with the build matrix in [`../.github/workflows/release-all.yml`](../.github/wor
 | i386 | `all`, `ia32` |
 | win32 | `all`, `ia32`, `win32` |
 | armhf, armv7 | `all`, `arm` |
-| s390x | `all`, `s390x` |
+| s390x | `all` |
 | mac-x64, mac-arm64 | `all`, `mac` |
 
 `all/` is applied first, then each family/platform section. No single build applies

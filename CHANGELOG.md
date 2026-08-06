@@ -59,13 +59,14 @@ Nothing carried yet — this is the first patch set.
 repository that carries it — a **patches-only** repo modelled on
 [Betterbird/thunderbird-patches](https://github.com/Betterbird/thunderbird-patches).
 It holds no Node.js source: patches are organised by platform into a common
-**`all/`** section and the **`ia32/`**, **`arm/`**, **`s390x/`**, **`mac/`** and
-**`win32/`** family sections, and the **Release All** / **Release All Missing**
-workflows clone the newest upstream release, verify and apply each platform's
-sections, and build the thirteen-platform binary set that WeKan embeds. The patches
-restore **32-bit Windows**, add the **32-bit x86** and **32-bit ARM** SIMD/build
-flags, fix the **s390x** cross-build, and correct **Apple Clang** and **V8** compile
-errors. Below that: the fixes the **first run** turned up — a `mv` that could never
+**`all/`** section and the **`ia32/`**, **`arm/`**, **`mac/`** and **`win32/`**
+family sections, and the **Release All** / **Release All Missing** workflows clone
+the newest upstream release, verify and apply each platform's sections, and build
+the thirteen-platform binary set that WeKan embeds. The patches restore **32-bit
+Windows**, add the **32-bit x86** and **32-bit ARM** SIMD/build flags, and correct
+**Apple Clang** and **V8** compile errors; **s390x** builds with a real
+**mksnapshot** under **qemu-user** instead of the big-endian V8 simulator, so it
+needs no patch of its own. Below that: the fixes the **first run** turned up — a `mv` that could never
 work and killed all thirteen builds seconds after cloning, release notes read from a
 tree this repo does not have, and a `.lib` listed as a platform — the two **test
 scripts** that now catch that class of failure in a second instead of hours, and the
@@ -129,30 +130,6 @@ otherwise compiled as plain ARMv7-A, so its NEON intrinsics fail to inline.
 `deps/zlib/zlib.gyp` adds `-mfpu=neon` for `target_arch=="arm"`, scopes the ARMv8-only
 `zlib_arm_crc32` dependency to arm64, and sets `ARMV8_OS_*` directly so 32-bit ARM
 links. Split by hunk from the former combined zlib patch.
-
-</details>
-
-**IBM Z** (`dist/s390x/`) - applied to s390x.
-
-<details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">v8-gyp-s390x-mksnapshot — runs s390x mksnapshot single-threaded so it does not segfault the V8 simulator</a>. Thanks to xet7.</summary>
-
-mksnapshot for s390x runs the target code under the big-endian s390x V8 simulator on
-the x86_64 host, and that simulator is not thread-safe here. `tools/v8_gypfiles/v8.gyp`
-drops the `--stress-turbo-late-spilling` default for s390x, excludes it from
-`--concurrent-builtin-generation`, and forces it fully `--single-threaded`. Because it
-is applied only to s390x, every other platform keeps upstream's defaults. Split by
-hunk from the former combined v8-gyp patch.
-
-</details>
-
-<details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">s390-simulator-const-cast — fixes the s390 constants build under the V8 simulator</a>. Thanks to xet7.</summary>
-
-`deps/v8/src/codegen/s390/constants-s390.h` needs a const-cast so the s390 V8
-simulator — used to cross-build the s390x mksnapshot on an x86 host — compiles.
-nodejs.org builds s390x natively and does not compile the simulator, so upstream never
-hit this.
 
 </details>
 
@@ -285,36 +262,32 @@ since `.gitattributes` only helps a checkout that happens after it.
 
 </details>
 
-**IBM Z** - the one platform whose mksnapshot runs a big-endian guest on a
-little-endian host.
+**IBM Z** - the one big-endian platform, now built like a native s390x build.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/6e2cc9e">The s390x mksnapshot gets a bigger simulated stack, and the platform is best-effort for now</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">s390x builds a real mksnapshot under qemu-user instead of V8's big-endian simulator</a>. Thanks to xet7.</summary>
 
-s390x segfaulted three and a half hours in, generating the V8 snapshot:
+Every cross target runs mksnapshot as a host binary that SIMULATES the target
+inside V8. The little-endian ones (ppc64le, riscv64, loong64) simulate fine, but
+the big-endian s390x simulator segfaulted every time it generated the
+snapshot - `Segmentation fault (core dumped)`, `v8_snapshot` Error 139 - and
+single-threaded mode, dropping the register-allocator stress flag, and a 16 MB
+simulated stack all failed to stop it.
 
-```
-"/src/out/Release/mksnapshot" --turbo_instruction_scheduling --target_os=linux
-  --target_arch=s390x ... --single-threaded --no-native-code-counters
-Segmentation fault (core dumped)
-make[1]: *** [tools/v8_gypfiles/v8_snapshot.target.mk:17: ...] Error 139
-```
+s390x now builds the way nodejs.org does: a REAL s390x mksnapshot, no
+simulator. The new `cross-qemu` build mode turns `want_separate_host_toolset`
+off so the V8 build-tools compile for the target, registers qemu-user via
+binfmt, and runs those s390x tools through it with `QEMU_LD_PREFIX` pointing at
+the cross toolchain's libraries. The object files are still cross-compiled at
+native speed; only the few seconds a build-tool runs are emulated. Because it is
+a clean native-style build, the two `dist/s390x` simulator patches are removed -
+s390x needs no patch of its own now.
 
-The command line shows the two fixes it already has — fully single-threaded, and
-the register-allocator stress flag gone — so what is left is not concurrency. The
-next explanation that fits a bare `SIGSEGV` with no V8 message at all is the
-SIMULATED stack: it is a malloc'd buffer of `v8_flags.sim_stack_size`, 2 MB by
-default (`deps/v8/src/flags/flag-definitions.h`), and running off the end of it
-segfaults exactly like this. `dist/s390x/v8-gyp-s390x-mksnapshot` now asks for
-16 MB.
-
-It is a hypothesis until a run proves it, and a platform whose build has failed
-twice should not hold up the eleven that work, so s390x is BEST-EFFORT in the
-matrix — `continue-on-error`, and the only platform that is. nodejs.org publishes
+Unproven until a run confirms it, so s390x stays BEST-EFFORT in the matrix
+(`continue-on-error`, the only platform that is): nodejs.org publishes
 linux-s390x for every release and WeKan's `resolve-node-source.sh` takes its
-Node.js from nodejs.org first, so the gap costs a WeKan bundle nothing meanwhile,
-and the platform comes back by itself the day it builds. The same arrangement
-WeKan's own release gives its emulated extra-arch bundles.
+Node.js from nodejs.org first, so the gap costs a WeKan bundle nothing
+meanwhile, and the platform comes back by itself the day it builds.
 
 </details>
 
