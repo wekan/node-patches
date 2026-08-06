@@ -12,7 +12,26 @@ background V8 thread segfaults it. So in `tools/v8_gypfiles/v8.gyp`, for s390x:
   correct snapshot, and it segfaults the simulator;
 - s390x is excluded from `--concurrent-builtin-generation`;
 - s390x is forced fully `--single-threaded` (builtin generation, turbofan and GC
-  all on one thread).
+  all on one thread);
+- s390x raises the SIMULATED stack with `--sim-stack-size=16384` (16 MB). The
+  simulator's stack is a malloc'd buffer of `v8_flags.sim_stack_size`, 2 MB by
+  default (`deps/v8/src/flags/flag-definitions.h`), and running off the end of it
+  is a plain `SIGSEGV` with no V8 message at all — which is what the second run
+  got, half a second into mksnapshot, with `--single-threaded` already in the
+  command line and the stress flag already gone:
+
+  ```
+  "/src/out/Release/mksnapshot" --turbo_instruction_scheduling --target_os=linux
+    --target_arch=s390x ... --single-threaded --no-native-code-counters
+  Segmentation fault (core dumped)
+  make[1]: *** [tools/v8_gypfiles/v8_snapshot.target.mk:17: ...] Error 139
+  ```
+
+  This is the next explanation that fits the evidence, not a proven fix: it
+  cannot be verified without a run, so s390x is BEST-EFFORT in the build matrix
+  until one proves it (`continue-on-error`, see `release-all.yml`). nodejs.org
+  publishes linux-s390x and WeKan takes nodejs.org first, so the gap costs a
+  WeKan bundle nothing meanwhile.
 
 Because this patch is applied ONLY to the s390x build, every other platform keeps
 upstream's default flags. The little-endian simulator targets (ppc64le, riscv64,

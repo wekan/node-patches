@@ -1,0 +1,23 @@
+# Patches and their checksums are BYTE-EXACT. Never let a checkout translate
+# their line endings.
+#
+# This is what broke both Windows builds of the second run. Git for Windows
+# checks text files out with CRLF (core.autocrlf=true is its default, and
+# actions/checkout does not turn it off), so on the win64 and win32 runners the
+# .sha256sum files arrived with a trailing CR and the very first thing the build
+# does answered:
+#
+#   sha256sum: 'v8-turboshaft-template-disambiguator.patch'$'\r': No such file
+#   sha256sum: WARNING: 1 listed file could not be read
+#   ##[error]Process completed with exit code 1.
+#
+# The .patch files had been converted too, so had the checksum somehow passed,
+# `git apply` would have failed next on a patch whose every line ended CRLF while
+# the upstream file it patches ends LF.
+#
+# `-text` marks these as not-text: no eol conversion on checkout or check-in, on
+# any platform. A patch's own content may legitimately be CRLF (it patches
+# upstream files that are, such as vcbuild.bat), which is one more reason nothing
+# may rewrite it.
+*.patch     -text
+*.sha256sum -text

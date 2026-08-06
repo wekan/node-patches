@@ -43,7 +43,7 @@ diff --git a/tools/v8_gypfiles/v8.gyp b/tools/v8_gypfiles/v8.gyp
                'variables': {
                  'mksnapshot_flags': [
                    '--concurrent-builtin-generation',
-@@ -481,6 +505,13 @@
+@@ -481,6 +505,19 @@
                  ],
                },
              }],
@@ -51,6 +51,12 @@ diff --git a/tools/v8_gypfiles/v8.gyp b/tools/v8_gypfiles/v8.gyp
 +              'variables': {
 +                'mksnapshot_flags': [
 +                  '--single-threaded',
++                  # The SIMULATED stack, which is a 2 MB malloc'd buffer by
++                  # default (v8_flags.sim_stack_size, flag-definitions.h) and is
++                  # what mksnapshot's builtin generation runs on here. Running
++                  # off the end of it is a plain SIGSEGV with no V8 message,
++                  # which is exactly what the second run got.
++                  '--sim-stack-size=16384',
 +                ],
 +              },
 +            }],

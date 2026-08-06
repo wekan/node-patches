@@ -141,6 +141,10 @@ jobs:
     # runner; win32 needs a Windows one with MSVC, so the runner comes from the
     # matrix rather than being fixed.
     runs-on: ${{ matrix.runs_on || 'ubuntu-latest' }}
+    # A BEST-EFFORT platform (matrix.best_effort) does not fail the workflow when
+    # it fails - see the s390x entry below for the only one, and why. Every other
+    # platform is red when it breaks, which is the point of fail-fast: false.
+    continue-on-error: ${{ matrix.best_effort == true }}
     # The rule is still "roughly twice a good build" - a hang should be stopped,
     # not left to burn the runner's whole allowance - but the number is per
     # platform now, and MEASURED rather than predicted. A flat 180 was set when
@@ -311,6 +315,24 @@ jobs:
             configure_flags: >-
               --dest-cpu=ppc64 --dest-os=linux --cross-compiling
             timeout_minutes: 300
+          # s390x is BEST-EFFORT, and it is the only platform here that is.
+          # It is the one target whose mksnapshot runs a BIG-ENDIAN guest on a
+          # little-endian host, and that simulator keeps segfaulting during
+          # snapshot generation: the second run died after three and a half
+          # hours with "Segmentation fault (core dumped)" and v8_snapshot
+          # Error 139, having already been made single-threaded and had the
+          # register-allocator stress flag removed for exactly this reason.
+          # dist/s390x/v8-gyp-s390x-mksnapshot now also raises the simulated
+          # stack, which is the next thing that explains a bare SIGSEGV with no
+          # V8 message - but that is a hypothesis until a run proves it.
+          #
+          # Best-effort means the release does not hang on it: nodejs.org
+          # publishes linux-s390x for every release and WeKan's
+          # resolve-node-source.sh takes its Node.js from nodejs.org FIRST, so
+          # an s390x binary missing here costs a WeKan bundle nothing. The job
+          # still runs, still logs, and the platform comes back by itself the
+          # day it builds - which is the same arrangement WeKan's own release
+          # gives its emulated extra-arch bundles.
           - platform: s390x
             mode: cross-container
             image: debian:trixie
@@ -319,6 +341,7 @@ jobs:
             configure_flags: >-
               --dest-cpu=s390x --dest-os=linux --cross-compiling
             timeout_minutes: 300
+            best_effort: true
           # riscv64: openssl has no riscv64 asm config either, same story as
           # loong64 - ask for the no-asm build, which is the only one there is.
           - platform: riscv64
@@ -472,7 +495,22 @@ jobs:
             for p in "$dir"/*.patch; do
               [ -e "$p" ] || continue
               n="$(basename "$p")"
-              ( cd "$dir" && sha256sum -c "${n%.patch}.sha256sum" )
+              # The checksum, compared by hand rather than with `sha256sum -c`,
+              # and with any CR stripped from the recorded line. `sha256sum -c`
+              # reads the FILENAME out of the .sha256sum file, so one CRLF line
+              # made it look for a file whose name ends in a carriage return -
+              #   sha256sum: 'v8-turboshaft...patch'$'\r': No such file
+              # - which is how both Windows builds of the second run died in
+              # their first seconds. .gitattributes now marks these files -text
+              # so they are never converted; this is the belt to that braces,
+              # and it also stops caring whether the checkum file ends LF or
+              # CRLF, which is a thing about the file that never mattered.
+              want="$(awk '{print $1}' "$dir/${n%.patch}.sha256sum" | tr -d '\r' | head -1)"
+              got="$(sha256sum "$p" | awk '{print $1}')"
+              if [ -z "$want" ] || [ "$want" != "$got" ]; then
+                echo "::error::${d}/${n}: checksum mismatch - recorded ${want:-<none>}, file is ${got}."
+                exit 1
+              fi
               echo "Applying ${d}/${n}"
               git apply "$p"
               applied=$((applied+1))

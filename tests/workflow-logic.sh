@@ -175,9 +175,9 @@ done
 
 # ── 5. One patch is three files, and the checksum is the one CI verifies ──────
 #
-# The build runs `sha256sum -c <name>.sha256sum` from inside the section
-# directory before applying, so the checksum file must record the BARE name. A
-# stale checksum, or a path in it, fails the build after the clone.
+# The build reads the recorded hash out of <name>.sha256sum before applying, and
+# the file is written from inside the section directory, so it records the BARE
+# name. A stale checksum fails the build after the clone.
 echo
 echo "Every patch is a complete, checksummed, documented trio:"
 for p in "$ROOT"/dist/*/*.patch; do
@@ -217,6 +217,80 @@ for p in $matrix; do
   done
   [ -z "$clash" ] && ok "$p" || fail "$p applies two sections touching:$clash"
 done
+
+# ── 7. Nothing may rewrite a patch's bytes on checkout ────────────────────────
+#
+# This is what killed BOTH Windows builds of the second run, seconds in. Git for
+# Windows checks text files out with CRLF, so win64 and win32 got .sha256sum
+# files with a trailing carriage return and the checksum step answered
+#
+#   sha256sum: 'v8-turboshaft-template-disambiguator.patch'$'\r': No such file
+#   ##[error]Process completed with exit code 1.
+#
+# The .patch files had been converted too, so the `git apply` after it would have
+# failed on its own. .gitattributes marks both kinds -text, and the build's
+# checksum check no longer cares about a stray CR either.
+echo
+echo "Patches and checksums are checked out byte-exact:"
+
+GA="$ROOT/.gitattributes"
+if [ -f "$GA" ]; then
+  ok ".gitattributes exists"
+  grep -qE '^\*\.patch[[:space:]]+-text' "$GA" \
+    && ok "*.patch is -text, so no checkout converts it" \
+    || fail "*.patch is not marked -text in .gitattributes - a Windows checkout will CRLF it"
+  grep -qE '^\*\.sha256sum[[:space:]]+-text' "$GA" \
+    && ok "*.sha256sum is -text too" \
+    || fail "*.sha256sum is not marked -text in .gitattributes - the checksum step will read a filename ending in CR"
+else
+  fail "there is no .gitattributes - a Windows checkout will CRLF the patches (this is the second run's win64/win32 failure)"
+fi
+
+# And the build's own check, extracted and run: it must accept a checksum file
+# with CRLF and still reject a wrong hash. Belt and braces, because the braces
+# (.gitattributes) only help a checkout that happens after this commit.
+{ echo 'set -euo pipefail'
+  sed -n '/^              want="\$(awk/,/^              fi$/p' "$ALL" | sed 's/^              //'
+} > "$TMP/verify.sh"
+if grep -q 'sha256sum "\$p"' "$TMP/verify.sh"; then
+  ok "the checksum check was found in release-all.yml"
+else
+  fail "could not extract the checksum check from release-all.yml (did its indentation or wording change?)"
+fi
+
+mkdir -p "$TMP/sec"
+printf 'a patch\n' > "$TMP/sec/x.patch"
+sum="$(sha256sum "$TMP/sec/x.patch" | awk '{print $1}')"
+printf '%s  x.patch\r\n' "$sum" > "$TMP/sec/x.sha256sum"    # CRLF, as Windows checks it out
+if ( cd "$TMP" && dir="sec" n="x.patch" p="sec/x.patch" bash "$TMP/verify.sh" ) >/dev/null 2>&1; then
+  ok "a CRLF checksum file still verifies"
+else
+  fail "a CRLF checksum file fails the build - the win64/win32 failure would come back"
+fi
+printf 'deadbeef  x.patch\n' > "$TMP/sec/x.sha256sum"
+if ( cd "$TMP" && dir="sec" n="x.patch" p="sec/x.patch" bash "$TMP/verify.sh" ) >/dev/null 2>&1; then
+  fail "a WRONG checksum passed - the check verifies nothing"
+else
+  ok "a wrong checksum still fails"
+fi
+
+# ── 8. Only a platform that is meant to be best-effort is one ────────────────
+#
+# `continue-on-error` on a matrix entry means a failure of that platform does not
+# fail the workflow. That is right for s390x - its mksnapshot segfaults in the
+# big-endian simulator, and nodejs.org publishes linux-s390x anyway - and wrong
+# for anything else, because a platform that quietly stops building is a platform
+# nobody notices is gone.
+echo
+echo "Best-effort is a per-platform decision, and only s390x makes it:"
+grep -q 'continue-on-error: \${{ matrix.best_effort == true }}' "$ALL" \
+  && ok "the job is best-effort only when its matrix entry says so" \
+  || fail "release-all.yml does not gate continue-on-error on matrix.best_effort"
+be="$(grep -B 40 -E '^ +best_effort: true' "$ALL" | grep -E '^ +- platform: ' | tail -1 | awk '{print $3}')"
+count="$(grep -cE '^ +best_effort: true' "$ALL")"
+[ "$count" = "1" ] && [ "$be" = "s390x" ] \
+  && ok "s390x is the only best-effort platform" \
+  || fail "expected s390x to be the only best-effort platform, found $count marked (last: ${be:-none})"
 
 echo
 if [ "$fails" -eq 0 ]; then
