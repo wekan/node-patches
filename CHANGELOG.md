@@ -265,6 +265,30 @@ since `.gitattributes` only helps a checkout that happens after it.
 **IBM Z** - the one big-endian platform, now built like a native s390x build.
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/36232d9f2c2ad8537a7d0c1b2b44aff647866c86">The s390x build script parses again - an apostrophe was ending it early</a>. Thanks to xet7.</summary>
+
+The build that replaced the simulator died three seconds in, before it compiled
+anything: `line 41: unexpected EOF while looking for matching "`, and the
+release job correctly reported that no platform produced a binary. One character
+caused it. The cross-compile body is a single-quoted `sh -c '...'` argument, and
+the line that verifies the gyp edit read `grep -q "want_separate_host_toolset':
+0"` - that apostrophe ENDS the single-quoted argument, and a single quote cannot
+be escaped from inside one, not with a backslash and not by nesting it in double
+quotes. Everything after it was parsed as something else and the script never
+reached `make`.
+
+`config.gypi` holds `'want_separate_host_toolset': 0`, so the check reads the
+same line with the quote matched by a dot - `grep -qE
+"want_separate_host_toolset.: *0"` - and the block stays one argument.
+`tests/workflow-logic.sh` gains a check that extracts every `run:` block from
+both workflows, substitutes the `${{ }}` expressions the way Actions does before
+a shell sees them, and hands each to `bash -n`. Every check before it reads what
+the blocks DO, which is why none noticed a block that cannot be parsed at all.
+It fails on the previous line, naming the step, and passes on this one.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/HEAD">s390x builds a real mksnapshot under qemu-user instead of V8's big-endian simulator</a>. Thanks to xet7.</summary>
 
 Every cross target runs mksnapshot as a host binary that SIMULATES the target
