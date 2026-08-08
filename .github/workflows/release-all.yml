@@ -663,7 +663,13 @@ jobs:
               # instead of simulating the target inside a host mksnapshot.
               sed -i "/want_separate_host_toolset/ s/: 1/: 0/" config.gypi
               echo "config.gypi now has:"; grep -n want_separate_host_toolset config.gypi
-              grep -q "want_separate_host_toolset': 0" config.gypi \
+              # No apostrophe in this pattern: the whole block is one
+              # single-quoted `sh -c '...'` argument, and a single quote inside
+              # it ENDS that argument - there is no escaping it from within.
+              # config.gypi holds `'want_separate_host_toolset': 0`, so the dot
+              # matches the closing quote and the check reads the same line
+              # without carrying the character that broke the script.
+              grep -qE "want_separate_host_toolset.: *0" config.gypi \
                 || { echo "::error::could not set want_separate_host_toolset=0 in config.gypi"; exit 1; }
               make -j"$(nproc)"
               ${{ matrix.triple }}-strip out/Release/node

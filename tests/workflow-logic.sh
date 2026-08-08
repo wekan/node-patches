@@ -293,6 +293,57 @@ count="$(grep -cE '^ +best_effort: true' "$ALL")"
   && ok "s390x is the only best-effort platform" \
   || fail "expected s390x to be the only best-effort platform, found $count marked (last: ${be:-none})"
 
+# ── 9. Every shell block in both workflows is valid shell ─────────────────────
+#
+# The s390x build died three seconds in with
+#
+#     line 41: unexpected EOF while looking for matching `"'
+#
+# and published nothing. The cause was one character: the whole cross-compile
+# body is a single-quoted `sh -c '...'` argument, and a verification line inside
+# it read `grep -q "want_separate_host_toolset': 0"`. That apostrophe ENDS the
+# single-quoted argument - there is no escaping a single quote from within one -
+# so the rest of the script was parsed as something else entirely.
+#
+# Nothing in this file would have caught it, because the checks above read what
+# the blocks DO. This one only asks whether bash can parse them at all, which is
+# the cheapest possible test and would have failed on that line immediately.
+#
+# ${{ ... }} expressions are substituted first, the way Actions does before the
+# shell ever sees the script; the value does not matter, only that a placeholder
+# does not itself break the quoting.
+for wf in "$ALL" "$MISSING"; do
+  name="$(basename "$wf")"
+  blocks="$TMP/shellblocks-$name"
+  rm -rf "$blocks"; mkdir -p "$blocks"
+  python3 - "$wf" "$blocks" <<'PYEOF'
+import re, sys, yaml
+wf, outdir = sys.argv[1], sys.argv[2]
+doc = yaml.safe_load(open(wf))
+n = 0
+for job_name, job in (doc.get('jobs') or {}).items():
+    for step in job.get('steps') or []:
+        if not isinstance(step, dict) or not step.get('run'):
+            continue
+        # A run: block for a non-shell shell (python, pwsh) is not ours to parse.
+        if step.get('shell') and 'sh' not in str(step['shell']):
+            continue
+        script = re.sub(r'\$\{\{[^}]*\}\}', 'PLACEHOLDER', step['run'])
+        n += 1
+        label = re.sub(r'[^A-Za-z0-9]+', '-', '%s--%s' % (job_name, step.get('name', 'step%d' % n)))[:80]
+        open('%s/%03d-%s.sh' % (outdir, n, label), 'w').write(script)
+PYEOF
+  bad=0
+  for f in "$blocks"/*.sh; do
+    [ -e "$f" ] || continue
+    if ! err="$(bash -n "$f" 2>&1)"; then
+      fail "$name: $(basename "$f") is not valid shell: $(printf '%s' "$err" | head -1)"
+      bad=$((bad+1))
+    fi
+  done
+  [ "$bad" -eq 0 ] && ok "$name: every run: block parses as shell"
+done
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "workflow-logic: everything holds."
