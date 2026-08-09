@@ -360,4 +360,18 @@ quietly stops building is a platform nobody notices is gone.
 
 </details>
 
+and documents how to work on this repository:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/0b9679b">AGENTS.md — what a contributor, human or otherwise, has to know before touching a patch</a>. Thanks to xet7.</summary>
+
+A patches-only repository is unusual enough that the obvious first move is the
+wrong one: there is no Node.js source here to edit, so a change is a change to a
+`.patch` file, and it has to apply to a tag nobody has cloned yet. `AGENTS.md`
+writes that down — the directory layout and which platform reads which section,
+that patches are applied to the newest upstream RELEASE tag rather than a branch
+head, how to verify one applies before pushing, and which workflow builds what.
+
+</details>
+
 Thanks to above GitHub users for their contributions.
