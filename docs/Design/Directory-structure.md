@@ -5,10 +5,16 @@ The binaries WeKan embeds are built by CI, which clones upstream at a release ta
 applies the patches here, builds, and publishes. This is the same model as
 [Betterbird/thunderbird-patches](https://github.com/Betterbird/thunderbird-patches).
 
+The maintainer and contributor rules for this repository — who commits, as whom,
+and how the CHANGELOG is written — live in
+[WeKan's CLAUDE.md and AGENTS.md](https://github.com/wekan/wekan), which cover
+every repository WeKan clones into its `.tools/` directory. There is no second
+copy of them here.
+
 ```
 node-patches/
-├── CHANGELOG.md                       Release notes, WeKan-changelog format.
-├── CLAUDE.md                          Maintainer/contributor rules for this repo.
+├── CHANGELOG.md                       Release notes, in the format this file's own
+│                                      existing entries use.
 ├── node-major.txt                     The Node.js major line to track (e.g. 24).
 ├── .github/
 │   └── workflows/
