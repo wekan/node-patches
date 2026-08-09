@@ -448,4 +448,23 @@ from the patch headers themselves, which is where the script gets them too.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/8999131">The maintainer rules move to WeKan's CLAUDE.md and AGENTS.md, and the copies here are removed</a>. Thanks to xet7.</summary>
+
+`CLAUDE.md` and `AGENTS.md` here said who maintains this repository, who commits
+and as whom, and how the CHANGELOG is written. Every word of that is true of each
+repository WeKan clones into its `.tools/` directory and none of it is specific
+to this one, so it was a second copy of a rule — and a second copy drifts. WeKan's
+own `CLAUDE.md` and `AGENTS.md` now carry the rules for all of them, including
+the layout of `.tools/` and the instruction not to add these files back here.
+
+What was genuinely about THIS repository was already elsewhere and stays:
+`docs/Design/Directory-structure.md` and `docs/Design/How-the-build-works.md` for
+the layout and the build, `dist/README.md` for the sections and the apply-map,
+and each test script's own header for what it checks. The design doc and the
+README point at WeKan's files for the rules, so a reader who starts here still
+finds them.
+
+</details>
+
 Thanks to above GitHub users for their contributions.
