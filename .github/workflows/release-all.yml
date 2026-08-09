@@ -110,7 +110,7 @@ on:
 
   # Called by release-all-missing.yml, which works out which platforms a release
   # is short of and passes them as `platforms`. The build itself is HERE and
-  # only here: a second copy of thirteen platforms' compile steps would drift
+  # only here: a second copy of fourteen platforms' compile steps would drift
   # from this one, and then a binary added later would not match the binaries
   # beside it on the same release.
   workflow_call:

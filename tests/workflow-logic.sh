@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # What the release workflows do, checked WITHOUT a runner and without the
-# network. The build itself takes hours on thirteen platforms, so the failures
+# network. The build itself takes hours on fourteen platforms, so the failures
 # worth catching here are the ones that kill a job in its first seconds - and
-# that is exactly what the first run's failure was: every one of the thirteen
-# builds died three seconds after cloning, on a `mv` that could never work, and
+# that is exactly what the first run's failure was: every one of the builds -
+# thirteen of them at the time, fourteen since armv6 - died three seconds after
+# cloning, on a `mv` that could never work, and
 # nothing was published.
 #
 # The point of this file is that it does not RE-WRITE the workflow's shell in a

@@ -13,7 +13,7 @@ node-patches/
 ├── .github/
 │   └── workflows/
 │       ├── release-all.yml            Clone upstream → verify+apply patches → build
-│       │                              13 platforms → publish to the release.
+│       │                              14 platforms → publish to the release.
 │       └── release-all-missing.yml    Build only the binaries a release lacks;
 │                                      calls release-all.yml (reusable) per platform.
 ├── releases/

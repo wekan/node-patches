@@ -6,7 +6,7 @@ This repo carries no Node.js source. The build reconstructs the source at run ti
 ## Release All (`.github/workflows/release-all.yml`)
 
 A `workflow_dispatch` (also callable as a reusable workflow) that builds one upstream
-Node.js version for all thirteen platforms and uploads the binaries to that version's
+Node.js version for all fourteen platforms and uploads the binaries to that version's
 GitHub Release.
 
 1. **Pick the version.** The `version` input, or — when empty — the newest upstream
@@ -53,7 +53,7 @@ GitHub Release.
 6. **Checksum and publish.** Each platform writes `node-<platform>.sha256sum` beside
    its binary, and both are uploaded with `gh release upload --clobber`. A release
    **accumulates**: a rebuilt platform overwrites only its own two assets; every other
-   platform's binary is left in place, so all thirteen collect on one release across
+   platform's binary is left in place, so all fourteen collect on one release across
    however many runs it takes. The release notes carry a **provenance table** — the
    upstream repo, the `v<MAJOR>.x` branch, the tag, and the exact commit — resolved
    from the tag with `git ls-remote` (immutable, so it matches what the build jobs
@@ -61,16 +61,16 @@ GitHub Release.
 
 ## Release All Missing (`.github/workflows/release-all-missing.yml`)
 
-Building all thirteen to obtain one that failed is wasteful — several platforms take
+Building all fourteen to obtain one that failed is wasteful — several platforms take
 hours. This workflow builds only what a release lacks:
 
-1. **Plan.** List the release's assets and compare against the thirteen platforms. A
+1. **Plan.** List the release's assets and compare against the fourteen platforms. A
    platform counts as present only when BOTH `node-<platform>[.exe]` and
    `node-<platform>.sha256sum` are on the release, so a half-published platform is
    rebuilt rather than left broken.
 2. **Build the missing set** by calling `release-all.yml` (a reusable workflow) with a
    `platforms` filter of exactly those. The build steps are not duplicated — a second
-   copy of thirteen platforms' flags would drift.
+   copy of fourteen platforms' flags would drift.
 
 It uses a **distinct concurrency group** from `release-all.yml`: a reusable workflow
 that requests a group already held by its caller deadlocks. Mutual exclusion where it

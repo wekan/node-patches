@@ -2,17 +2,17 @@ name: Release All Missing
 
 # Build only the Node.js binaries a release does not already carry.
 #
-# WHY: this fork builds thirteen platforms, and several of them take hours -
+# WHY: this fork builds fourteen platforms, and several of them take hours -
 # armhf and armv7 are cross builds that compile V8 twice and have been killed at
 # the 360-minute mark, loong64 takes about 150 minutes, i386 about 115. When one
 # platform fails, or is added, or a run is cancelled, re-running release-all.yml
-# rebuilds all thirteen to obtain the one that is missing. This builds the one.
+# rebuilds all fourteen to obtain the one that is missing. This builds the one.
 #
 # HOW: work out which platforms are absent from the release, then call
 # release-all.yml with exactly those. The build steps are not duplicated here -
 # release-all.yml is a reusable workflow now, and this passes it a `platforms`
 # filter. That matters more here than anywhere else in this repo: a second copy
-# of thirteen platforms' compile flags would drift, and a binary added to a
+# of fourteen platforms' compile flags would drift, and a binary added to a
 # release months later would then differ from the ones beside it.
 #
 # A platform counts as present only when BOTH node-<platform>[.exe] and its

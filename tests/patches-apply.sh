@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Does every platform's patch set still apply to the upstream release the build
 # would clone? That is the question this repo lives or dies on: a patch that no
-# longer applies fails the build minutes in, on all thirteen platforms at once,
+# longer applies fails the build minutes in, on all fourteen platforms at once,
 # and the only warning is a `git apply` error in a log nobody is watching.
 #
 #   ./tests/patches-apply.sh              # the newest upstream v<MAJOR>.x release
 #   ./tests/patches-apply.sh v24.19.0     # a particular one
 #
 # It does NOT clone Node.js - that is a gigabyte to answer a question about
-# thirteen files. It reconstructs a tree of exactly the files the patches touch,
+# twelve files. It reconstructs a tree of exactly the files the patches touch,
 # fetched from nodejs/node at the tag, and runs `git apply` over it the way the
 # workflow does: dist/all first, then the platform's family sections, in the
 # apply-map's order, cumulatively, so a conflict WITHIN a platform's own set is

@@ -35,7 +35,7 @@ node-patches/
   CLAUDE.md                    this file
   node-major.txt               the Node.js major line to track (e.g. 24)
   .github/workflows/
-    release-all.yml            clone upstream, apply patches, build 13 platforms, publish
+    release-all.yml            clone upstream, apply patches, build 14 platforms, publish
     release-all-missing.yml    build only the binaries a release does not yet carry
   releases/
     newest-release.sh          resolve the newest upstream v<MAJOR>.x release
@@ -98,12 +98,12 @@ releases. The rules:
   re-port the sections.
 
 Fix from source and verify — do not guess. If this environment cannot run a full
-13-platform build, reconstruct the source from upstream + patches and say clearly what
+14-platform build, reconstruct the source from upstream + patches and say clearly what
 was and was not verified.
 
 ## Tests
 
-Two scripts, and both run here — a 13-platform build does not, so these check
+Two scripts, and both run here — a 14-platform build does not, so these check
 what can be checked without one:
 
 - `./tests/workflow-logic.sh` — no network. It EXTRACTS the shell blocks out of
@@ -112,13 +112,14 @@ what can be checked without one:
   agree, that the apply-map answers for every platform in the build matrix, that
   every patch is a complete checksummed trio, and that no build applies two
   sections touching one file. Run it after ANY workflow edit: the first run's
-  failure — all thirteen builds dead three seconds in, on a `mv` that could never
-  work — is exactly what it now catches in a second.
+  failure — all thirteen builds of the day (armv6 makes fourteen now) dead three
+  seconds in, on a `mv` that could never work — is exactly what it now catches in
+  a second.
 - `./tests/patches-apply.sh [version]` — needs the network. It reconstructs the
   files the patches touch from upstream at the resolved release and `git apply`s
   each platform's sections cumulatively, checksum first, the same way the build
-  does. It does not clone Node.js (a gigabyte to answer a question about
-  thirteen files) and exits 77 when upstream is unreachable, so a sandbox with no
+  does. It does not clone Node.js (a gigabyte to answer a question about twelve
+  files) and exits 77 when upstream is unreachable, so a sandbox with no
   network says so instead of reporting a green run it did not do.
 
 ## CHANGELOG
@@ -175,7 +176,7 @@ explicitly asked.
 - Run **Release All** (`.github/workflows/release-all.yml`, `workflow_dispatch`) with
   no `version` input to build the newest upstream `v<MAJOR>.x` release (from
   `node-major.txt`), or `-f version=v24.19.0` to pin one. It clones upstream at that
-  release tag, verifies+applies each platform's sections, builds the thirteen
+  release tag, verifies+applies each platform's sections, builds the fourteen
   platforms, and uploads each `node-<platform>` binary and its `.sha256sum` to the
   release, accumulating (a rebuilt platform clobbers only its own asset).
 - Run **Release All Missing** to fill in only the platforms a release does not yet
