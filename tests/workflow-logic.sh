@@ -160,6 +160,39 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
 
+# ── 3b. A 32-bit ARM target that asks for ARMv6 must also ask for ARM mode ────
+#
+# Debian's arm-linux-gnueabihf gcc defaults to THUMB. On ARMv7 that is Thumb-2,
+# which supports the hard-float VFP ABI; -march=armv6 has only Thumb-1, for which
+# GCC has never implemented that ABI. The combination is refused inside glibc's
+# own headers - every static inline in stdio.h and stdlib.h - so the error names
+# no file of ours and looks like a broken toolchain:
+#
+#   /usr/arm-linux-gnueabihf/include/bits/stdio.h:40:1: sorry, unimplemented:
+#   Thumb-1 'hard-float' VFP ABI
+#
+# That killed the armv6 build 82 seconds in, on the first four files it compiled.
+# -marm is the fix and it is one word, which is exactly why it can go missing
+# again; a build that only fails after minutes of apt and clone is worth a check
+# that takes none.
+echo
+echo "An ARMv6 -march also passes -marm, or the hard-float ABI cannot be used:"
+armv6_flags="$(grep -E '^ +extra_cflags: .*-march=armv6' "$ALL" || true)"
+if [ -z "$armv6_flags" ]; then
+  ok "no target asks for -march=armv6 (nothing to check)"
+else
+  bad=0
+  while IFS= read -r line; do
+    case "$line" in
+      *-marm*) ok "${line#*extra_cflags: }" ;;
+      *) fail "an -march=armv6 target has no -marm:${line#*extra_cflags:}"; bad=1 ;;
+    esac
+  done <<EOF
+$armv6_flags
+EOF
+  [ "$bad" = 0 ] || true
+fi
+
 # ── 4. The apply-map answers for every platform ───────────────────────────────
 echo
 echo "The apply-map covers the matrix:"

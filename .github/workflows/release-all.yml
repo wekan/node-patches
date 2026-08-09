@@ -253,13 +253,27 @@ jobs:
           # armhf baseline for those boards. It takes the COMMON patch set only:
           # dist/arm is the NEON patch and ARMv6 has no NEON (see
           # releases/dist-dirs-for.sh).
+          #
+          # -marm IS NOT OPTIONAL, and leaving it out is what killed the first
+          # run 82 seconds in, on the first four files it compiled:
+          #
+          #   /usr/arm-linux-gnueabihf/include/bits/stdio.h:40:1: sorry,
+          #   unimplemented: Thumb-1 'hard-float' VFP ABI
+          #
+          # Debian's arm-linux-gnueabihf gcc defaults to THUMB. On ARMv7 that is
+          # Thumb-2, which supports the hard-float VFP ABI; -march=armv6 has only
+          # Thumb-1, for which GCC has never implemented that ABI. So the default
+          # mode plus this -march is a combination the compiler refuses, and it
+          # refuses it inside glibc's own headers - every static inline in
+          # stdio.h/stdlib.h - so nothing of ours appears in the error. ARM mode
+          # is what Raspberry Pi OS builds these boards with anyway.
           - platform: armv6
             mode: cross-container
             image: i386/debian:bookworm
             docker_platform: linux/386
             triple: arm-linux-gnueabihf
             apt_packages: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-            extra_cflags: -march=armv6+fp -mfpu=vfp -mfloat-abi=hard
+            extra_cflags: -marm -march=armv6+fp -mfpu=vfp -mfloat-abi=hard
             configure_flags: >-
               --dest-cpu=arm --dest-os=linux --cross-compiling
               --with-arm-float-abi=hard --with-arm-fpu=vfp
