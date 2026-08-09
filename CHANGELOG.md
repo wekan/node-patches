@@ -35,8 +35,9 @@ in by the build from the tag it cloned.
 - The binaries a release carries are named `node-<platform>` (`node-<platform>.exe`
   on Windows), each with a `node-<platform>.sha256sum`. A release accumulates
   binaries — a rebuilt platform clobbers its own asset and leaves the rest alone.
-- The thirteen platforms: `i386`, `armhf`, `armv7`, `loong64`, `x64`, `arm64`,
-  `ppc64le`, `s390x`, `riscv64`, `win64`, `win32`, `mac-x64`, `mac-arm64`.
+- The fourteen platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
+  `arm64`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win32`, `mac-x64`,
+  `mac-arm64`.
 
 </details>
 
@@ -62,11 +63,14 @@ It holds no Node.js source: patches are organised by platform into a common
 **`all/`** section and the **`ia32/`**, **`arm/`**, **`mac/`** and **`win32/`**
 family sections, and the **Release All** / **Release All Missing** workflows clone
 the newest upstream release, verify and apply each platform's sections, and build
-the thirteen-platform binary set that WeKan embeds. The patches restore **32-bit
+the fourteen-platform binary set that WeKan embeds. The patches restore **32-bit
 Windows**, add the **32-bit x86** and **32-bit ARM** SIMD/build flags, and correct
 **Apple Clang** and **V8** compile errors; **s390x** builds with a real
 **mksnapshot** under **qemu-user** instead of the big-endian V8 simulator, so it
-needs no patch of its own. Below that: the fixes the **first run** turned up — a `mv` that could never
+needs no patch of its own. The fourteenth platform is **armv6** — Raspberry Pi 1
+and Zero, which nobody publishes a Node.js for any more, though V8 and
+`configure.py` still carry the support and only the build was missing.
+Below that: the fixes the **first run** turned up — a `mv` that could never
 work and killed all thirteen builds seconds after cloning, release notes read from a
 tree this repo does not have, and a `.lib` listed as a platform — the two **test
 scripts** that now catch that class of failure in a second instead of hours, and the
@@ -157,6 +161,53 @@ Upstream stopped building 32-bit Windows in Node 23
 `/arch:SSE2` in `toolchain.gypi`, the `x86` argument and `amd64_x86` cross toolchain
 in `vcbuild.bat`, and the Windows x86 row in `BUILDING.md`. The generic 32-bit x86
 pieces a win32 build also needs are in the ia32 section.
+
+</details>
+
+and adds a fourteenth platform:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/c5d6ca4">armv6 — Raspberry Pi 1 and Zero, which nobody else publishes a Node.js for</a>. Thanks to xet7.</summary>
+
+nodejs.org dropped its ARMv6 binaries after Node 11 and unofficial-builds has
+none, so an ARMv6 board has no Node.js runtime at all — the same gap this
+repository already fills for loong64 and 32-bit Windows, and the same shape: the
+SUPPORT is still in the source, only the build was missing.
+
+V8 still lists it. `deps/v8/src/codegen/arm/assembler-arm.cc` has
+`static const unsigned kArmv6 = 0u;` with `kArmv7 = kArmv6 | (1u << ARMv7)`, and
+accepts `--arm-arch=armv6`, printing *"Supported values are: armv8 /
+armv7+sudiv / armv7 / armv6"* for anything else. `configure.py` still carries
+`is_arch_armv6()` setting `arm_version='6'`, and `vfp` — VFPv2, the ARMv6 FPU —
+is still in `valid_arm_fpu`. ARMv5 is the one that really is gone: V8's list
+stops at armv6, which is why armel stays in the "deliberately not here" list.
+
+It is built like armhf — cross compiled from an i386 container, because
+`v8config.h` refuses a 32-bit ARM target on a 64-bit host — with
+`--with-arm-fpu=vfp` and `-march=armv6+fp`, the Raspberry Pi OS baseline for
+those boards.
+
+**The `-march` has to ride on `CC` and `CXX`, not on `CFLAGS`,** and that is why
+`matrix.extra_cflags` exists at all: `configure.py` decides `arm_version` by
+PROBING the compiler's predefined macros — `is_arch_armv6()` looks for
+`__ARM_ARCH_6*__` — so a `-march` that is only in `CFLAGS` is invisible to it
+and the build would come out ARMv7 while claiming to be ARMv6. The field is
+empty for every other platform, which leaves their `CC` exactly as it was.
+
+It takes the COMMON patch set only, unlike armhf and armv7. `dist/arm` is the
+NEON patch — it puts `-mfpu=neon` on zlib's SIMD targets — and ARMv6 has no
+NEON, so that flag would be a compile error rather than a speed-up. Nothing is
+lost: `zlib.gyp` gates every ARM SIMD path on `arm_fpu == "neon"`, so an armv6
+build selects the scalar code by itself and the patch has nothing to fix.
+
+**What is and is not verified.** The workflow parses, both test suites pass
+(`tests/workflow-logic.sh` caught the release-notes platform list, which is why
+it is updated in both places), the apply-map returns the common set for armv6
+and the NEON set for armhf/armv7, and every claim about V8 and `configure.py`
+above is quoted from the v24.x source. The BUILD itself is not verified here and
+cannot be: it is a multi-hour ARM cross compile, so the first run is its test —
+and armhf, the same shape, has been measured past 180 minutes at ~85%, so 360 is
+the timeout.
 
 </details>
 
@@ -371,6 +422,29 @@ wrong one: there is no Node.js source here to edit, so a change is a change to a
 writes that down — the directory layout and which platform reads which section,
 that patches are applied to the newest upstream RELEASE tag rather than a branch
 head, how to verify one applies before pushing, and which workflow builds what.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/44a2ce0">Every place that counts the platforms says fourteen, and the historical ones say when they meant thirteen</a>. Thanks to xet7.</summary>
+
+Adding armv6 above made a number wrong in eleven places — `AGENTS.md`,
+`CLAUDE.md`, both design docs, both test scripts and both workflows still said
+thirteen platforms, and two of them said it as `13`. A build-matrix count in
+prose is exactly the kind of fact that rots quietly: nothing fails, and the next
+reader trusts it.
+
+The distinction that mattered while fixing them is that **not every "thirteen"
+was wrong**. The first run's failure really did kill thirteen builds three
+seconds after cloning — that is a fact about that run, not about the matrix — so
+those sentences keep the number and now say so out loud (*"thirteen of them at
+the time, fourteen since armv6"*) instead of leaving the next reader to guess
+whether it is history or a stale count.
+
+One count was wrong for a different reason: `tests/patches-apply.sh` and both
+instruction files describe the no-clone trick as *"a gigabyte to answer a
+question about thirteen files"*. The patches touch **twelve** files. Counted
+from the patch headers themselves, which is where the script gets them too.
 
 </details>
 
