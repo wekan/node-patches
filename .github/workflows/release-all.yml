@@ -29,6 +29,11 @@ name: Release All
 #   node-x64       64-bit x86 Linux          native
 #   node-arm64     64-bit ARM Linux          native
 #   node-i386      32-bit x86                (--dest-cpu=x86)
+#   node-armv6     32-bit ARM (ARMv6)        hard-float, VFPv2 — Raspberry Pi 1
+#                                            and Zero, and any other ARMv6
+#                                            board. Nobody else publishes one:
+#                                            nodejs.org dropped ARMv6 after Node
+#                                            11 and unofficial-builds has none.
 #   node-armhf     32-bit ARM                hard-float, VFPv3-D16 — the Debian
 #                                            armhf baseline, so it runs on any
 #                                            ARMv7-A without assuming NEON
@@ -228,6 +233,37 @@ jobs:
           # node. V8's own snapshot is still there - that is the simulated one
           # above. A runtime that starts slightly slower beats the one nobody
           # can build.
+          # ARMv6: Raspberry Pi 1 and Zero, and every other ARMv6 hard-float
+          # board. NOBODY publishes a Node.js for it - nodejs.org dropped its
+          # ARMv6 binaries after Node 11 and unofficial-builds has none - which
+          # is exactly the gap this repo exists to fill, and the same shape as
+          # the 32-bit Windows build: the SUPPORT is still in the source, only
+          # the build was missing.
+          #
+          # V8 still lists it. deps/v8/src/codegen/arm/assembler-arm.cc has
+          # `static const unsigned kArmv6 = 0u;` as the baseline feature set and
+          # accepts --arm-arch=armv6 ("Supported values are: armv8 / armv7+sudiv
+          # / armv7 / armv6"), and configure.py still carries is_arch_armv6()
+          # setting arm_version='6', with `vfp` - VFPv2, the ARMv6 FPU - among
+          # valid_arm_fpu. ARMv5 is the one that really is gone: V8's list stops
+          # at armv6, which is why armel stays in the "deliberately not here"
+          # list above.
+          #
+          # -march=armv6 with hard-float VFPv2, which is the Raspberry Pi OS
+          # armhf baseline for those boards. It takes the COMMON patch set only:
+          # dist/arm is the NEON patch and ARMv6 has no NEON (see
+          # releases/dist-dirs-for.sh).
+          - platform: armv6
+            mode: cross-container
+            image: i386/debian:bookworm
+            docker_platform: linux/386
+            triple: arm-linux-gnueabihf
+            apt_packages: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            extra_cflags: -march=armv6+fp -mfpu=vfp -mfloat-abi=hard
+            configure_flags: >-
+              --dest-cpu=arm --dest-os=linux --cross-compiling
+              --with-arm-float-abi=hard --with-arm-fpu=vfp
+            timeout_minutes: 360        # same cross-build shape as armhf, which measured >180
           - platform: armhf
             mode: cross-container
             image: i386/debian:bookworm
@@ -602,10 +638,16 @@ jobs:
           # 32-bit x86 host (v8config.h - see the matrix), so its container is
           # an i386 one. Either way the CPU underneath is the runner's, and
           # nothing is emulated.
+          # matrix.extra_cflags rides on CC and CXX rather than CFLAGS, and that
+          # is deliberate: configure.py decides arm_version by PROBING the
+          # compiler's predefined macros (is_arch_armv6() looks for
+          # __ARM_ARCH_6*__), so a -march that is only in CFLAGS is invisible to
+          # it and the build would silently come out ARMv7. Empty for every
+          # platform that does not set it, which leaves CC exactly as it was.
           docker run --rm --platform "${{ matrix.docker_platform || 'linux/amd64' }}" \
             -v "$PWD":/src -w /src \
-            -e CC="${{ matrix.triple }}-gcc" \
-            -e CXX="${{ matrix.triple }}-g++" \
+            -e CC="${{ matrix.triple }}-gcc ${{ matrix.extra_cflags }}" \
+            -e CXX="${{ matrix.triple }}-g++ ${{ matrix.extra_cflags }}" \
             -e AR="${{ matrix.triple }}-ar" \
             -e RANLIB="${{ matrix.triple }}-ranlib" \
             -e LINK="${{ matrix.triple }}-g++" \
@@ -845,11 +887,11 @@ jobs:
           present="$( (ls dist 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
             | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' | sort -u)"
           plats=""
-          for a in x64 arm64 i386 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
           done
           for a in $present; do
-            printf ' %s ' "x64 arm64 i386 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64" | grep -q " $a " || plats="${plats:+$plats }$a"
+            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
             echo "::error::No platform produced a binary - every build job failed. Their logs say why; nothing is published."
