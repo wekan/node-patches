@@ -211,6 +211,43 @@ the timeout.
 
 </details>
 
+and fixes what the first armv6 run turned up:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/c6eaea4">armv6 passes -marm, or glibc's own headers refuse the hard-float ABI</a>. Thanks to xet7.</summary>
+
+The first armv6 build died 82 seconds in, on the first four files it compiled:
+
+```
+/usr/arm-linux-gnueabihf/include/bits/stdio.h:40:1: sorry, unimplemented:
+Thumb-1 'hard-float' VFP ABI
+make[1]: *** [deps/openssl/openssl.target.mk:1308: .../ssl/d1_msg.o] Error 1
+```
+
+Debian's `arm-linux-gnueabihf` gcc defaults to **Thumb**. On ARMv7 that is
+Thumb-2, which supports the hard-float VFP ABI — which is why armhf and armv7
+have never needed to say anything about it. `-march=armv6` has only **Thumb-1**,
+and GCC has never implemented the hard-float VFP ABI for Thumb-1, so the
+toolchain's default mode and this `-march` are a combination the compiler
+refuses.
+
+What made it read like a broken toolchain rather than a missing flag is WHERE it
+refuses: inside glibc's own headers, on every static inline in `stdio.h`,
+`stdlib.h` and `byteswap.h`. Not one file of ours appears in the error.
+
+`-marm` builds in ARM mode instead — which is what Raspberry Pi OS builds these
+boards with anyway — and is the only change: `-march=armv6+fp -mfpu=vfp
+-mfloat-abi=hard` stay exactly as they were, and so does the `arm_version='6'`
+`configure.py` probes out of them.
+
+`tests/workflow-logic.sh` grows the check that any target naming `-march=armv6`
+also passes `-marm`, verified BOTH ways: it passes as committed, and removing
+`-marm` from the matrix makes it fail with the reason. A one-word flag in a
+build that only fails after apt, a clone and a minute of compiling is the kind
+that goes missing twice.
+
+</details>
+
 and fixes the following in the release workflows:
 
 **Release All** - the workflow that clones upstream, applies the patches and
