@@ -81,7 +81,7 @@ This release adds the following patch sections for the upstream Node.js v24.x li
 **The common section** (`dist/all/`) - applied to every platform.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">v8-turboshaft-template-disambiguator — adds the template keyword a stricter compiler requires</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">v8-turboshaft-template-disambiguator — adds the template keyword a stricter compiler requires</a>. Thanks to xet7.</summary>
 
 `deps/v8/src/compiler/turboshaft/int64-lowering-reducer.h` needs an explicit
 `template` disambiguator on a dependent member call, which some compilers this repo
@@ -93,7 +93,7 @@ platform.
 **32-bit x86** (`dist/ia32/`) - applied to i386 and win32.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">v8-gyp-ia32-push-registers — selects V8's ia32 stack-scanning source so 32-bit x86 links</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">v8-gyp-ia32-push-registers — selects V8's ia32 stack-scanning source so 32-bit x86 links</a>. Thanks to xet7.</summary>
 
 V8 12.8+ has no ia32 `push_registers_masm.asm`, only `push_registers_asm.cc`, so
 `tools/v8_gypfiles/v8.gyp` selects the `.cc` variant for an ia32 host or target. Its
@@ -104,7 +104,7 @@ section.
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">zlib-sse2 — gives the bundled zlib the -msse2 flag its SSE2 intrinsics need on 32-bit x86</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">zlib-sse2 — gives the bundled zlib the -msse2 flag its SSE2 intrinsics need on 32-bit x86</a>. Thanks to xet7.</summary>
 
 On x86_64 SSE2 is part of the architecture; on 32-bit x86 gcc targets plain i686 and
 rejects the SSE2 intrinsics zlib's SIMD source uses. `deps/zlib/zlib.gyp` adds
@@ -116,7 +116,7 @@ ARM section.
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">icu-cross-build — maps ia32 to x86 for the ICU genccode host tool</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">icu-cross-build — maps ia32 to x86 for the ICU genccode host tool</a>. Thanks to xet7.</summary>
 
 `tools/icu/icu-generic.gyp` maps the `ia32` dest-cpu to the `x86` name the ICU
 `genccode` host tool expects, so the ICU data step runs during a 32-bit build instead
@@ -127,7 +127,7 @@ of failing on an unknown architecture.
 **32-bit ARM** (`dist/arm/`) - applied to armhf and armv7.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">zlib-neon — gives the bundled zlib the -mfpu=neon flag, and keeps the ARMv8 CRC path off ARMv7</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">zlib-neon — gives the bundled zlib the -mfpu=neon flag, and keeps the ARMv8 CRC path off ARMv7</a>. Thanks to xet7.</summary>
 
 On arm64 NEON is the baseline; on 32-bit ARM it is an extension and the SIMD file is
 otherwise compiled as plain ARMv7-A, so its NEON intrinsics fail to inline.
@@ -140,7 +140,7 @@ links. Split by hunk from the former combined zlib patch.
 **Apple Clang** (`dist/mac/`) - applied to mac-x64 and mac-arm64.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">crypto-kmac-aggregate-init — uses the brace initialiser Apple Clang accepts for KMAC</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">crypto-kmac-aggregate-init — uses the brace initialiser Apple Clang accepts for KMAC</a>. Thanks to xet7.</summary>
 
 `src/crypto/crypto_kmac.cc` uses C++20 parenthesized aggregate initialisation that GCC
 and modern Clang accept but the macOS runner's Apple Clang rejects. The patch uses the
@@ -151,7 +151,7 @@ portable brace form instead, the same style `crypto_hash.cc` already uses.
 **Windows 32-bit** (`dist/win32/`) - applied to win32.
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">32bit-windows-build — restores the 32-bit Windows (x86 / ia32) build upstream removed in Node 23</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/9aa6398">32bit-windows-build — restores the 32-bit Windows (x86 / ia32) build upstream removed in Node 23</a>. Thanks to xet7.</summary>
 
 Upstream stopped building 32-bit Windows in Node 23
 ([nodejs/node#53184](https://github.com/nodejs/node/pull/53184)). WeKan still ships a
@@ -340,7 +340,7 @@ It fails on the previous line, naming the step, and passes on this one.
 </details>
 
 <details>
-<summary><a href="https://github.com/wekan/node-patches/commit/HEAD">s390x builds a real mksnapshot under qemu-user instead of V8's big-endian simulator</a>. Thanks to xet7.</summary>
+<summary><a href="https://github.com/wekan/node-patches/commit/7778e1e">s390x builds a real mksnapshot under qemu-user instead of V8's big-endian simulator</a>. Thanks to xet7.</summary>
 
 Every cross target runs mksnapshot as a host binary that SIMULATES the target
 inside V8. The little-endian ones (ppc64le, riscv64, loong64) simulate fine, but
