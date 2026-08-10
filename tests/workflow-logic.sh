@@ -160,37 +160,51 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
 
-# ── 3b. A 32-bit ARM target that asks for ARMv6 must also ask for ARM mode ────
+# ── 3b. What the armv6 target's compiler flags have to say ───────────────────
 #
-# Debian's arm-linux-gnueabihf gcc defaults to THUMB. On ARMv7 that is Thumb-2,
-# which supports the hard-float VFP ABI; -march=armv6 has only Thumb-1, for which
-# GCC has never implemented that ABI. The combination is refused inside glibc's
-# own headers - every static inline in stdio.h and stdlib.h - so the error names
-# no file of ours and looks like a broken toolchain:
+# Two runs died on these, each on something that is not armv6 code at all, and
+# each after long enough that a check costing nothing is worth having.
+#
+# -marm. Debian's arm-linux-gnueabihf gcc defaults to THUMB. On ARMv7 that is
+# Thumb-2, which supports the hard-float VFP ABI; ARMv6 has only Thumb-1, for
+# which GCC has never implemented that ABI. The combination is refused inside
+# glibc's own headers - every static inline in stdio.h and stdlib.h - so the
+# error names no file of ours and reads like a broken toolchain:
 #
 #   /usr/arm-linux-gnueabihf/include/bits/stdio.h:40:1: sorry, unimplemented:
 #   Thumb-1 'hard-float' VFP ABI
 #
-# That killed the armv6 build 82 seconds in, on the first four files it compiled.
-# -marm is the fix and it is one word, which is exactly why it can go missing
-# again; a build that only fails after minutes of apt and clone is worth a check
-# that takes none.
+# That killed the first run 82 seconds in, on the first four files it compiled.
+#
+# -mcpu=arm1176jzf-s, not -march=armv6. The Raspberry Pi 1 and Zero are
+# ARM1176JZF-S, which is ARMv6KZ, and ARMv6K is where LDREXD/STREXD - the 64-bit
+# exclusive load/store - arrived. V8 needs them:
+#
+#   deps/v8/src/common/segmented-table.h:124: static assertion failed
+#   static_assert(std::atomic<FreelistHead>::is_always_lock_free);
+#
+# FreelistHead is two uint32s, so that is an 8-byte atomic; on the plain ARMv6
+# baseline it is not lock-free, the assertion is false, and V8's JS dispatch
+# table does not compile. That killed the second run 74 minutes in.
 echo
-echo "An ARMv6 -march also passes -marm, or the hard-float ABI cannot be used:"
-armv6_flags="$(grep -E '^ +extra_cflags: .*-march=armv6' "$ALL" || true)"
+echo "The armv6 target builds in ARM mode, for the CPU those boards have:"
+armv6_flags="$(awk '/^ +- platform: armv6$/,/^ +timeout_minutes:/' "$ALL" | grep -E '^ +extra_cflags: ' || true)"
 if [ -z "$armv6_flags" ]; then
-  ok "no target asks for -march=armv6 (nothing to check)"
+  ok "no armv6 target in the matrix (nothing to check)"
 else
-  bad=0
-  while IFS= read -r line; do
-    case "$line" in
-      *-marm*) ok "${line#*extra_cflags: }" ;;
-      *) fail "an -march=armv6 target has no -marm:${line#*extra_cflags:}"; bad=1 ;;
-    esac
-  done <<EOF
-$armv6_flags
-EOF
-  [ "$bad" = 0 ] || true
+  case "$armv6_flags" in
+    *-marm*) ok "-marm: ARM mode, so the hard-float VFP ABI can be used" ;;
+    *) fail "the armv6 target has no -marm:${armv6_flags#*extra_cflags:}" ;;
+  esac
+  case "$armv6_flags" in
+    *-mcpu=arm1176jzf-s*|*armv6k*|*armv6z*)
+      ok "an ARMv6K CPU, so 8-byte atomics are lock-free and V8 compiles" ;;
+    *) fail "the armv6 target asks for a CPU without LDREXD; V8's segmented-table static_assert will fail:${armv6_flags#*extra_cflags:}" ;;
+  esac
+  case "$armv6_flags" in
+    *-mfloat-abi=hard*) ok "hard-float, which is what those boards run" ;;
+    *) fail "the armv6 target is not hard-float:${armv6_flags#*extra_cflags:}" ;;
+  esac
 fi
 
 # ── 4. The apply-map answers for every platform ───────────────────────────────

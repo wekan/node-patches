@@ -249,8 +249,26 @@ jobs:
           # at armv6, which is why armel stays in the "deliberately not here"
           # list above.
           #
-          # -march=armv6 with hard-float VFPv2, which is the Raspberry Pi OS
-          # armhf baseline for those boards. It takes the COMMON patch set only:
+          # -mcpu=arm1176jzf-s: the CPU these boards actually have, not the
+          # ARMv6 baseline. The Raspberry Pi 1 and Zero are ARM1176JZF-S, which
+          # is ARMv6KZ - ARMv6K plus the security extensions - and the K is the
+          # part that matters here. ARMv6K added LDREXD/STREXD, the 64-bit
+          # exclusive load/store, and V8 requires them:
+          #
+          #   deps/v8/src/common/segmented-table.h:124: static assertion failed
+          #   static_assert(std::atomic<FreelistHead>::is_always_lock_free);
+          #
+          # FreelistHead is two uint32s, so that is an 8-byte atomic, and on
+          # plain ARMv6 - which has LDREX/STREX for words only - it is not
+          # lock-free, so the assertion is false and V8's JS dispatch table
+          # (leaptiering) does not compile. Building for the real CPU makes it
+          # true, and is more accurate about the target besides: nothing that
+          # runs this bundle is a bare ARMv6.
+          #
+          # -mcpu implies the FPU, but -mfpu=vfp is kept explicit because
+          # configure.py is told --with-arm-fpu=vfp and the two should not be
+          # able to drift apart. VFPv2 hard-float is the Raspberry Pi OS
+          # baseline for those boards. It takes the COMMON patch set only:
           # dist/arm is the NEON patch and ARMv6 has no NEON (see
           # releases/dist-dirs-for.sh).
           #
@@ -273,7 +291,7 @@ jobs:
             docker_platform: linux/386
             triple: arm-linux-gnueabihf
             apt_packages: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-            extra_cflags: -marm -march=armv6+fp -mfpu=vfp -mfloat-abi=hard
+            extra_cflags: -marm -mcpu=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
             configure_flags: >-
               --dest-cpu=arm --dest-os=linux --cross-compiling
               --with-arm-float-abi=hard --with-arm-fpu=vfp
