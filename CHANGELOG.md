@@ -294,6 +294,43 @@ patched `v8.gyp` still parses; and the trio check sees its `.patch`,
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/3d16f16">armv6 builds for the CPU those boards have, so V8's 8-byte atomics are lock-free</a>. Thanks to xet7.</summary>
+
+With `-marm` and the `HWY_BROKEN_EMU128` define in, the third run got **74
+minutes** further — past the host tools and into the real ARM cross compile —
+and stopped in V8:
+
+```
+deps/v8/src/common/segmented-table.h:124:44: error: static assertion failed
+static_assert(std::atomic<FreelistHead>::is_always_lock_free);
+  required from 'class SegmentedTable<JSDispatchEntry, 268435456>'
+```
+
+`FreelistHead` is two `uint32`s, so that is an **8-byte atomic**. The plain
+ARMv6 baseline has `LDREX`/`STREX` for words only; the 64-bit pair,
+`LDREXD`/`STREXD`, arrived in **ARMv6K**. Without them an 8-byte atomic is not
+lock-free, the assertion is false, and V8's JS dispatch table — leaptiering,
+which is on by default — does not compile.
+
+The fix is `-mcpu=arm1176jzf-s` instead of `-march=armv6+fp`, and it is not a
+workaround: **that is the CPU these boards have.** The Raspberry Pi 1 and the
+Zero are ARM1176JZF-S, which is ARMv6KZ — ARMv6K plus the security extensions —
+so building for the baseline was asking for a machine narrower than anything
+that will ever run this bundle, and paying for it with V8.
+
+Nothing else moves. `-marm`, `-mfpu=vfp` and `-mfloat-abi=hard` stay;
+`configure.py` still probes `__ARM_ARCH_6*__` and still comes out at
+`arm_version` 6, so `--arm-arch=armv6` and the `HWY_BROKEN_EMU128` patch —
+which keys on `arm_version==6` — apply exactly as before.
+
+The guard covers both walls now, and reads the armv6 matrix entry rather than
+grepping for a flag string that has just changed: ARM mode, an ARMv6K CPU, and
+hard-float. Checked in the failing direction too — putting `-march=armv6+fp`
+back fails it with *"asks for a CPU without LDREXD"*.
+
+</details>
+
 and fixes the following in the release workflows:
 
 **Release All** - the workflow that clones upstream, applies the patches and
