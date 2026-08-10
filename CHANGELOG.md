@@ -211,7 +211,10 @@ the timeout.
 
 </details>
 
-and fixes what the first armv6 run turned up:
+and fixes what the armv6 runs turned up:
+
+**armv6** - the two walls the first two runs hit, each in something that is not
+armv6 code at all.
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/c6eaea4">armv6 passes -marm, or glibc's own headers refuse the hard-float ABI</a>. Thanks to xet7.</summary>
@@ -245,6 +248,49 @@ also passes `-marm`, verified BOTH ways: it passes as committed, and removing
 `-marm` from the matrix makes it fail with the reason. A one-word flag in a
 build that only fails after apt, a clone and a minute of compiling is the kind
 that goes missing twice.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/d5a9fe5">armv6 gets the HWY_BROKEN_EMU128 define armv7 already had, or V8's JSON stringifier will not compile</a>. Thanks to xet7.</summary>
+
+With `-marm` in, the second run got 45 minutes further and stopped in V8:
+
+```
+deps/v8/third_party/highway/src/hwy/ops/shared-inl.h:368:27: error:
+static assertion failed: Too many lanes
+  note: the comparison reduces to '(16 <= 1)'
+deps/v8/src/json/json-stringifier.cc:3356:33: error: no matching function for
+call to 'Set(hwy::N_SCALAR::FixedTag<unsigned char, 16>&, int)'
+```
+
+Highway's `HWY_BROKEN_EMU128` defaults to **1** for GCC older than 14 — a GCC
+bug Highway works around by target rather than by version — and when it is 1
+Highway drops its fallback target from **EMU128**, sixteen emulated lanes, to
+**SCALAR**, one. `json-stringifier.cc` asks for `hw::FixedTag<uint8_t, 16>` on
+that path unconditionally, and one lane cannot hold sixteen.
+
+Upstream already carries the workaround — for s390x, for AIX, and for 32-bit ARM
+— but the ARM condition is an exact `arm_version==7`. An ARMv6 build sets
+`arm_version` to 6, from the compiler's own `__ARM_ARCH_6*__`, so it never
+matched: ARMv6 was the one 32-bit ARM target left on SCALAR.
+`dist/all/v8-gyp-armv6-hwy-emu128.patch` makes the condition read
+`arm_version==7 or arm_version==6`.
+
+**The 6-versus-7 distinction was never about the bug**, which belongs to the
+compiler: the object that failed is a HOST object, built by the same container's
+`g++` that compiles the armhf and armv7 jobs successfully WITH the define. And
+EMU128 is Highway's pure C++ emulation of 128-bit vectors, so enabling it asks
+nothing of the CPU — it is the same code ARMv7 has been compiling all along.
+
+It is in the COMMON section rather than `dist/arm`, for two reasons: the change
+sits inside a `v8_target_arch=="arm"` condition, so it is a no-op everywhere
+else, and armv6 does not take `dist/arm` at all — that is the NEON patch.
+
+Verified against real upstream: `tests/patches-apply.sh` fetches Node v24.19.0
+and applies every section, this patch included, for all fourteen platforms; the
+patched `v8.gyp` still parses; and the trio check sees its `.patch`,
+`.sha256sum` and `.md`. The BUILD is the next CI run, as before.
 
 </details>
 
