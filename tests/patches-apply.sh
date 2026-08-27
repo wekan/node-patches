@@ -95,6 +95,15 @@ for p in $matrix; do
       fi
     done
   done
+  if [ "$p" = i386 ]; then
+    avx2_guard="$(sed -n '/Runtime-dispatched AVX2 path/,/#endif/p' deps/histogram/src/hdr_histogram.c)"
+    if printf '%s\n' "$avx2_guard" | grep -q 'defined(__x86_64__)' &&
+       ! printf '%s\n' "$avx2_guard" | grep -q 'defined(__i386__)'; then
+      ok "ia32 histogram keeps AVX2 dispatch on x64 and off i386"
+    else
+      fail "ia32 histogram still enables its 64-bit-lane AVX2 path on i386"
+    fi
+  fi
 done
 git checkout -q . && git clean -qfd
 

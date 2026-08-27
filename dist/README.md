@@ -11,7 +11,7 @@ sections are version-agnostic and carry forward across upstream releases.
 | Section | Applies to | What it carries |
 |---------|-----------|-----------------|
 | `all/` | every platform | Cross-cutting source fixes valid everywhere (V8 Turboshaft template disambiguator). |
-| `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping. |
+| `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping, histogram AVX2 kept off ia32. |
 | `arm/` | armhf, armv7 | 32-bit ARM: zlib `-mfpu=neon`, ARMv8-only CRC path kept off ARMv7. |
 | `mac/` | mac-x64, mac-arm64 | Apple Clang: KMAC brace initialisation. |
 | `win32/` | win32 | Windows 32-bit build restoration (upstream removed it in Node 23). |
