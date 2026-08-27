@@ -64,7 +64,8 @@ It holds no Node.js source: patches are organised by platform into a common
 family sections, and the **Release All** / **Release All Missing** workflows clone
 the newest upstream release, verify and apply each platform's sections, and build
 the fourteen-platform binary set that WeKan embeds. The patches restore **32-bit
-Windows**, add the **32-bit x86** and **32-bit ARM** SIMD/build flags, and correct
+Windows**, keep Node v24.20.0's **histogram AVX2** path off **32-bit x86**, add the
+**32-bit x86** and **32-bit ARM** SIMD/build flags, and correct
 **Apple Clang** and **V8** compile errors; **s390x** builds with a real
 **mksnapshot** under **qemu-user** instead of the big-endian V8 simulator, so it
 needs no patch of its own. The fourteenth platform is **armv6** — Raspberry Pi 1
@@ -121,6 +122,21 @@ ARM section.
 `tools/icu/icu-generic.gyp` maps the `ia32` dest-cpu to the `x86` name the ICU
 `genccode` host tool expects, so the ICU data step runs during a 32-bit build instead
 of failing on an unknown architecture.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/c6db32e">histogram-avx2-x64-only — keeps a 64-bit intrinsic out of the i386 build</a>. Thanks to xet7.</summary>
+
+Node.js v24.20.0 enabled hdr-histogram's runtime AVX2 implementation on both
+x86_64 and i386. That implementation extracts two 64-bit lanes with
+`_mm_extract_epi64`; GCC accepted the source under `-m32`, but the intrinsic
+left unresolved references when the i386 build linked `node_mksnapshot`.
+
+The patch keeps runtime AVX2 dispatch on x86_64 and uses hdr-histogram's
+existing scalar fallback on ia32. The patch-application test checks both sides
+of that boundary after applying the complete i386 patch set: x64 remains in the
+guard and i386 does not.
 
 </details>
 
