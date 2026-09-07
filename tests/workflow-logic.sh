@@ -402,6 +402,12 @@ PYEOF
   [ "$bad" -eq 0 ] && ok "$name: every run: block parses as shell"
 done
 
+if python3 "$ROOT/tests/runtime-workflow.py"; then
+  ok "cross-qemu target snapshots and JavaScript failure gate"
+else
+  fail "cross-qemu runtime validation regression"
+fi
+
 if bash "$ROOT/tests/freebsd-build.sh"; then
   ok "FreeBSD selects the native compiler for configure and make"
 else

@@ -47,10 +47,22 @@ GitHub Release.
    that does not apply cleanly to the pristine upstream tag also fails here, which is
    the signal to re-port it. No single build applies two sections that touch the same
    file, so order within a build never conflicts.
-5. **Build** the platform (native, or cross with the per-platform flags the comments
-   in the workflow explain — `--dest-cpu`, the V8 simulator for s390x mksnapshot,
-   ClangCL for win32, and so on).
-6. **Checksum and publish.** Each platform writes `node-<platform>.sha256sum` beside
+5. **Build** the platform natively or with its configured cross toolchain.
+   PPC64LE and s390x use `cross-qemu`: the cross compiler builds target objects,
+   and `want_separate_host_toolset=0` makes V8 build real target snapshot tools.
+   QEMU executes those tools through binfmt with `QEMU_LD_PREFIX` pointing at the
+   target libraries. Remaining cross targets use host snapshot tools; Windows
+   builds use ClangCL.
+6. **Validate cross-qemu runtimes.** PPC64LE and s390x must execute
+   `tests/runtime-smoke.cjs` with their newly built Node before artifact naming
+   or upload. It checks target architecture, JavaScript, a second V8 context,
+   JSON, crypto and zlib. Any failure stops that platform's build. `--version`
+   alone is insufficient: it can succeed before V8 initializes, as the released
+   PPC64LE v24.20.0 did before aborting on ordinary JavaScript. The same smoke
+   reproduces that failure while the official same-version binary passes under
+   the same QEMU/runtime libraries. The changed PPC64LE source build still needs
+   a complete rebuild; workflow tests do not certify the resulting binary.
+7. **Checksum and publish.** Each platform writes `node-<platform>.sha256sum` beside
    its binary, and both are uploaded with `gh release upload --clobber`. A release
    **accumulates**: a rebuilt platform overwrites only its own two assets; every other
    platform's binary is left in place, so all sixteen collect on one release across

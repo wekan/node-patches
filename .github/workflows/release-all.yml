@@ -377,8 +377,11 @@ jobs:
             runs_on: ubuntu-24.04-arm
             configure_flags: ''
             timeout_minutes: 240
+          # The host-simulator snapshot can build successfully yet abort during
+          # V8 startup on PPC64LE. Build and execute real target snapshot tools,
+          # as for s390x, then run JavaScript before accepting the artifact.
           - platform: ppc64le
-            mode: cross-container
+            mode: cross-qemu
             image: debian:trixie
             triple: powerpc64le-linux-gnu
             apt_packages: gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu
@@ -386,9 +389,9 @@ jobs:
               --dest-cpu=ppc64 --dest-os=linux --cross-compiling
             timeout_minutes: 300
           # s390x is the one BIG-ENDIAN target, and it needs its own build MODE
-          # (cross-qemu). Every other cross target runs mksnapshot as a HOST
-          # (x86_64) binary that SIMULATES the target inside V8; the little-endian
-          # ones (ppc64le, riscv64, loong64) simulate fine, but the big-endian
+          # (cross-qemu), also used by PPC64LE. Remaining cross targets run
+          # mksnapshot as a HOST (x86_64) binary that SIMULATES the target inside
+          # V8. The big-endian
           # s390x simulator segfaults during snapshot generation every time -
           # "Segmentation fault (core dumped)", v8_snapshot Error 139 - and no
           # amount of simulator flags (single-threaded, dropped stress flag,
@@ -620,14 +623,9 @@ jobs:
           echo "VERSION=$V" >> "$GITHUB_ENV"
           echo "UPSTREAM_COMMIT=$COMMIT" >> "$GITHUB_ENV"
 
-      # QEMU is registered for exactly ONE platform: s390x (mode cross-qemu).
-      # Every other job builds tools that run on the CPU it is running on -
-      # i386 and the i386 cross containers run natively on an x86_64 runner, and
-      # loong64/ppc64le/riscv64 run their build-tools as host-arch V8 simulators.
-      # s390x is the one whose (big-endian) simulator segfaults, so it runs a
-      # real s390x mksnapshot under qemu-user instead - which needs binfmt
-      # registered on the runner, with the F flag so the interpreter is visible
-      # inside the build container too. --install <arch> uses that flag.
+      # Both ppc64le and s390x use real target build-tools under qemu-user.
+      # Register binfmt with the F flag so the interpreter is also available
+      # inside the build container. Remaining cross targets use host tools.
       - name: Register qemu-user for the target CPU (cross-qemu only)
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'cross-qemu' }}
         run: docker run --privileged --rm tonistiigi/binfmt:latest --install ${{ matrix.platform }}
@@ -717,18 +715,18 @@ jobs:
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'cross-qemu') }}
         run: |
           set -euo pipefail
-          # Option B for the big-endian s390x, whose host-arch V8 simulator
-          # segfaults generating the snapshot. The cross compiler still produces
-          # every .o at native speed; the difference is HOW the build-tools that
+          # Real target snapshot tools for ppc64le and s390x. Host-simulator
+          # snapshots have failed at build time (s390x) and runtime (ppc64le).
+          # The cross compiler still produces every .o at native speed; the difference is HOW the build-tools that
           # must RUN (mksnapshot, torque, ...) are made and run:
           #
           #   want_separate_host_toolset = 0  - build those tools for the TARGET
-          #     (a real s390x mksnapshot) instead of for the host (an x86_64
-          #     mksnapshot that SIMULATES s390x). It is edited into config.gypi
+          #     (a real target mksnapshot) instead of for the host (an x86_64
+          #     mksnapshot that SIMULATES the target). It is edited into config.gypi
           #     after ./configure; out/Makefile depends on config.gypi, so `make`
           #     re-runs gyp and picks it up.
-          #   qemu-user (binfmt, registered above) then RUNS those s390x tools,
-          #     with QEMU_LD_PREFIX pointing at the cross toolchain's s390x
+          #   qemu-user (binfmt, registered above) then RUNS those target tools,
+          #     with QEMU_LD_PREFIX pointing at the cross toolchain's target
           #     libraries (/usr/<triple>, installed by g++-<triple>) so the
           #     dynamically-linked tools find their libc/libstdc++.
           #
@@ -764,6 +762,9 @@ jobs:
                 || { echo "::error::could not set want_separate_host_toolset=0 in config.gypi"; exit 1; }
               make -j"$(nproc)"
               ${{ matrix.triple }}-strip out/Release/node
+              # --version does not initialize V8. A failed JavaScript smoke
+              # ends this build step, preventing artifact naming and upload.
+              sh _patches/tests/runtime-smoke.sh ./out/Release/node ${{ matrix.platform }}
             '
 
       # openssl's 32-bit Windows assembly is NASM syntax and the runner image
