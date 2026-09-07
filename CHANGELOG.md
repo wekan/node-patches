@@ -56,6 +56,20 @@ Nothing carried yet — this is the first patch set.
 
 # Upcoming node-patches release
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/875b4bb">Build
+PowerPC target snapshots and reject Node runtime startup failures</a>.
+Thanks to xet7.</summary>
+
+The released PowerPC binary reports its version but aborts while initializing
+V8. Build real target snapshot tools under QEMU, as for s390x, and require
+JavaScript, separate V8 contexts, crypto and compression to execute before
+accepting either platform's artifact. The gate reproduces the released failure
+and passes with official same-version Node. Workflow positive and negative tests
+pass; the complete corrected PowerPC source rebuild still needs a CI run.
+
+</details>
+
 **In short:** the first patch set, for the upstream Node.js **v24.x** line, and the
 repository that carries it — a **patches-only** repo modelled on
 [Betterbird/thunderbird-patches](https://github.com/Betterbird/thunderbird-patches).
