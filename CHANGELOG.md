@@ -80,6 +80,27 @@ design docs and maintainer instructions the repo is set up with.
 This release adds the following patch sections for the upstream Node.js v24.x line:
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f882649">Select FreeBSD's native Clang compiler for Node builds</a>. Thanks to xet7.</summary>
+
+The supplied Release All run built and uploaded fifteen targets; FreeBSD alone
+failed before compilation. Node v24.20.0 defaults to `gcc` and `g++` there, but
+FreeBSD supplies Clang as `cc` and `c++`. The missing executable reaches an
+upstream compiler probe whose failure return has five values while its caller
+expects four, producing `ValueError: too many values to unpack (expected 4)`.
+The FreeBSD VM now exports `CC=cc CXX=c++` for both configure and gmake.
+
+The regression test executes the workflow's actual VM command block, checks
+compiler selection in configure and gmake, and compiles and runs C++20 code.
+Removing the export fails the negative test. The complete offline workflow
+suite and every platform's patch application against v24.20.0 pass. The exact
+upstream compiler probe reproduces the supplied failure with a missing compiler
+and succeeds with the selected names on the Linux test host. A complete native
+FreeBSD Node rebuild still requires the FreeBSD VM runner; it was not run on
+that Linux host.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/773e881">Build Node.js for Windows ARM64 and FreeBSD x64</a>. Thanks to xet7.</summary>
 
 Release All now uses upstream's supported `vcbuild arm64` target on a Windows
