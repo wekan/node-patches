@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # What the release workflows do, checked WITHOUT a runner and without the
-# network. The build itself takes hours on fourteen platforms, so the failures
+# network. The build itself takes hours on sixteen platforms, so the failures
 # worth catching here are the ones that kill a job in its first seconds - and
 # that is exactly what the first run's failure was: every one of the builds -
 # thirteen of them at the time, fourteen since armv6 - died three seconds after
@@ -159,6 +159,16 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
 [ "$matrix" = "$notes_list" ] \
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
+
+[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 16 ] \
+  && ok "the matrix contains all 16 release targets" \
+  || fail "expected 16 release targets"
+grep -A 5 -E '^ +- platform: win-arm64$' "$ALL" | grep -q 'vcbuild_arch: arm64' \
+  && ok "Windows ARM64 uses the upstream arm64 vcbuild target" \
+  || fail "Windows ARM64 is not wired to vcbuild arm64"
+grep -q 'uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1' "$ALL" \
+  && ok "FreeBSD uses an immutable pinned VM action" \
+  || fail "FreeBSD VM action is absent or not commit-pinned"
 
 # ── 3b. What the armv6 target's compiler flags have to say ───────────────────
 #

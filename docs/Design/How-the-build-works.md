@@ -6,7 +6,7 @@ This repo carries no Node.js source. The build reconstructs the source at run ti
 ## Release All (`.github/workflows/release-all.yml`)
 
 A `workflow_dispatch` (also callable as a reusable workflow) that builds one upstream
-Node.js version for all fourteen platforms and uploads the binaries to that version's
+Node.js version for all sixteen platforms and uploads the binaries to that version's
 GitHub Release.
 
 1. **Pick the version.** The `version` input, or — when empty — the newest upstream
@@ -53,24 +53,34 @@ GitHub Release.
 6. **Checksum and publish.** Each platform writes `node-<platform>.sha256sum` beside
    its binary, and both are uploaded with `gh release upload --clobber`. A release
    **accumulates**: a rebuilt platform overwrites only its own two assets; every other
-   platform's binary is left in place, so all fourteen collect on one release across
+   platform's binary is left in place, so all sixteen collect on one release across
    however many runs it takes. The release notes carry a **provenance table** — the
    upstream repo, the `v<MAJOR>.x` branch, the tag, and the exact commit — resolved
    from the tag with `git ls-remote` (immutable, so it matches what the build jobs
    cloned).
 
+Windows ARM64 uses upstream's supported `vcbuild arm64` cross-build on the
+Windows x64 runner. FreeBSD x64 builds natively with clang and gmake in a
+FreeBSD 14 VM; the VM action is pinned to an immutable commit and copies the
+result back into the shared checksum/publish path. Node 24 also supports AIX
+ppc64 and SmartOS x64, but GitHub-hosted Actions supplies neither OS nor its
+native SDK/toolchain. Those require dedicated self-hosted runners and are not
+claimed as buildable workflow targets. Android and OpenHarmony are application
+platform builds, not the standalone desktop/server executable set published
+here.
+
 ## Release All Missing (`.github/workflows/release-all-missing.yml`)
 
-Building all fourteen to obtain one that failed is wasteful — several platforms take
+Building all sixteen to obtain one that failed is wasteful — several platforms take
 hours. This workflow builds only what a release lacks:
 
-1. **Plan.** List the release's assets and compare against the fourteen platforms. A
+1. **Plan.** List the release's assets and compare against the sixteen platforms. A
    platform counts as present only when BOTH `node-<platform>[.exe]` and
    `node-<platform>.sha256sum` are on the release, so a half-published platform is
    rebuilt rather than left broken.
 2. **Build the missing set** by calling `release-all.yml` (a reusable workflow) with a
    `platforms` filter of exactly those. The build steps are not duplicated — a second
-   copy of fourteen platforms' flags would drift.
+   copy of sixteen platforms' flags would drift.
 
 It uses a **distinct concurrency group** from `release-all.yml`: a reusable workflow
 that requests a group already held by its caller deadlocks. Mutual exclusion where it

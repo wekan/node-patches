@@ -24,7 +24,7 @@ with the build matrix in [`../.github/workflows/release-all.yml`](../.github/wor
 
 | Platform | Sections applied |
 |----------|------------------|
-| x64, arm64, ppc64le, riscv64, loong64, win64 | `all` |
+| x64, arm64, ppc64le, riscv64, loong64, win64, win-arm64, freebsd-x64 | `all` |
 | i386 | `all`, `ia32` |
 | win32 | `all`, `ia32`, `win32` |
 | armhf, armv7 | `all`, `arm` |

@@ -2,17 +2,17 @@ name: Release All Missing
 
 # Build only the Node.js binaries a release does not already carry.
 #
-# WHY: this fork builds fourteen platforms, and several of them take hours -
+# WHY: this fork builds sixteen platforms, and several of them take hours -
 # armhf and armv7 are cross builds that compile V8 twice and have been killed at
 # the 360-minute mark, loong64 takes about 150 minutes, i386 about 115. When one
 # platform fails, or is added, or a run is cancelled, re-running release-all.yml
-# rebuilds all fourteen to obtain the one that is missing. This builds the one.
+# rebuilds all sixteen to obtain the one that is missing. This builds the one.
 #
 # HOW: work out which platforms are absent from the release, then call
 # release-all.yml with exactly those. The build steps are not duplicated here -
 # release-all.yml is a reusable workflow now, and this passes it a `platforms`
 # filter. That matters more here than anywhere else in this repo: a second copy
-# of fourteen platforms' compile flags would drift, and a binary added to a
+# of sixteen platforms' compile flags would drift, and a binary added to a
 # release months later would then differ from the ones beside it.
 #
 # A platform counts as present only when BOTH node-<platform>[.exe] and its
@@ -77,7 +77,7 @@ jobs:
           # Windows binaries carry .exe; everything else is bare. Kept in step
           # with that workflow's matrix - if a platform is added there it must be
           # added here, or this will never notice it is missing.
-          PLATFORMS="i386 armv6 armhf armv7 loong64 x64 arm64 ppc64le s390x riscv64 win64 win32 mac-x64 mac-arm64"
+          PLATFORMS="i386 armv6 armhf armv7 loong64 x64 arm64 ppc64le s390x riscv64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64"
 
           if gh release view "$V" >/dev/null 2>&1; then
             gh release view "$V" --json assets --jq '.assets[].name' | sort > existing.txt
@@ -90,7 +90,7 @@ jobs:
           missing=""
           have=""
           for p in $PLATFORMS; do
-            case "$p" in win64|win32) asset="node-${p}.exe" ;; *) asset="node-${p}" ;; esac
+            case "$p" in win64|win-arm64|win32) asset="node-${p}.exe" ;; *) asset="node-${p}" ;; esac
             # The checksum is named after the PLATFORM, not the .exe binary: the
             # build writes `sha256sum node-win64.exe > node-win64.sha256sum` (see
             # release-all.yml), so the file is node-<p>.sha256sum, NOT

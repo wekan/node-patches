@@ -30,5 +30,6 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   # gates every ARM SIMD path on arm_fpu=="neon", so an armv6 build selects the
   # scalar code by itself and the patch has nothing to fix.
   mac-x64|mac-arm64) echo mac ;;
-  # x64, arm64, ppc64le, riscv64, loong64, s390x, win64 take the common set only.
+  # x64, arm64, ppc64le, riscv64, loong64, s390x, win64, win-arm64 and
+  # freebsd-x64 take the common set only.
 esac

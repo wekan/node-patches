@@ -45,11 +45,13 @@ name: Release All
 #   node-loong64   LoongArch64               (--dest-cpu=loong64) — V8 has the
 #                                            port, nobody else publishes it
 #   node-win64.exe 64-bit Windows
+#   node-win-arm64.exe Windows on ARM64
 #   node-win32.exe 32-bit Windows            upstream REMOVED the build in
 #                                            7ad0cc3e571; the 32bit-windows-build
 #                                            patch puts the removed pieces back, ClangCL
 #   node-mac-x64   macOS Intel               native
 #   node-mac-arm64 macOS Apple silicon       native
+#   node-freebsd-x64 FreeBSD x86-64          native in a FreeBSD VM
 #
 # armhf and armv7 are both 32-bit hard-float ARM: the difference is the FPU
 # baseline, which is the difference that matters on the older boards this exists
@@ -70,9 +72,9 @@ name: Release All
 #   armel (ARMv5, soft-float) - V8 has not supported ARMv5 for many years. There
 #     is no Node.js for it anywhere and this repo cannot make one either; a build
 #     target that can only ever fail is worse than an honest gap.
-#   win-arm64 / win64 - nodejs.org publishes both, so there is nothing to add.
-#   freebsd-* - it needs a FreeBSD host, and there is no FreeBSD runner. FreeBSD
-#     builds Node from ports, which is the answer there anyway.
+#   AIX ppc64 and SmartOS x64 - supported by Node, but GitHub-hosted Actions has
+#     neither operating system nor its native SDK/toolchain. They need dedicated
+#     self-hosted runners before patched binaries can honestly be produced.
 #   (macOS used to be on this list, on the grounds that nodejs.org publishes it.
 #   It is built here now, for the two reasons at the top: the patch set's fixes, and
 #   a backstop that covers everything.)
@@ -110,7 +112,7 @@ on:
 
   # Called by release-all-missing.yml, which works out which platforms a release
   # is short of and passes them as `platforms`. The build itself is HERE and
-  # only here: a second copy of fourteen platforms' compile steps would drift
+  # only here: a second copy of sixteen platforms' compile steps would drift
   # from this one, and then a binary added later would not match the binaries
   # beside it on the same release.
   workflow_call:
@@ -437,6 +439,11 @@ jobs:
             runs_on: windows-2022
             vcbuild_arch: x64
             timeout_minutes: 240
+          - platform: win-arm64
+            mode: windows
+            runs_on: windows-2022
+            vcbuild_arch: arm64
+            timeout_minutes: 240
           # macOS. Both are on nodejs.org; built here so the mac-arm64 bundle is
           # not the one platform taking its Node.js from somewhere else.
           # macOS Intel. Node 24 needs Xcode >= 16.1 (its V8 uses C++20
@@ -469,6 +476,16 @@ jobs:
             mode: mac
             runs_on: macos-15
             timeout_minutes: 240
+          # Node 24 lists FreeBSD x64 as an experimental source-build target.
+          # GitHub has no hosted FreeBSD runner, so use a pinned FreeBSD VM
+          # action. The workspace is copied back after the native clang/gmake
+          # build, allowing the ordinary checksum and artifact steps below to
+          # remain shared with Linux and macOS.
+          - platform: freebsd-x64
+            mode: freebsd
+            runs_on: ubuntu-24.04
+            configure_flags: ''
+            timeout_minutes: 300
           # 32-bit Windows. nodejs.org stopped publishing it and upstream removed
           # the build itself in 7ad0cc3e571 ("build: remove support for 32-bit
           # Windows"); the 32bit-windows-build patch puts the removed pieces back
@@ -792,6 +809,18 @@ jobs:
           make -j"$JOBS"
           strip out/Release/node 2>/dev/null || true
 
+      - name: Build natively in FreeBSD
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'freebsd' }}
+        uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1
+        with:
+          release: '14.3'
+          prepare: pkg install -y python3 gmake ninja pkgconf
+          run: |
+            set -eu
+            ./configure ${{ matrix.configure_flags }}
+            gmake -j"$(sysctl -n hw.ncpu)"
+            strip out/Release/node
+
       - name: Name it for the release, and say what it is
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') }}
         run: |
@@ -919,11 +948,11 @@ jobs:
           present="$( (ls dist 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
             | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' | sort -u)"
           plats=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
           done
           for a in $present; do
-            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win32 mac-x64 mac-arm64" | grep -q " $a " || plats="${plats:+$plats }$a"
+            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
             echo "::error::No platform produced a binary - every build job failed. Their logs say why; nothing is published."
