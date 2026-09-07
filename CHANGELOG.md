@@ -35,9 +35,9 @@ in by the build from the tag it cloned.
 - The binaries a release carries are named `node-<platform>` (`node-<platform>.exe`
   on Windows), each with a `node-<platform>.sha256sum`. A release accumulates
   binaries — a rebuilt platform clobbers its own asset and leaves the rest alone.
-- The fourteen platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
-  `arm64`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win32`, `mac-x64`,
-  `mac-arm64`.
+- The sixteen platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
+  `arm64`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win-arm64`, `win32`,
+  `mac-x64`, `mac-arm64`, `freebsd-x64`.
 
 </details>
 
@@ -63,7 +63,7 @@ It holds no Node.js source: patches are organised by platform into a common
 **`all/`** section and the **`ia32/`**, **`arm/`**, **`mac/`** and **`win32/`**
 family sections, and the **Release All** / **Release All Missing** workflows clone
 the newest upstream release, verify and apply each platform's sections, and build
-the fourteen-platform binary set that WeKan embeds. The patches restore **32-bit
+the sixteen-platform binary set that WeKan embeds. The patches restore **32-bit
 Windows**, keep Node v24.20.0's **histogram AVX2** path off **32-bit x86**, add the
 **32-bit x86** and **32-bit ARM** SIMD/build flags, and correct
 **Apple Clang** and **V8** compile errors; **s390x** builds with a real
@@ -78,6 +78,24 @@ scripts** that now catch that class of failure in a second instead of hours, and
 design docs and maintainer instructions the repo is set up with.
 
 This release adds the following patch sections for the upstream Node.js v24.x line:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/773e881">Build Node.js for Windows ARM64 and FreeBSD x64</a>. Thanks to xet7.</summary>
+
+Release All now uses upstream's supported `vcbuild arm64` target on a Windows
+x64 runner and performs a native FreeBSD x64 clang/gmake build inside a FreeBSD
+14 VM. The VM action is commit-pinned, and both targets reuse the same verified
+patch application, checksums, accumulating release and Release All Missing path
+as the existing fourteen targets.
+
+Offline coverage requires all three platform registries to contain the same
+sixteen names, verifies the ARM64 vcbuild target and immutable FreeBSD action,
+and keeps every workflow shell block under syntax coverage. AIX ppc64 and
+SmartOS x64 still require native self-hosted runners that GitHub Actions does
+not provide; Android and OpenHarmony are not standalone desktop/server release
+executables.
+
+</details>
 
 **The common section** (`dist/all/`) - applied to every platform.
 
