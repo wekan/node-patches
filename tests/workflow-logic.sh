@@ -402,6 +402,12 @@ PYEOF
   [ "$bad" -eq 0 ] && ok "$name: every run: block parses as shell"
 done
 
+if bash "$ROOT/tests/freebsd-build.sh"; then
+  ok "FreeBSD selects the native compiler for configure and make"
+else
+  fail "FreeBSD compiler selection regression"
+fi
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "workflow-logic: everything holds."

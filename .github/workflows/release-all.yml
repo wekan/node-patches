@@ -817,6 +817,11 @@ jobs:
           prepare: pkg install -y python3 gmake ninja pkgconf
           run: |
             set -eu
+            # FreeBSD ships Clang as cc/c++, not gcc/g++. Node defaults to the
+            # latter here, and its missing-compiler probe raises ValueError
+            # before configure can explain which executable is absent.
+            # Export for both configure and the generated gmake build.
+            export CC=cc CXX=c++
             ./configure ${{ matrix.configure_flags }}
             gmake -j"$(sysctl -n hw.ncpu)"
             strip out/Release/node
