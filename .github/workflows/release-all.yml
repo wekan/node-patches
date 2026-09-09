@@ -964,6 +964,24 @@ jobs:
             echo "::error::No platform produced a binary - every build job failed. Their logs say why; nothing is published."
             exit 1
           fi
+
+          # A platform this run's matrix can produce, but that is not in
+          # dist/, either failed to build (its own job's log says why) or
+          # built fine and then lost its artifact upload - e.g. a transient
+          # runner DNS/network glitch during actions/upload-artifact's
+          # CreateArtifact call, which is not a build failure and leaves no
+          # ::error:: of its own to notice. Warn rather than fail: partial
+          # success is the whole point of `always()` above, and
+          # release-all-missing.yml exists to build exactly the platforms
+          # this prints, once whatever caused the gap has cleared.
+          missing=""
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
+            printf '%s\n' "$present" | grep -qx "$a" || missing="${missing:+$missing }$a"
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::These platforms have no binary in dist/ this run and are missing from the release: $missing. Their build jobs' logs say why (a real build failure, or e.g. a transient artifact-upload error); run release-all-missing.yml once fixed to complete them."
+          fi
+
           # Comma-separated for the `Platforms:` line, which is the form the
           # FerretDB releases use; the sentence above it keeps the plain spaces
           # it is read as.
