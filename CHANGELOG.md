@@ -57,6 +57,27 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/985eed7">Warn
+when a platform's binary is missing from a completed release run</a>. Thanks
+to xet7.</summary>
+
+Run 93080552267: mac-x64 built successfully (correct arch, checksum computed)
+but its `actions/upload-artifact@v7` `CreateArtifact` call failed with
+`ENOTFOUND` - a transient runner DNS/network glitch, not a build failure.
+"attach to the release" only checked whether ANY platform produced a binary,
+so the run finished green and mac-x64 quietly never reached the release;
+nothing said so. The step already computes which of the matrix's platforms
+are present in `dist/` for the `Platforms:` line - this compares that same
+list against the full expected set and emits a `::warning::` naming whatever
+is missing, pointing at `release-all-missing.yml` (which already exists to
+build exactly a gap like this) rather than requiring someone to notice by
+comparing sixteen build jobs' logs by hand. Still `always()` and still not a
+failure: a partially-successful run is the whole point of that job
+condition. `tests/workflow-logic.sh` passes unchanged.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/875b4bb">Build
 PowerPC target snapshots and reject Node runtime startup failures</a>.
 Thanks to xet7.</summary>
