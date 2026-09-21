@@ -57,6 +57,16 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/3dd1187">Use
+portable sed syntax in the release workflow</a>. Thanks to xet7.</summary>
+
+Use a named backup with `sed -i` in the target build and release-notes steps,
+then remove it. This works with BSD sed on macOS and GNU sed on Linux. The
+workflow logic suite now passes on macOS.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/a481067">Build
 the newest Node.js 26.x release</a>. Thanks to xet7.</summary>
 
