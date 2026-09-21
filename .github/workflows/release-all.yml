@@ -449,7 +449,7 @@ jobs:
             timeout_minutes: 240
           # macOS. Both are on nodejs.org; built here so the mac-arm64 bundle is
           # not the one platform taking its Node.js from somewhere else.
-          # macOS Intel. Node 24 needs Xcode >= 16.1 (its V8 uses C++20
+          # macOS Intel. Node 26 needs Xcode >= 16.4 (its V8 uses C++20
           # parenthesized aggregate initialization, P0960, which Xcode 15's Apple
           # Clang lacks - the same feature that broke mac-arm64 on macos-14 and
           # crypto_kmac.cc). When this was first written no Intel runner offered
@@ -469,17 +469,17 @@ jobs:
             timeout_minutes: 240
           # macos-15 (Sequoia) ships Xcode 16 by default; macos-14's default is
           # Xcode 15, whose Apple Clang lacks C++20 parenthesized aggregate
-          # initialization (P0960). Node 24's V8 uses it (e.g.
+          # initialization (P0960). Node 26's V8 uses it (e.g.
           # deps/v8/src/wasm/value-type.h: `TypeIndex(uint)`), so on macos-14 the
           # build died with "no matching conversion ... from 'unsigned int' to
-          # 'TypeIndex'" - the same feature that broke crypto_kmac.cc. Node 24
-          # requires Xcode >= 16.1 on macOS (see BUILDING.md); its own deployment
+          # 'TypeIndex'" - the same feature that broke crypto_kmac.cc. Node 26
+          # requires Xcode >= 16.4 on macOS (see BUILDING.md); its own deployment
           # target keeps the binary compatible with older macOS.
           - platform: mac-arm64
             mode: mac
             runs_on: macos-15
             timeout_minutes: 240
-          # Node 24 lists FreeBSD x64 as an experimental source-build target.
+          # Node 26 lists FreeBSD x64 as an experimental source-build target.
           # GitHub has no hosted FreeBSD runner, so use a pinned FreeBSD VM
           # action. The workspace is copied back after the native clang/gmake
           # build, allowing the ordinary checksum and artifact steps below to
@@ -923,8 +923,8 @@ jobs:
         run: |
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
-          BARE="${V#v}"                 # 24.18.1
-          MAJOR="${BARE%%.*}"           # 24
+          BARE="${V#v}"                 # 26.9.0
+          MAJOR="${BARE%%.*}"           # 26
 
           # The exact upstream commit this version's tag resolves to. The build
           # jobs shallow-cloned nodejs/node at tag "$V"; a tag is immutable, so
@@ -990,7 +990,7 @@ jobs:
 
           # 2. The upstream release notes for this exact version, out of
           #    upstream's own changelog. Sections are anchored
-          #    `<a id="24.18.1"></a>` and run to the next `<a id="`, which is a
+          #    `<a id="26.9.0"></a>` and run to the next `<a id="`, which is a
           #    firmer boundary than the `## <date>, Version ...` heading.
           #
           #    FETCHED from nodejs/node at the tag, not read from the workspace.
