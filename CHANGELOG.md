@@ -57,6 +57,16 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/d336e76">Refresh
+Node.js 26 workflow guidance</a>. Thanks to xet7.</summary>
+
+Both release workflows use `node-major.txt` and the shared resolver to select
+the newest 26.x tag, currently v26.9.0. Update workflow examples and macOS
+toolchain guidance to match Node.js 26.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/3dd1187">Use
 portable sed syntax in the release workflow</a>. Thanks to xet7.</summary>
 
