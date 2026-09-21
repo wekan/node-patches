@@ -5,7 +5,7 @@
 # and the only warning is a `git apply` error in a log nobody is watching.
 #
 #   ./tests/patches-apply.sh              # the newest upstream v<MAJOR>.x release
-#   ./tests/patches-apply.sh v24.19.0     # a particular one
+#   ./tests/patches-apply.sh v26.9.0     # a particular one
 #
 # It does NOT clone Node.js - that is a gigabyte to answer a question about
 # twelve files. It reconstructs a tree of exactly the files the patches touch,

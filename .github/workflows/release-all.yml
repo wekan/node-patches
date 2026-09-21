@@ -1,6 +1,6 @@
 name: Release All
 
-# Build patched Node.js 24.x for EVERY platform WeKan ships a bundle for, and
+# Build patched Node.js 26.x for EVERY platform WeKan ships a bundle for, and
 # attach one executable per platform to the GitHub Release of that version — the
 # same shape wekan/FerretDB's release-all.yml has: individual per-arch assets, no
 # zip, so a consumer downloads only the one file for the platform it targets.
@@ -87,16 +87,16 @@ name: Release All
 # of that one version.
 #
 # Run it from the Actions page (Run workflow) or:
-#   gh workflow run release-all.yml -f version=v24.19.0
+#   gh workflow run release-all.yml -f version=v26.9.0
 #
 # Leave `version` empty and it defaults to the newest upstream v<MAJOR>.x
-# release (node-major.txt, e.g. v24.19.0 or newer).
+# release (node-major.txt, e.g. v26.9.0 or newer).
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release tag, e.g. v24.18.1 (empty = newest upstream v24.x release)'
+        description: 'Release tag, e.g. v26.9.0 (empty = newest upstream v26.x release)'
         required: false
         type: string
       publish:
@@ -533,8 +533,8 @@ jobs:
         run: |
           set -euo pipefail
           # No version to type: resolve the NEWEST upstream release of the major
-          # this repo carries patches for (node-major.txt -> newest v24.x, e.g.
-          # v24.19.0 or newer). release-all-missing.yml passes the version its
+          # this repo carries patches for (node-major.txt -> newest v26.x, e.g.
+          # v26.9.0 or newer). release-all-missing.yml passes the version its
           # plan already picked as the override, so a full run and a fill-in run
           # agree.
           V="$(bash _patches/releases/newest-release.sh _patches "${{ inputs.version }}")"

@@ -48,7 +48,7 @@ patch (and every other patch its build would apply).
   `node.gyp`, `src/node_metadata.cc`, `toolchain.gypi`, `vcbuild.bat` and
   `BUILDING.md` because they are one concern — restoring the 32-bit Windows build.
 - **Generate from a tree based on the upstream tag.** If you keep a working branch
-  with upstream at the tag as its base, `git diff v24.19.0..HEAD -- <paths>` gives the
+  with upstream at the tag as its base, `git diff v26.9.0..HEAD -- <paths>` gives the
   patch. `git format-patch` works too; either applies with `git apply`.
 - **CRLF:** upstream Windows-touching files (e.g. `vcbuild.bat`) are CRLF. `git apply`
   preserves the upstream line endings for context lines, so a patch authored from an
@@ -81,7 +81,7 @@ as the change deserves, word-wrapped at 80. Link upstream issues/PRs as
 
 **Files:** `path/one`, `path/two`
 **Platforms:** win32 (`dist/win32/`).
-**Applies to:** upstream Node.js 24.x (verified against `v24.19.0`).
+**Applies to:** upstream Node.js 26.x (verified against `v26.9.0`).
 ```
 
 The `**Platforms:**` line names the section and the platforms it reaches; the
@@ -92,7 +92,6 @@ update it when re-porting to a newer release or major.
 
 | Section | Patch | What it does |
 |---------|-------|--------------|
-| `all/` | `v8-turboshaft-template-disambiguator` | Explicit `template` disambiguator a stricter compiler needs. |
 | `ia32/` | `v8-gyp-ia32-push-registers` | Selects V8's ia32 `push_registers_asm.cc`. |
 | `ia32/` | `zlib-sse2` | `-msse2` for zlib SIMD on 32-bit x86. |
 | `ia32/` | `icu-cross-build` | Maps ia32→x86 for the ICU `genccode` host tool. |

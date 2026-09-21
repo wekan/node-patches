@@ -282,7 +282,7 @@ done
 # Windows checks text files out with CRLF, so win64 and win32 got .sha256sum
 # files with a trailing carriage return and the checksum step answered
 #
-#   sha256sum: 'v8-turboshaft-template-disambiguator.patch'$'\r': No such file
+#   sha256sum: 'example.patch'$'\r': No such file
 #   ##[error]Process completed with exit code 1.
 #
 # The .patch files had been converted too, so the `git apply` after it would have

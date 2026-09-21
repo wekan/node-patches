@@ -31,4 +31,4 @@ both `win32` and `i386`. That is why the apply-map gives win32 `all + ia32 + win
 **Files:** `configure.py`, `common.gypi`, `node.gyp`, `src/node_metadata.cc`,
 `tools/v8_gypfiles/toolchain.gypi`, `vcbuild.bat`, `BUILDING.md`
 **Platforms:** win32 (`dist/win32/`).
-**Applies to:** upstream Node.js 24.x (verified against `v24.19.0`).
+**Applies to:** upstream Node.js 26.x (verified against `v26.9.0`).

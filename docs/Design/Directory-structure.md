@@ -28,7 +28,7 @@ node-patches/
 ├── dist/
 │   ├── README.md                      The sections and the apply-map, in prose.
 │   ├── all/                           Common: applied to EVERY platform.
-│   │   └── v8-turboshaft-template-disambiguator.{patch,sha256sum,md}
+│   │   └── (empty on Node.js 26; previous fixes are upstream)
 │   ├── ia32/                          32-bit x86: i386 + win32.
 │   │   ├── v8-gyp-ia32-push-registers.{patch,sha256sum,md}
 │   │   ├── zlib-sse2.{patch,sha256sum,md}

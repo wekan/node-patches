@@ -14,4 +14,4 @@ longer builds 32-bit Windows.
 
 **Files:** `tools/icu/icu-generic.gyp`
 **Platforms:** i386, win32 (`dist/ia32/`).
-**Applies to:** upstream Node.js 24.x (verified against `v24.19.0`).
+**Applies to:** upstream Node.js 26.x (verified against `v26.9.0`).

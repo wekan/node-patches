@@ -21,14 +21,14 @@ name: Release All Missing
 # way.
 #
 # Usage:
-#   gh workflow run release-all-missing.yml                    # newest upstream v24.x release
-#   gh workflow run release-all-missing.yml -f version=v24.19.0
+#   gh workflow run release-all-missing.yml                    # newest upstream v26.x release
+#   gh workflow run release-all-missing.yml -f version=v26.9.0
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release tag to complete, e.g. v24.19.0 (empty = newest upstream v24.x release)'
+        description: 'Release tag to complete, e.g. v26.9.0 (empty = newest upstream v26.x release)'
         required: false
         type: string
 

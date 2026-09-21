@@ -15,4 +15,4 @@ former `zlib-simd` patch; the SSE2 half is `ia32/zlib-sse2`.
 
 **Files:** `deps/zlib/zlib.gyp`
 **Platforms:** armhf, armv7 (`dist/arm/`).
-**Applies to:** upstream Node.js 24.x (verified against `v24.19.0`).
+**Applies to:** upstream Node.js 26.x (verified against `v26.9.0`).

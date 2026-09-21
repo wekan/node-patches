@@ -14,4 +14,4 @@ in the **mac** family (`mac-x64`, `mac-arm64`).
 
 **Files:** `src/crypto/crypto_kmac.cc`
 **Platforms:** mac-x64, mac-arm64 (`dist/mac/`).
-**Applies to:** upstream Node.js 24.x (verified against `v24.19.0`).
+**Applies to:** upstream Node.js 26.x (verified against `v26.9.0`).

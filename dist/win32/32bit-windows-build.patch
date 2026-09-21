@@ -2,14 +2,10 @@ diff --git a/BUILDING.md b/BUILDING.md
 index b54a167b0f8..ee6b37bac65 100644
 --- a/BUILDING.md
 +++ b/BUILDING.md
-@@ -116,6 +116,7 @@ platforms. This is true regardless of entries in the table below.
- | GNU/Linux        | loong64          | kernel >= 5.19, glibc >= 2.36     | Experimental |                                      |
- | GNU/Linux        | riscv64          | kernel >= 5.19, glibc >= 2.36     | Experimental |                                      |
- | Windows          | x64              | >= Windows 10/Server 2016         | Tier 1       | [^2],[^3]                            |
+@@ -118,2 +118,3 @@ platforms. This is true regardless of entries in the table below.
+ | Windows          | x64              | >= Windows 10/Server 2016         | Tier 1       | [^2],[^3]                                                  |
 +| Windows          | x86 (32-bit)     | >= Windows 10/Server 2016         | Tier 2       | rebuilt by this fork; nodejs.org removed it in Node 23 (#53184) |
- | Windows          | arm64            | >= Windows 10                     | Tier 2       |                                      |
- | macOS            | x64              | >= 13.5                           | Tier 1       | For notes about compilation see [^4] |
- | macOS            | arm64            | >= 13.5                           | Tier 1       |                                      |
+ | Windows          | arm64            | >= Windows 10                     | Tier 2       |                                                            |
 diff --git a/common.gypi b/common.gypi
 index a2cd172f102..449dd9ac53a 100644
 --- a/common.gypi
@@ -120,26 +116,22 @@ index e614c39a6b5..7bebdcdc485 100644
          'msvs_settings': {
            'VCLinkerTool': {
 diff --git a/vcbuild.bat b/vcbuild.bat
-index 9e1f7136393..ef344a14c08 100644
 --- a/vcbuild.bat
 +++ b/vcbuild.bat
-@@ -252,10 +252,11 @@ if defined compile_commands set configure_flags=%configure_flags% -C
- if defined cfg              set configure_flags=%configure_flags% --control-flow-guard
+@@ -273,10 +273,8 @@
+ if defined v8temporal       set configure_flags=%configure_flags% --v8-enable-temporal-support
  if defined v8windbg         set configure_flags=%configure_flags% --enable-v8windbg
  
 -if "%target_arch%"=="x86" (
 -  echo "32-bit Windows builds are not supported anymore."
 -  exit /b 1
 -)
-+@rem 32-bit Windows, restored (removed upstream in 7ad0cc3e571). An x64 Windows
-+@rem runs x86 binaries natively through WoW64, so the build's own tools - v8's
-+@rem mksnapshot above all - run on the host and this is not a cross compile.
-+@rem The toolchain is selected as amd64_x86 by msvs_host_arch below.
++@rem Restore 32-bit Windows builds on x64 hosts.
 +if "%target_arch%"=="x86" if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set configure_flags=%configure_flags% --no-cross-compiling
  
  if not exist "%~dp0deps\icu" goto no-depsicu
  if "%target%"=="Clean" echo deleting %~dp0deps\icu
-@@ -272,7 +273,7 @@ if "%target%"=="TestClean" (
+@@ -293,7 +291,7 @@
  call tools\msvs\find_python.cmd
  if errorlevel 1 goto :exit
  
@@ -148,25 +140,20 @@ index 9e1f7136393..ef344a14c08 100644
  if not defined openssl_no_asm if "%target_arch%" NEQ "arm64" call tools\msvs\find_nasm.cmd
  if errorlevel 1 echo Could not find NASM, install it or build with openssl-no-asm. See BUILDING.md.
  
-@@ -435,6 +436,12 @@ set "msbcpu=/m:2"
+@@ -456,6 +454,7 @@
  if "%NUMBER_OF_PROCESSORS%"=="1" set "msbcpu=/m:1"
  set "msbplatform=x64"
  if "%target_arch%"=="arm64" set "msbplatform=ARM64"
-+@rem Restored with 32-bit Windows (removed upstream in 7ad0cc3e571). gyp names
-+@rem the ia32 solution configuration "Win32" - common.gypi sets
-+@rem msvs_configuration_platform for x64 and arm64 only, and "Win32" is gyp's
-+@rem default - so without this line an x86 build generates Release|Win32 and
-+@rem then asks msbuild for Release|x64, which answers MSB4126.
 +if "%target_arch%"=="x86" set "msbplatform=Win32"
  if "%target%"=="Build" (
    if defined no_cctest set target=node
    if "%test_args%"=="" set target=node
-@@ -881,7 +888,7 @@ set exit_code=1
+@@ -911,7 +910,7 @@
  goto exit
  
  :help
--echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [nocorepack] [ltcg] [thin-lto] [lto] [pgo-generate] [pgo-use] [licensetf] [sign] [x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
-+echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [nocorepack] [ltcg] [thin-lto] [lto] [pgo-generate] [pgo-use] [licensetf] [sign] [ia32/x86/x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
+-echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [build-addons/build-js-native-api-tests/build-node-api-tests/build-ffi-tests] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [ltcg] [thin-lto] [lto] [lto-jobs number-of-jobs] [pgo-generate] [pgo-use] [licensetf] [sign] [x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
++echo vcbuild.bat [debug/release] [msi] [doc] [test/test-all/test-addons/test-doc/test-js-native-api/test-node-api/test-internet/test-tick-processor/test-known-issues/test-node-inspect/test-check-deopts/test-npm/test-v8/test-v8-intl/test-v8-benchmarks/test-v8-all] [build-addons/build-js-native-api-tests/build-node-api-tests/build-ffi-tests] [ignore-flaky] [static/dll] [noprojgen] [projgen] [clang-cl] [ccache path-to-ccache] [small-icu/full-icu/without-intl] [nobuild] [nosnapshot] [nonpm] [ltcg] [thin-lto] [lto] [lto-jobs number-of-jobs] [pgo-generate] [pgo-use] [licensetf] [sign] [ia32/x86/x64/arm64] [vs2022/vs2026] [download-all] [enable-vtune] [lint/lint-ci/lint-js/lint-md] [lint-md-build] [format-md] [package] [build-release] [upload] [no-NODE-OPTIONS] [link-module path-to-module] [debug-http2] [debug-nghttp2] [clean] [cctest] [no-cctest] [openssl-no-asm]
  echo Examples:
  echo   vcbuild.bat                          : builds release build
  echo   vcbuild.bat debug                    : builds debug build

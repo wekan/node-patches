@@ -15,7 +15,7 @@ What was cloned for the current line:
 
 | Upstream | Branch | Tag | Commit |
 |----------|--------|-----|--------|
-| [nodejs/node](https://github.com/nodejs/node) | v24.x | [v24.19.0](https://github.com/nodejs/node/releases/tag/v24.19.0) | [`cdc1b38d40cb567b7ad0b39c86addf830a0af0ae`](https://github.com/nodejs/node/commit/cdc1b38d40cb567b7ad0b39c86addf830a0af0ae) |
+| [nodejs/node](https://github.com/nodejs/node) | v26.x | [v26.9.0](https://github.com/nodejs/node/releases/tag/v26.9.0) | [`b469d3fd9401ecbd5de334f4b7043dd0286e4a7b`](https://github.com/nodejs/node/commit/b469d3fd9401ecbd5de334f4b7043dd0286e4a7b) |
 
 Each release's own notes repeat this table for the exact version it carries, filled
 in by the build from the tag it cloned.
