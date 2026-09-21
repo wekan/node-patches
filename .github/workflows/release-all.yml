@@ -750,7 +750,8 @@ jobs:
               ./configure ${{ matrix.configure_flags }}
               # Build the V8 build-tools for the target and run them under qemu,
               # instead of simulating the target inside a host mksnapshot.
-              sed -i "/want_separate_host_toolset/ s/: 1/: 0/" config.gypi
+              sed -i.bak "/want_separate_host_toolset/ s/: 1/: 0/" config.gypi
+              rm config.gypi.bak
               echo "config.gypi now has:"; grep -n want_separate_host_toolset config.gypi
               # No apostrophe in this pattern: the whole block is one
               # single-quoted `sh -c '...'` argument, and a single quote inside
@@ -1012,7 +1013,8 @@ jobs:
               inblock && /^<a id="/ { exit }
               inblock { print }
             ' upstream-changelog.md > upstream-notes.md
-            sed -i -e '/./,$!d' upstream-notes.md
+            sed -i.bak -e '/./,$!d' upstream-notes.md
+            rm upstream-notes.md.bak
           fi
           if [ ! -s upstream-notes.md ]; then
             echo "::warning::No $BARE section in upstream's $CHANGELOG ($URL) - the notes will carry the header only."
