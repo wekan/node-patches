@@ -57,6 +57,17 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/a481067">Build
+the newest Node.js 26.x release</a>. Thanks to xet7.</summary>
+
+Set the build line to Node.js 26.x, currently v26.9.0. Remove two V8 patches
+whose fixes are already upstream, and rebase the 32-bit Windows patch onto
+the new release. The platform patch sets all apply to v26.9.0; a full binary
+build still needs a release workflow run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/985eed7">Warn
 when a platform's binary is missing from a completed release run</a>. Thanks
 to xet7.</summary>
