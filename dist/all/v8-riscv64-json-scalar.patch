@@ -5,7 +5,7 @@ diff --git a/deps/v8/src/json/json-stringifier.cc b/deps/v8/src/json/json-string
      const SrcChar* chars, size_t length,
      const DisallowGarbageCollection& no_gc) {
    constexpr int kUseSimdLengthThreshold = 32;
-+#if !defined(V8_TARGET_ARCH_RISCV64)
++#if !defined(V8_TARGET_ARCH_RISCV64) && !defined(V8_TARGET_ARCH_ARM)
    if (length >= kUseSimdLengthThreshold) {
      return AppendStringSIMD(chars, length, no_gc);
    }

@@ -1,0 +1,12 @@
+diff --git a/deps/v8/src/codegen/arm/assembler-arm.cc b/deps/v8/src/codegen/arm/assembler-arm.cc
+--- a/deps/v8/src/codegen/arm/assembler-arm.cc
++++ b/deps/v8/src/codegen/arm/assembler-arm.cc
+@@ -170,7 +170,7 @@
+ //  "armv7":       ARMv7 + VFPv3-D32 + NEON
+ //  "armv7+sudiv": ARMv7 + VFPv4-D32 + NEON + SUDIV
+ //  "armv8":       ARMv8 (+ all of the above)
+-static constexpr CpuFeatureSet CpuFeaturesFromCompiler() {
++static CpuFeatureSet CpuFeaturesFromCompiler() {
+ // TODO(jbramley): Once the build flags are simplified, these tests should
+ // also be simplified.
+ 

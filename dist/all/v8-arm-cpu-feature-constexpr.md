@@ -1,0 +1,1 @@
+Node.js 26.9.0 declares ARM CPU feature sets as static const values, then returns them from a constexpr function. GCC rejects this for ARMv6 and ARMv7. The function is called only at runtime, so remove its constexpr qualifier.

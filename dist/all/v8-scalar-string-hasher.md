@@ -1,0 +1,1 @@
+Node.js 26.9.0 uses a Highway eight-lane string scan where RISC-V and 32-bit ARM select the scalar backend, whose tag supports one lane. Scan the characters directly on those targets. The 32-bit x86 build also defines SSE2 but cannot compile the 64-bit extraction intrinsic; use the existing scalar packing path there, retaining SSE2 on x64.
