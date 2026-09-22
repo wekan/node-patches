@@ -137,7 +137,7 @@ while i < len(lines):
         if pending == 'arm6' and 'mcr p15, 0, %0, c7, c5, 4' in body:
             good_mcr = True
         pending = None
-    elif line.startswith('#elif') or line.startswith('#endif'):
+    elif line.startswith('#endif'):
         pending = None
     i += 1
 
