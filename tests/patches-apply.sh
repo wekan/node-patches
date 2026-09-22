@@ -108,12 +108,32 @@ for p in $matrix; do
     armv6_yield_state="$(python - <<'PY'
 from pathlib import Path
 
-text = Path('deps/v8/src/base/platform/yield-processor.h').read_text()
-bad = '''#elif defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6
-#define YIELD_PROCESSOR __asm__ __volatile__("isb" ::: "memory")'''
-good_isb = '#define YIELD_PROCESSOR __asm__ __volatile__("isb" ::: "memory")' in text
-good_mcr = '#define YIELD_PROCESSOR __asm__ __volatile__("mcr p15, 0, %0, c7, c5, 4" : : "r"(0) : "memory")' in text
-if bad in text:
+pending = None
+bad = False
+good_isb = False
+good_mcr = False
+
+for raw in Path('deps/v8/src/base/platform/yield-processor.h').read_text().splitlines():
+    line = raw.strip()
+    if '__ARM_ARCH >= 7' in line:
+        pending = 'arm7'
+        continue
+    if '__ARM_ARCH >= 6' in line:
+        pending = 'arm6'
+        continue
+    if line.startswith('#define YIELD_PROCESSOR '):
+        if pending == 'arm6' and '__volatile__("isb"' in line:
+            bad = True
+        if pending == 'arm7' and '__volatile__("isb"' in line:
+            good_isb = True
+        if pending == 'arm6' and 'mcr p15, 0, %0, c7, c5, 4' in line:
+            good_mcr = True
+        pending = None
+        continue
+    if line.startswith('#elif') or line.startswith('#endif'):
+        pending = None
+
+if bad:
     print('bad')
 elif good_isb and good_mcr:
     print('ok')
