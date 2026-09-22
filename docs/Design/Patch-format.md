@@ -25,7 +25,7 @@ Put a patch in the **most specific** section that covers every platform it affec
 - affects **every** platform, or is a harmless portable fix → `all/`;
 - affects one **family** (32-bit x86, 32-bit ARM, Apple Clang) → `ia32/`, `arm/`,
   `mac/`;
-- affects one **platform** → `s390x/`, `win32/`.
+- affects one **platform** → `armv6/`, `riscv64/`, `win32/`.
 
 A change that spans families is **split by hunk** into each family's section, so a
 build only ever applies the hunks its target needs. The former `v8-gyp-cross-build`

@@ -28,16 +28,17 @@ node-patches/
 ├── dist/
 │   ├── README.md                      The sections and the apply-map, in prose.
 │   ├── all/                           Common: applied to EVERY platform.
-│   │   └── (empty on Node.js 26; previous fixes are upstream)
+│   │   └── Cross-platform Node.js 26 patches.
 │   ├── ia32/                          32-bit x86: i386 + win32.
 │   │   ├── v8-gyp-ia32-push-registers.{patch,sha256sum,md}
 │   │   ├── zlib-sse2.{patch,sha256sum,md}
 │   │   └── icu-cross-build.{patch,sha256sum,md}
 │   ├── arm/                           32-bit ARM: armhf + armv7.
 │   │   └── zlib-neon.{patch,sha256sum,md}
-│   ├── s390x/                         IBM Z, cross under the V8 simulator.
-│   │   ├── v8-gyp-s390x-mksnapshot.{patch,sha256sum,md}
-│   │   └── s390-simulator-const-cast.{patch,sha256sum,md}
+│   ├── armv6/                         ARMv6 feature configuration.
+│   │   └── configure-armv6-version.{patch,sha256sum,md}
+│   ├── riscv64/                       RISC-V Maglev link fix.
+│   │   └── v8-maglev-float-minmax.{patch,sha256sum,md}
 │   ├── mac/                           Apple Clang: mac-x64 + mac-arm64.
 │   │   └── crypto-kmac-aggregate-init.{patch,sha256sum,md}
 │   └── win32/                         Windows 32-bit only.
@@ -62,6 +63,8 @@ upstream releases without editing.
 | `all/` | every platform | Cross-cutting source fixes valid everywhere. |
 | `ia32/` | i386, win32 | 32-bit x86 build/compile fixes. |
 | `arm/` | armhf, armv7 | 32-bit ARM SIMD flags. |
+| `armv6/` | armv6 | ARMv6 V8 feature configuration. |
+| `riscv64/` | riscv64 | RISC-V Maglev assembler calls. |
 | `s390x/` | s390x | IBM Z cross-build fixes. |
 | `mac/` | mac-x64, mac-arm64 | Apple Clang fixes. |
 | `win32/` | win32 | Windows 32-bit build restoration. |

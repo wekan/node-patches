@@ -245,7 +245,7 @@ jobs:
           # V8 still lists it. deps/v8/src/codegen/arm/assembler-arm.cc has
           # `static const unsigned kArmv6 = 0u;` as the baseline feature set and
           # accepts --arm-arch=armv6 ("Supported values are: armv8 / armv7+sudiv
-          # / armv7 / armv6"), and configure.py still carries is_arch_armv6()
+          # / armv7 / armv6"). The armv6 patch restores is_arch_armv6()
           # setting arm_version='6', with `vfp` - VFPv2, the ARMv6 FPU - among
           # valid_arm_fpu. ARMv5 is the one that really is gone: V8's list stops
           # at armv6, which is why armel stays in the "deliberately not here"

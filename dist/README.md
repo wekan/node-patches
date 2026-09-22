@@ -13,6 +13,8 @@ sections are version-agnostic and carry forward across upstream releases.
 | `all/` | every platform | Cross-cutting Node.js 26 source fixes for 32-bit ARM CPU features, scalar Highway paths, x86 hashing, typed arrays and PPC64LE TOC range. |
 | `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping, histogram AVX2 kept off ia32. |
 | `arm/` | armhf, armv7 | 32-bit ARM: zlib `-mfpu=neon`, ARMv8-only CRC path kept off ARMv7. |
+| `armv6/` | armv6 | Set an explicit ARMv6 architecture for V8 snapshot compilation. |
+| `riscv64/` | riscv64 | Use linkable floating-point min/max assembler methods in Maglev. |
 | `mac/` | mac-x64, mac-arm64 | Apple Clang: KMAC brace initialisation. |
 | `win32/` | win32 | Windows 32-bit build restoration (upstream removed it in Node 23). |
 
@@ -24,10 +26,12 @@ with the build matrix in [`../.github/workflows/release-all.yml`](../.github/wor
 
 | Platform | Sections applied |
 |----------|------------------|
-| x64, arm64, ppc64le, riscv64, loong64, win64, win-arm64, freebsd-x64 | `all` |
+| x64, arm64, ppc64le, loong64, win64, win-arm64, freebsd-x64 | `all` |
 | i386 | `all`, `ia32` |
 | win32 | `all`, `ia32`, `win32` |
 | armhf, armv7 | `all`, `arm` |
+| armv6 | `all`, `armv6` |
+| riscv64 | `all`, `riscv64` |
 | s390x | `all` |
 | mac-x64, mac-arm64 | `all`, `mac` |
 

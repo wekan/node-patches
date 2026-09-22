@@ -1,0 +1,23 @@
+--- a/configure.py
++++ b/configure.py
+@@ -1753,6 +1753,11 @@
+   return k
+ 
+ 
++def is_arch_armv6():
++  """Check for ARMv6 instructions"""
++  return cc_macros().get('__ARM_ARCH') == '6'
++
++
+ def is_arch_armv7():
+   """Check for ARMv7 instructions"""
+   cc_macros_cache = cc_macros()
+@@ -1841,6 +1846,8 @@
+   if is_arch_armv7():
+     arm_fpu = 'vfpv3'
+     o['variables']['arm_version'] = '7'
++  elif is_arch_armv6():
++    o['variables']['arm_version'] = '6'
+   else:
+     o['variables']['arm_version'] = 'default'
+ 
