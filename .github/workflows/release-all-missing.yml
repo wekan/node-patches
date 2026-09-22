@@ -63,13 +63,14 @@ jobs:
       - id: plan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
           # Default: the newest upstream v<MAJOR>.x release (node-major.txt) - the
           # same resolution release-all.yml does. release-all.yml receives this as
           # its version override, so plan and build agree on the version.
-          V="$(bash releases/newest-release.sh . "${{ inputs.version }}")"
+          V="$(bash releases/newest-release.sh . "$VERSION_INPUT")"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Release: $V"
 
@@ -156,11 +157,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           V: ${{ needs.plan.outputs.version }}
           N: ${{ needs.plan.outputs.count }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          PLAN_RESULT: ${{ needs.plan.result }}
         run: |
           set -euo pipefail
+          if [ "$PLAN_RESULT" != "success" ]; then
+            echo "::error::Could not determine which Node.js platforms are missing."
+            exit 1
+          fi
           if [ "$N" = "0" ]; then
             echo "::notice::$V was already complete - nothing was built."
             exit 0
+          fi
+          if [ "$BUILD_RESULT" != "success" ]; then
+            echo "::error::The missing-platform build did not complete successfully ($BUILD_RESULT)."
+            exit 1
           fi
           # --repo, because this job has no checkout: gh works out which
           # repository to talk to from the git remote, and without one it fails

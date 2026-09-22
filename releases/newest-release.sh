@@ -7,21 +7,24 @@
 #
 # Usage:  newest-release.sh <repo-root> [version-override]
 #
-# A non-empty version-override (second argument) is printed verbatim instead of
-# querying upstream. That is how release-all-missing.yml hands the reusable build
-# the version its plan already resolved, so a full run and a fill-in run agree.
+# A non-empty version-override (second argument) must be a release tag on the
+# configured major. release-all-missing.yml hands the reusable build the version
+# its plan already resolved, so a full run and a fill-in run agree.
 set -euo pipefail
 
 ROOT="${1:-.}"
 OVERRIDE="${2:-}"
+MAJOR="$(tr -cd '0-9' < "$ROOT/node-major.txt")"
+[ -n "$MAJOR" ] || { echo "::error::$ROOT/node-major.txt has no major version number." >&2; exit 1; }
 
 if [ -n "$OVERRIDE" ]; then
+  if ! [[ "$OVERRIDE" =~ ^v${MAJOR}\.[0-9]+\.[0-9]+$ ]]; then
+    echo "::error::Expected a v${MAJOR}.x release tag, got: $OVERRIDE" >&2
+    exit 1
+  fi
   printf '%s\n' "$OVERRIDE"
   exit 0
 fi
-
-MAJOR="$(tr -cd '0-9' < "$ROOT/node-major.txt")"
-[ -n "$MAJOR" ] || { echo "::error::$ROOT/node-major.txt has no major version number." >&2; exit 1; }
 
 # Release tags only: --refs drops the ^{} dereference lines, and the strict grep
 # drops anything that is not vMAJOR.MINOR.PATCH (no -rc, no other major line).
