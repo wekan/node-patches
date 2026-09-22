@@ -105,22 +105,22 @@ for p in $matrix; do
     fi
   fi
   if [ "$p" = armv6 ]; then
-    armv6_yield_state="$(awk '
-      /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu = 1; next }
-      in_gnu && /__ARM_ARCH >= 7/ { pending = "arm7"; next }
-      in_gnu && /__ARM_ARCH >= 6/ { pending = "arm6"; next }
-      in_gnu && /^#define YIELD_PROCESSOR / {
-        if (pending == "arm6" && /__volatile__\("isb"/) bad = 1
-        if (pending == "arm7" && /__volatile__\("isb"/) good_isb = 1
-        if (pending == "arm6" && /mcr p15, 0, %0, c7, c5, 4/) good_mcr = 1
-        pending = ""
-      }
-      END {
-        if (bad) print "bad"
-        else if (good_isb && good_mcr) print "ok"
-        else print "missing"
-      }
-    ' deps/v8/src/base/platform/yield-processor.h)"
+    armv6_yield_state="$(python - <<'PY'
+from pathlib import Path
+
+text = Path('deps/v8/src/base/platform/yield-processor.h').read_text()
+bad = '''#elif defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6
+#define YIELD_PROCESSOR __asm__ __volatile__("isb" ::: "memory")'''
+good_isb = '#define YIELD_PROCESSOR __asm__ __volatile__("isb" ::: "memory")' in text
+good_mcr = '#define YIELD_PROCESSOR __asm__ __volatile__("mcr p15, 0, %0, c7, c5, 4" : : "r"(0) : "memory")' in text
+if bad in text:
+    print('bad')
+elif good_isb and good_mcr:
+    print('ok')
+else:
+    print('missing')
+PY
+)"
     if [ "$armv6_yield_state" = "bad" ]; then
       fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
     elif [ "$armv6_yield_state" = "ok" ]; then
