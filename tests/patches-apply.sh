@@ -104,6 +104,59 @@ for p in $matrix; do
       fail "ia32 histogram still enables its 64-bit-lane AVX2 path on i386"
     fi
   fi
+  if [ "$p" = armv6 ]; then
+    armv6_yield_state="$(python3 - <<'PY'
+from pathlib import Path
+
+pending = None
+bad = False
+good_isb = False
+good_mcr = False
+
+lines = Path('deps/v8/src/base/platform/yield-processor.h').read_text().splitlines()
+i = 0
+while i < len(lines):
+    line = lines[i].strip()
+    if '__ARM_ARCH >= 7' in line:
+        pending = 'arm7'
+        i += 1
+        continue
+    elif '__ARM_ARCH >= 6' in line:
+        pending = 'arm6'
+        i += 1
+        continue
+    elif line.startswith('#define YIELD_PROCESSOR'):
+        body = line
+        while body.endswith('\\') and i + 1 < len(lines):
+            i += 1
+            body += lines[i].strip()
+        if pending == 'arm6' and '__volatile__("isb"' in body:
+            bad = True
+        if pending == 'arm7' and '__volatile__("isb"' in body:
+            good_isb = True
+        if pending == 'arm6' and 'mcr p15, 0, %0, c7, c5, 4' in body:
+            good_mcr = True
+        pending = None
+    elif line.startswith('#endif'):
+        pending = None
+    i += 1
+
+if bad:
+    print('bad')
+elif good_isb and good_mcr:
+    print('ok')
+else:
+    print('missing')
+PY
+)"
+    if [ "$armv6_yield_state" = "bad" ]; then
+      fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
+    elif [ "$armv6_yield_state" = "ok" ]; then
+      ok "armv6 keeps isb on ARMv7+ and uses CP15 ISB below that"
+    else
+      fail "armv6 did not leave the expected pre-ARMv7 yield-processor split"
+    fi
+  fi
 done
 git checkout -q . && git clean -qfd
 
