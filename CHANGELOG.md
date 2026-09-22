@@ -57,6 +57,19 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/08e6edf">Fix Node.js 26 builds on 32-bit, RISC-V, PPC64LE and Windows</a>. Thanks to xet7.</summary>
+
+Node.js 26.9.0 exposed V8 typed-array assertions on 32-bit targets, a
+16-lane SIMD instantiation on scalar RISC-V, and a PPC64LE TOC range error.
+Apply checksum-verified source patches for these compiler failures. Windows
+ARM64 now installs its Rust target before building; Win32 disables Rust-backed
+Temporal because Rust has no Win32 target. All platform patch sets apply to
+v26.9.0, and the workflow logic suite passes. GitHub workflow binary builds
+remain to verify the compiler fixes on each platform.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/d336e76">Refresh
 Node.js 26 workflow guidance</a>. Thanks to xet7.</summary>
 
