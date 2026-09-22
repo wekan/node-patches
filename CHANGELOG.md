@@ -57,6 +57,17 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/2e8e259">Validate Node.js 26 missing-release requests and build results</a>. Thanks to xet7.</summary>
+
+The missing-platform workflow passes its requested version as an environment
+value, checks that release overrides use the configured Node.js 26 major, and
+reports a failed build as a failed workflow run. It continues to call the shared
+release-all workflow, so missing platforms receive the current source patches.
+Workflow logic and version-validation checks pass.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/08e6edf">Fix Node.js 26 builds on 32-bit, RISC-V, PPC64LE and Windows</a>. Thanks to xet7.</summary>
 
 Node.js 26.9.0 exposed V8 typed-array assertions on 32-bit targets, a
