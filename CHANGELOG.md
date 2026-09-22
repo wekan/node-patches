@@ -57,6 +57,19 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/4a4d3f9">Fix Node.js 26 scalar and ARM compiler errors</a>. Thanks to xet7.</summary>
+
+The v26.9.0 builds exposed additional compiler errors on i386, ARMv6,
+ARMv7, ARMHF and RISC-V64. Use scalar string hashing and JSON stringification
+where Highway's fixed-width vectors are unavailable, avoid an x64-only SSE2
+intrinsic on i386, and remove an invalid constexpr qualifier from ARM CPU
+feature detection. All sixteen platform patch sets apply to upstream v26.9.0;
+workflow logic tests pass. GitHub runners still need to compile and smoke-test
+the affected binaries.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/2e8e259">Validate Node.js 26 missing-release requests and build results</a>. Thanks to xet7.</summary>
 
 The missing-platform workflow passes its requested version as an environment
