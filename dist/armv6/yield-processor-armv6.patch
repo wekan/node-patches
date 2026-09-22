@@ -1,0 +1,28 @@
+diff --git a/deps/v8/src/base/platform/yield-processor.h b/deps/v8/src/base/platform/yield-processor.h
+--- a/deps/v8/src/base/platform/yield-processor.h
++++ b/deps/v8/src/base/platform/yield-processor.h
+@@ -31,9 +31,11 @@
+ #include <intrin.h>
+ #define YIELD_PROCESSOR _mm_pause()
+ #elif defined(V8_HOST_ARCH_ARM64) || \
+-    (defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6)
++    (defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 7)
+ #include <intrin.h>
+ #define YIELD_PROCESSOR __isb(_ARM64_BARRIER_SY)
++#elif defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6
++#define YIELD_PROCESSOR ((void)0)
+ #endif  // V8_HOST_ARCH
+ 
+ #else  // !V8_CC_MSVC
+@@ -41,8 +43,10 @@
+ #if defined(V8_HOST_ARCH_IA32) || defined(V8_HOST_ARCH_X64)
+ #define YIELD_PROCESSOR __asm__ __volatile__("pause")
+ #elif defined(V8_HOST_ARCH_ARM64) || \
+-    (defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6)
++    (defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 7)
+ #define YIELD_PROCESSOR __asm__ __volatile__("isb" ::: "memory")
++#elif defined(V8_HOST_ARCH_ARM) && __ARM_ARCH >= 6
++#define YIELD_PROCESSOR __asm__ __volatile__("mcr p15, 0, %0, c7, c5, 4" : : "r"(0) : "memory")
+ #elif defined(V8_HOST_ARCH_MIPS64EL) && __mips_isa_rev >= 2
+ // Don't bother doing using .word here since r2 is the lowest supported mips64
+ // that Chromium supports.

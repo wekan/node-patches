@@ -104,6 +104,17 @@ for p in $matrix; do
       fail "ia32 histogram still enables its 64-bit-lane AVX2 path on i386"
     fi
   fi
+  if [ "$p" = armv6 ]; then
+    yp="$(sed -n '/#if defined(V8_HOST_ARCH_IA32)/,/#elif defined(V8_HOST_ARCH_MIPS64EL)/p' deps/v8/src/base/platform/yield-processor.h)"
+    if printf '%s\n' "$yp" | grep -A1 '__ARM_ARCH >= 6)' | grep -q '__volatile__("isb"'; then
+      fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
+    elif printf '%s\n' "$yp" | grep -A1 '__ARM_ARCH >= 7)' | grep -q '__volatile__("isb"' &&
+         printf '%s\n' "$yp" | grep -q 'mcr p15, 0, %0, c7, c5, 4'; then
+      ok "armv6 keeps isb on ARMv7+ and uses CP15 ISB below that"
+    else
+      fail "armv6 did not leave the expected pre-ARMv7 yield-processor split"
+    fi
+  fi
 done
 git checkout -q . && git clean -qfd
 
