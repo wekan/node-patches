@@ -108,7 +108,7 @@ for p in $matrix; do
     if awk '
       /__ARM_ARCH >= 7\)/ { block = "arm7"; next }
       /__ARM_ARCH >= 6\)/ { block = "arm6"; next }
-      /^#elif / || /^#endif / { block = "" }
+      /^#elif / || /^#endif($|[[:space:]])/ { block = "" }
       block == "arm6" && /__volatile__\("isb"/ { bad = 1 }
       END { exit !(bad) }
     ' deps/v8/src/base/platform/yield-processor.h; then
