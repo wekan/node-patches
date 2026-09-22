@@ -106,15 +106,23 @@ for p in $matrix; do
   fi
   if [ "$p" = armv6 ]; then
     if awk '
-      /__ARM_ARCH >= 7\)/ { block = "arm7"; next }
-      /__ARM_ARCH >= 6\)/ { block = "arm6"; next }
-      /^#elif / || /^#endif($|[[:space:]])/ { block = "" }
-      block == "arm6" && /__volatile__\("isb"/ { bad = 1 }
+      /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu = 1; next }
+      in_gnu && /__ARM_ARCH >= 7/ { block = "arm7"; next }
+      in_gnu && /__ARM_ARCH >= 6/ { block = "arm6"; next }
+      in_gnu && (/^#elif / || /^#endif($|[[:space:]])/) { block = "" }
+      in_gnu && block == "arm6" && /__volatile__\("isb"/ { bad = 1 }
       END { exit !(bad) }
     ' deps/v8/src/base/platform/yield-processor.h; then
       fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
-    elif grep -q '__volatile__("isb"' deps/v8/src/base/platform/yield-processor.h &&
-         grep -q 'mcr p15, 0, %0, c7, c5, 4' deps/v8/src/base/platform/yield-processor.h; then
+    elif awk '
+      /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu = 1; next }
+      in_gnu && /__ARM_ARCH >= 7/ { block = "arm7"; next }
+      in_gnu && /__ARM_ARCH >= 6/ { block = "arm6"; next }
+      in_gnu && (/^#elif / || /^#endif($|[[:space:]])/) { block = "" }
+      in_gnu && block == "arm7" && /__volatile__\("isb"/ { good_isb = 1 }
+      in_gnu && block == "arm6" && /mcr p15, 0, %0, c7, c5, 4/ { good_mcr = 1 }
+      END { exit !(good_isb && good_mcr) }
+    ' deps/v8/src/base/platform/yield-processor.h; then
       ok "armv6 keeps isb on ARMv7+ and uses CP15 ISB below that"
     else
       fail "armv6 did not leave the expected pre-ARMv7 yield-processor split"
