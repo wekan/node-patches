@@ -57,6 +57,19 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f773252">Fix Node.js 26 ARMv6 and RISC-V builds</a>. Thanks to xet7.</summary>
+
+The v26.9.0 runner builds exposed two remaining platform failures. ARMv6 now
+sets an explicit architecture version so V8 does not combine ARMv7 instructions
+with the selected VFPv2 FPU. RISC-V Maglev calls the public floating-point
+min/max assembler methods, avoiding undefined template references when linking
+`mksnapshot`. All sixteen platform patch sets apply to upstream v26.9.0, and
+workflow logic tests pass. GitHub runners still need to compile and smoke-test
+the two binaries.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/4a4d3f9">Fix Node.js 26 scalar and ARM compiler errors</a>. Thanks to xet7.</summary>
 
 The v26.9.0 builds exposed additional compiler errors on i386, ARMv6,
