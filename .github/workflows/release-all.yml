@@ -785,6 +785,12 @@ jobs:
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'windows') }}
         shell: cmd
         run: |
+          rem Node 26 enables Rust-backed Temporal when cargo is present.
+          rem Win32 has no Rust target; disable Temporal for that build.
+          if "${{ matrix.platform }}"=="win32" set config_flags=--v8-disable-temporal-support
+          rem The hosted x64 Rust toolchain lacks the ARM64 target by default.
+          if "${{ matrix.platform }}"=="win-arm64" rustup target add aarch64-pc-windows-msvc
+          if errorlevel 1 exit /b 1
           call vcbuild.bat ${{ matrix.vcbuild_arch }} clang-cl release
           if errorlevel 1 exit /b 1
 

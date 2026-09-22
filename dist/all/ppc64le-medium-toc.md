@@ -1,0 +1,1 @@
+Node.js 26.9.0 uses -mminimal-toc for PPC64LE, but the large LIEF translation unit exceeds the assembler TOC displacement range (0x7ffc). Use GCC's medium code model, which supports a larger TOC, for PPC64LE host and target builds.

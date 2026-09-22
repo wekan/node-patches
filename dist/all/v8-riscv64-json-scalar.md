@@ -1,0 +1,1 @@
+Node.js 26.9.0 instantiates Highway 16-byte SIMD JSON stringification on RISC-V without a vector target, where the scalar implementation supports only one lane. Use the existing SWAR stringifier on RISC-V until a vector target is available.

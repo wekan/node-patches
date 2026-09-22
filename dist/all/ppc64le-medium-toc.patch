@@ -1,0 +1,21 @@
+diff --git a/common.gypi b/common.gypi
+--- a/common.gypi
++++ b/common.gypi
+@@ -602,7 +602,7 @@
+               [ 'host_arch=="ppc64" and OS not in "aix os400"', {
+                 'conditions': [
+                   [ 'clang==0', {
+-                    'cflags': [ '-mminimal-toc' ],
++                    'cflags': [ '-mcmodel=medium' ],
+                   }],
+                 ],
+                 'cflags': [ '-m64', '-mcpu=power9' ],
+@@ -631,7 +631,7 @@
+               [ 'target_arch=="ppc64" and OS not in "aix os400"', {
+                 'conditions': [
+                   [ 'clang==0', {
+-                    'cflags': [ '-mminimal-toc' ],
++                    'cflags': [ '-mcmodel=medium' ],
+                   }],
+                 ],
+                 'cflags': [ '-m64', '-mcpu=power9' ],

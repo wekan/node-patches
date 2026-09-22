@@ -1,0 +1,15 @@
+diff --git a/deps/v8/src/json/json-stringifier.cc b/deps/v8/src/json/json-stringifier.cc
+--- a/deps/v8/src/json/json-stringifier.cc
++++ b/deps/v8/src/json/json-stringifier.cc
+@@ -3334,9 +3334,11 @@
+     const SrcChar* chars, size_t length,
+     const DisallowGarbageCollection& no_gc) {
+   constexpr int kUseSimdLengthThreshold = 32;
++#if !defined(V8_TARGET_ARCH_RISCV64)
+   if (length >= kUseSimdLengthThreshold) {
+     return AppendStringSIMD(chars, length, no_gc);
+   }
++#endif
+   return AppendStringSWAR(chars, length, 0, 0, no_gc);
+ }
+ 

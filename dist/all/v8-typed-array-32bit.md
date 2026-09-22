@@ -1,0 +1,1 @@
+Node.js 26.9.0 V8 asserts int range for all typed-array element types, even ones excluded by the preceding if constexpr on 32-bit targets. Remove the redundant assertions; the type guard already selects only representable integral types. This fixes i386, ARMv6, armhf and armv7 compilation.
