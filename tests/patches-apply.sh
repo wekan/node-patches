@@ -105,7 +105,7 @@ for p in $matrix; do
     fi
   fi
   if [ "$p" = armv6 ]; then
-    armv6_yield_state="$(python - <<'PY'
+    armv6_yield_state="$(python3 - <<'PY'
 from pathlib import Path
 
 pending = None
