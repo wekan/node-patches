@@ -105,7 +105,12 @@ for p in $matrix; do
     fi
   fi
   if [ "$p" = armv6 ]; then
-    yp="$(sed -n '/#if defined(V8_HOST_ARCH_IA32)/,/#elif defined(V8_HOST_ARCH_MIPS64EL)/p' deps/v8/src/base/platform/yield-processor.h)"
+    yp="$(awk '
+      /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu=1; next }
+      in_gnu && /^#elif defined\(V8_HOST_ARCH_ARM64\) \|\| \\$/ { in_arm=1 }
+      in_arm { print }
+      in_arm && /^#elif defined\(V8_HOST_ARCH_MIPS64EL\) && __mips_isa_rev >= 2$/ { exit }
+    ' deps/v8/src/base/platform/yield-processor.h)"
     if printf '%s\n' "$yp" | grep -A1 '__ARM_ARCH >= 6)' | grep -q '__volatile__("isb"'; then
       fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
     elif printf '%s\n' "$yp" | grep -A1 '__ARM_ARCH >= 7)' | grep -q '__volatile__("isb"' &&
