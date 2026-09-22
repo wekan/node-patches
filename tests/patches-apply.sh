@@ -105,28 +105,25 @@ for p in $matrix; do
     fi
   fi
   if [ "$p" = armv6 ]; then
-    if awk '
+    armv6_yield_state="$(awk '
       /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu = 1; next }
       in_gnu && /__ARM_ARCH >= 7/ { pending = "arm7"; next }
       in_gnu && /__ARM_ARCH >= 6/ { pending = "arm6"; next }
       in_gnu && /^#define YIELD_PROCESSOR / {
         if (pending == "arm6" && /__volatile__\("isb"/) bad = 1
-        pending = ""
-      }
-      END { exit !(bad) }
-    ' deps/v8/src/base/platform/yield-processor.h; then
-      fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
-    elif awk '
-      /^#else  \/\/ !V8_CC_MSVC$/ { in_gnu = 1; next }
-      in_gnu && /__ARM_ARCH >= 7/ { pending = "arm7"; next }
-      in_gnu && /__ARM_ARCH >= 6/ { pending = "arm6"; next }
-      in_gnu && /^#define YIELD_PROCESSOR / {
         if (pending == "arm7" && /__volatile__\("isb"/) good_isb = 1
         if (pending == "arm6" && /mcr p15, 0, %0, c7, c5, 4/) good_mcr = 1
         pending = ""
       }
-      END { exit !(good_isb && good_mcr) }
-    ' deps/v8/src/base/platform/yield-processor.h; then
+      END {
+        if (bad) print "bad"
+        else if (good_isb && good_mcr) print "ok"
+        else print "missing"
+      }
+    ' deps/v8/src/base/platform/yield-processor.h)"
+    if [ "$armv6_yield_state" = "bad" ]; then
+      fail "armv6 still routes YIELD_PROCESSOR through the ARMv7 isb mnemonic"
+    elif [ "$armv6_yield_state" = "ok" ]; then
       ok "armv6 keeps isb on ARMv7+ and uses CP15 ISB below that"
     else
       fail "armv6 did not leave the expected pre-ARMv7 yield-processor split"
