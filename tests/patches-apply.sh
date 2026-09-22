@@ -113,25 +113,33 @@ bad = False
 good_isb = False
 good_mcr = False
 
-for raw in Path('deps/v8/src/base/platform/yield-processor.h').read_text().splitlines():
-    line = raw.strip()
+lines = Path('deps/v8/src/base/platform/yield-processor.h').read_text().splitlines()
+i = 0
+while i < len(lines):
+    line = lines[i].strip()
     if '__ARM_ARCH >= 7' in line:
         pending = 'arm7'
+        i += 1
         continue
-    if '__ARM_ARCH >= 6' in line:
+    elif '__ARM_ARCH >= 6' in line:
         pending = 'arm6'
+        i += 1
         continue
-    if line.startswith('#define YIELD_PROCESSOR '):
-        if pending == 'arm6' and '__volatile__("isb"' in line:
+    elif line.startswith('#define YIELD_PROCESSOR'):
+        body = line
+        while body.endswith('\\') and i + 1 < len(lines):
+            i += 1
+            body += lines[i].strip()
+        if pending == 'arm6' and '__volatile__("isb"' in body:
             bad = True
-        if pending == 'arm7' and '__volatile__("isb"' in line:
+        if pending == 'arm7' and '__volatile__("isb"' in body:
             good_isb = True
-        if pending == 'arm6' and 'mcr p15, 0, %0, c7, c5, 4' in line:
+        if pending == 'arm6' and 'mcr p15, 0, %0, c7, c5, 4' in body:
             good_mcr = True
         pending = None
-        continue
-    if line.startswith('#elif') or line.startswith('#endif'):
+    elif line.startswith('#elif') or line.startswith('#endif'):
         pending = None
+    i += 1
 
 if bad:
     print('bad')
