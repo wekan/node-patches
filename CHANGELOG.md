@@ -57,6 +57,20 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/4b255ccd737f6b485da360bb164bb8b000bc5758">Distinguish known dependency keyword false positives from new findings</a>. Thanks to xet7.</summary>
+
+Report documented, exact dependency keyword matches as known false
+positives for default outbound reporting. New or changed matches remain
+unclassified warnings for review. Independent source and binary risk
+checks remain active. Current dependency inventories have no matches
+requiring new exemptions. Positive and negative launcher tests, risk
+tests and offline audits pass across all six release repositories.
+This changes release logs only; no application UI or hosted release
+was exercised. Existing Upcoming regression coverage is retained.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/f4614b1085b1ee353d1b8f2f00fb9d6a80fabe2e">Fix Windows release source paths and allow scoped version links</a>. Thanks to xet7.</summary>
 
 Pass a shell-relative checkout path to the Node release resolver so
