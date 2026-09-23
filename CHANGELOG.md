@@ -57,6 +57,17 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/1cdcbd944b6d25cc9841be19b54f81d60f896a28">Accept valid GitHub SSH origins in release launchers</a>. Thanks to xet7.</summary>
+
+Release All and Release All Missing accept HTTPS and SSH clone URLs
+with or without .git, including git@github.com:wekan/node-patches.
+Incorrect repositories and lookalike hosts still stop the release.
+Offline positive and negative launcher tests and source audits pass;
+no hosted release was run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/9fcea85">Add release menus and automated dependency checks</a>. Thanks to xet7.</summary>
 
 Add build.sh and build.bat with Release All and Release All Missing menus.
