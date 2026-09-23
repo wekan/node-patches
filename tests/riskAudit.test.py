@@ -19,6 +19,27 @@ class RiskAudit(unittest.TestCase):
         self.file.write_text('console.log("local diagnostics"); fetch("https://service.example/api");')
         self.policy={'roots':['.'],'initialized':True,'files':r.collect(self.root,{'roots':['.']})}
     def tearDown(self):self.tmp.cleanup()
+    def test_reviewed_patch_reference_is_info_and_new_urls_still_fail(self):
+        self.file.unlink()
+        patch = self.root/'fix.patch'
+        patch.write_text('+// Reference: https://github.com/example/project/issues/123\n')
+        policy = {'roots':['.'], 'initialized':True, 'files':r.collect(self.root, {'roots':['.']})}
+        policy['files']['fix.patch']['reason'] = 'Issue reference in a comment; no network call.'
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            r.inspect(self.root, policy)
+        self.assertIn('known reference', output.getvalue())
+        self.assertIn('Known baseline URL matches: 1', output.getvalue())
+        patch.write_text(patch.read_text()+'+fetch("https://new.example/report");\n')
+        with self.assertRaisesRegex(ValueError, 'new URL'): r.inspect(self.root, policy)
+
+    def test_node_upstream_baseline_is_initialized_and_rejects_new_url(self):
+        policy = json.loads((ROOT/'releases/upstream-risk-baseline.json').read_text())
+        self.assertTrue(policy['initialized'])
+        self.assertEqual(policy['provenance']['version'], 'v26.10.0')
+        self.assertIn('lib/internal/bootstrap/node.js', policy['files'])
+        self.file.write_text('fetch("https://new-telemetry.invalid/report")')
+        with self.assertRaisesRegex(ValueError, 'new URL'): r.inspect(self.root, policy)
+
     def test_ordinary_hash_changes_and_local_logging_do_not_block(self):
         self.file.write_text('console.log("more local diagnostics"); fetch("https://service.example/api");')
         r.inspect(self.root,self.policy)
