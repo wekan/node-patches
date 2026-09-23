@@ -1,0 +1,6 @@
+{
+  "scope": "Informational dependency fingerprints. Ordinary changes do not block builds; automated risk indicators do. No AI approval is required.",
+  "files": {
+    "node-major.txt": "20d2add851bf39edcc6b5e830930f962db7e19dffa2cab8610eed551eda6c302"
+  }
+}

@@ -60,6 +60,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Check dependency risk indicators before release work
+        shell: bash
+        run: python3 releases/remote-release.py --audit
+
       - id: plan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,7 +74,7 @@ jobs:
           # Default: the newest upstream v<MAJOR>.x release (node-major.txt) - the
           # same resolution release-all.yml does. release-all.yml receives this as
           # its version override, so plan and build agree on the version.
-          V="$(bash releases/newest-release.sh . "$VERSION_INPUT")"
+          V="$(python3 releases/remote-release.py --upstream-version all "$VERSION_INPUT")"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Release: $V"
 

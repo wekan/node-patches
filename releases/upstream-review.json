@@ -1,0 +1,4 @@
+{
+  "upstreamCommit": null,
+  "reason": "Optional comparison baseline. Missing or changed hashes only warn; automated risk indicators determine whether a build stops."
+}

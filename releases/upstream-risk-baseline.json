@@ -1,0 +1,11 @@
+{
+  "initialized": false,
+  "roots": [
+    "."
+  ],
+  "exclude": [],
+  "denyHashes": [
+    "4221c252d2f11ad658d60d2a0ab6147feb3d984e62e204a64c9ce8562e2410b0"
+  ],
+  "files": {}
+}

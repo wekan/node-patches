@@ -1,0 +1,164 @@
+{
+  "description": "Automated indicator baseline; changed hashes are informational. Update for legitimate URLs/keywords without AI approval.",
+  "initialized": true,
+  "roots": [
+    ".",
+    "dist"
+  ],
+  "exclude": [
+    "releases/risk-audit.py",
+    "releases/remote-release.py",
+    "releases/risk-baseline.json",
+    "releases/upstream-risk-baseline.json"
+  ],
+  "denyHashes": [
+    "4221c252d2f11ad658d60d2a0ab6147feb3d984e62e204a64c9ce8562e2410b0"
+  ],
+  "files": {
+    ".github/workflows/release-all-missing.yml": {
+      "sha256": "13545ea2ce15550648fb75f8be9b6caed5b678580b9645bb71a4ceb39acc6a72",
+      "urls": [],
+      "keywords": {}
+    },
+    ".github/workflows/release-all.yml": {
+      "sha256": "c7ca5809c156fb7014a19c7a020f452c2d1c139c629e3bcb2ae4811a8ceb7c70",
+      "urls": [
+        "https://github.com/nodejs/node",
+        "https://github.com/nodejs/node.git",
+        "https://github.com/nodejs/node/commit/$COMMIT",
+        "https://github.com/nodejs/node/releases/tag/$V",
+        "https://nodejs.org/dist/$V/",
+        "https://raw.githubusercontent.com/nodejs/node/${V",
+        "https://unofficial-builds.nodejs.org/download/release/$V/"
+      ],
+      "keywords": {}
+    },
+    "build.bat": {
+      "sha256": "22611a2b28e172d54285c9c11d316e5c77f5681c32026fc2361cf9c10eb8fa40",
+      "urls": [],
+      "keywords": {}
+    },
+    "build.sh": {
+      "sha256": "91704692e44b7d62d25970cab27ee485b472eb00a614f424c1b6f5a68bf6551c",
+      "urls": [],
+      "keywords": {}
+    },
+    "releases/dependency-review.json": {
+      "sha256": "1432c61eb3c9bbdc2d6659d83a9856b8772d0110e042a4621c7779e5f1e66516",
+      "urls": [],
+      "keywords": {}
+    },
+    "releases/dist-dirs-for.sh": {
+      "sha256": "c289fdc675383600cb9fd559cba65a7fca5b6c4e0251c732e6b1526076760311",
+      "urls": [],
+      "keywords": {}
+    },
+    "releases/newest-release.sh": {
+      "sha256": "2a1cbbef8d4aceafdfdaf89a9d087b126be2ab5fd4f46f8ae1f4768fc487ca70",
+      "urls": [
+        "https://github.com/nodejs/node.git"
+      ],
+      "keywords": {}
+    },
+    "releases/release-all-missing.sh": {
+      "sha256": "ffd38b91faa052fc5e390f433103570477860d871ed1a24bbe4c8f75bfbebb5a",
+      "urls": [],
+      "keywords": {}
+    },
+    "releases/release-all.sh": {
+      "sha256": "70af265df472b9119441241d266de0bff0c2c4a2788baf605db0ed01c2d06557",
+      "urls": [],
+      "keywords": {}
+    },
+    "releases/remote-release.json": {
+      "sha256": "0edcf0960232fc16b9d953e47399fad44c704ae2050f154b003965041cf60906",
+      "urls": [
+        "https://github.com/nodejs/node.git"
+      ],
+      "keywords": {}
+    },
+    "releases/upstream-review.json": {
+      "sha256": "8c402997bdc9fd5ece8c2842392742c1a6c110df67940b86c64246370b72ede1",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/all/ppc64le-medium-toc.patch": {
+      "sha256": "74187b861811c227ba07f3f9eb13d875407c2da1f96d3ab7eae4db50c1e08ef4",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/all/v8-arm-cpu-feature-constexpr.patch": {
+      "sha256": "c0571a15578c9f87a9c5080d0b309032f40bbc75a7c586d34768d18c24cb1d49",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/all/v8-riscv64-json-scalar.patch": {
+      "sha256": "dcc9f345d5fe7a6ae534849171c8c658ffcbab34b02d4d1031ca52c64b95d287",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/all/v8-scalar-string-hasher.patch": {
+      "sha256": "4413ece429bb45f1fe852b3cc5fec4631d3fa3e7a10d7c780bbe69befcf10194",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/all/v8-typed-array-32bit.patch": {
+      "sha256": "30ccaf77c588a43dca5a7b896419fdcbabd8168d4e23b9254fd633fb8a618cd2",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/arm/zlib-neon.patch": {
+      "sha256": "5e1236d8acbc4086506a4b938782bf9a37cd37ce169cb680c798343f8490d6b9",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/armv6/configure-armv6-version.patch": {
+      "sha256": "d7a47c9fd854b07f9163542e2762a6ff35cce317e65966dda3e7fd5d2946029b",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/armv6/yield-processor-armv6.patch": {
+      "sha256": "b49b94813ffa5aadf414dba0fb4f67577477c7e869166e04da97b30114aa9446",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/ia32/histogram-avx2-x64-only.patch": {
+      "sha256": "334acf3992c2d3f25bb856d46e380954141a56db7f8752424ec020885cc123d8",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/ia32/icu-cross-build.patch": {
+      "sha256": "40aab696d3868519d5e2c02fbf7be8e8b3d76a8f6c3cb002cedbb4f53cf11548",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/ia32/v8-gyp-ia32-push-registers.patch": {
+      "sha256": "2c59f38fa0e0083ec0e4f49c1e4d0809eab90f2ac8bda8ec37fe8973cd539a59",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/ia32/zlib-sse2.patch": {
+      "sha256": "9dd2dbca8eb2ef8eb2f5d04a9498e373085d2829df08a47fccb4c5adebd73019",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/mac/crypto-kmac-aggregate-init.patch": {
+      "sha256": "f037633022bc6e6139b8265fcbdbe0160a6f449ce8faadf2dc861fa173f60a89",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/riscv64/v8-maglev-float-minmax.patch": {
+      "sha256": "15d1d08530354c8f9ebbe81ea2ad6c3582a77cdd9b02314d80502997662d3ea1",
+      "urls": [],
+      "keywords": {}
+    },
+    "dist/win32/32bit-windows-build.patch": {
+      "sha256": "82de359d7de265e53ee6fdbcb950b87469da5d3616ea965f81fd84958807fffc",
+      "urls": [
+        "https://docs.microsoft.com/en-us/cpp/build/reference/safeseh-image-has-safe-exception-handlers",
+        "https://github.com/nodejs/node/pull/25852"
+      ],
+      "keywords": {}
+    }
+  }
+}

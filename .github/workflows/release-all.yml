@@ -527,7 +527,14 @@ jobs:
         with:
           path: _patches
 
+      - name: Check dependency risk indicators before release work
+        if: ${{ env.BUILD_THIS == 'true' }}
+        shell: bash
+        run: python3 _patches/releases/remote-release.py --audit
+
       - name: Fetch upstream Node.js and apply the patches
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         if: ${{ env.BUILD_THIS == 'true' }}
         shell: bash
         run: |
@@ -537,7 +544,7 @@ jobs:
           # v26.9.0 or newer). release-all-missing.yml passes the version its
           # plan already picked as the override, so a full run and a fill-in run
           # agree.
-          V="$(bash _patches/releases/newest-release.sh _patches "${{ inputs.version }}")"
+          V="$(python3 _patches/releases/remote-release.py --upstream-version all "$REQUESTED_VERSION")"
           MAJOR="${V#v}"; MAJOR="${MAJOR%%.*}"
           # The dist/ sections this platform gets: dist/all (common), then each
           # family/platform section the apply-map assigns it. dist-dirs-for.sh is
@@ -557,7 +564,10 @@ jobs:
           # The exact commit that tag resolved to - recorded on the release and in
           # the run summary, so a binary can be traced to the upstream source it
           # was built from. The tag names the release; this pins the bytes.
+          python3 _patches/releases/risk-audit.py --source nodesrc --policy _patches/releases/upstream-risk-baseline.json
           COMMIT="$(git -C nodesrc rev-parse HEAD)"
+          REVIEWED="$(python3 -c 'import json; print(json.load(open("_patches/releases/upstream-review.json"))["upstreamCommit"])')"
+          [ "$COMMIT" = "$REVIEWED" ] || echo "::warning::Upstream differs from dependency baseline; continuing."
           echo "Cloned nodejs/node tag ${V} at commit ${COMMIT} (depth 1, single branch)."
           # Move the upstream tree into the workspace root, beside _patches/, so
           # the build steps see a normal node tree at $PWD.
@@ -839,6 +849,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
+          python3 _patches/releases/risk-audit.py --artifact out/Release/node
           cp out/Release/node "dist/node-${{ matrix.platform }}"
           chmod +x "dist/node-${{ matrix.platform }}"
           # `file` on the result is the one check worth having in the log: it is
@@ -864,6 +875,7 @@ jobs:
           # `.exe`, like wekan/FerretDB's win32 asset: a Windows binary without
           # it is not executable by double-click and confuses every tool that
           # goes by extension.
+          python3 _patches/releases/risk-audit.py --artifact Release/node.exe
           cp Release/node.exe "dist/node-${{ matrix.platform }}.exe"
           ls -l "dist/node-${{ matrix.platform }}.exe"
           ( cd dist && sha256sum "node-${{ matrix.platform }}.exe" \
@@ -910,13 +922,15 @@ jobs:
           merge-multiple: true
 
       - name: Resolve the version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         id: ver
         run: |
           set -euo pipefail
           # The newest upstream v<MAJOR>.x release (node-major.txt), or the version
           # input when given. The node-patches release is tagged with that exact
           # upstream version, since it IS upstream Node.js plus the patches.
-          V="$(bash releases/newest-release.sh . "${{ inputs.version }}")"
+          V="$(python3 releases/remote-release.py --upstream-version all "$REQUESTED_VERSION")"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Release version: $V"
 

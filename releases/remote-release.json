@@ -1,0 +1,17 @@
+{
+  "repo": "wekan/node-patches",
+  "kind": "node",
+  "branch": "main",
+  "upcoming": "# Upcoming node-patches release",
+  "audits": [],
+  "upstream": {
+    "url": "https://github.com/nodejs/node.git",
+    "review": "releases/upstream-review.json"
+  },
+  "indicatorCommand": [
+    "python3",
+    "releases/risk-audit.py",
+    "--source",
+    "."
+  ]
+}
