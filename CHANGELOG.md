@@ -57,6 +57,19 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f4614b1085b1ee353d1b8f2f00fb9d6a80fabe2e">Fix Windows release source paths and allow scoped version links</a>. Thanks to xet7.</summary>
+
+Pass a shell-relative checkout path to the Node release resolver so
+Git Bash does not receive a native Windows path. This fixes the shared
+win64 and win-arm64 source-selection failure before compilation.
+Optional per-file URL patterns permit explicitly configured version
+links while other new hosts, paths and query strings still fail.
+Offline positive and negative release and indicator tests pass; native
+Windows builds and hosted publication were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/1cdcbd944b6d25cc9841be19b54f81d60f896a28">Accept valid GitHub SSH origins in release launchers</a>. Thanks to xet7.</summary>
 
 Release All and Release All Missing accept HTTPS and SSH clone URLs
