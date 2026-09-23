@@ -57,6 +57,22 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/0c89733fcdbaaa70a38bcfa2197cf4ed955a998c">Distinguish known upstream references from new audit findings</a>. Thanks to xet7.</summary>
+
+Initialize the upstream URL/hash comparison baseline from the official
+Node v26.10.0 Git tag used by Actions (17,483 scanned files). No configured
+suspicious keywords or denied hashes were found. New upstream URLs are now
+checked instead of skipped because the baseline was missing.
+
+Report counts of known baseline URL matches. Print documented reference
+explanations only while the exact file hash matches. New URLs, suspicious
+keywords and denied hashes still fail; no whole-domain or patch-directory
+exemptions are added. Positive and negative audit tests pass. Full platform
+builds and publication were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/4b255ccd737f6b485da360bb164bb8b000bc5758">Distinguish known dependency keyword false positives from new findings</a>. Thanks to xet7.</summary>
 
 Report documented, exact dependency keyword matches as known false
