@@ -57,6 +57,23 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/9fcea85">Add release menus and automated dependency checks</a>. Thanks to xet7.</summary>
+
+Add build.sh and build.bat with Release All and Release All Missing menus.
+New releases validate Upcoming notes, commit pending files, push and dispatch
+the resolved upstream version. Missing builds keep the existing version and
+use the existing platform planner.
+
+Dependency checks use automated indicators instead of mandatory AI review.
+Changed hashes or absent review records only warn. Known hashes, suspicious
+keywords and new URLs with an established baseline stop builds. The initial
+upstream URL inventory is optional; source and artifact indicator scans run
+without requiring a full review of vendored code. Offline launcher, indicator
+and workflow tests pass; hosted compilation/publication were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/f773252">Fix Node.js 26 ARMv6 and RISC-V builds</a>. Thanks to xet7.</summary>
 
 The v26.9.0 runner builds exposed two remaining platform failures. ARMv6 now
