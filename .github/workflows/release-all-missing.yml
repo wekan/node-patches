@@ -136,7 +136,13 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Missing ($n): ${missing# }"
 
-  # Only the missing platforms, through the SAME build release-all.yml runs.
+  # Only the missing platforms, through the SAME build release-all.yml runs -
+  # including how they are published: each build job there attaches its own
+  # node-<platform> binary and checksum to the release as its last step, so a
+  # platform filled in here is downloadable the moment its own build is done,
+  # not when the slowest missing platform finishes. release-all.yml's `release`
+  # job hands every build the tag, and its `publish` job only checks the
+  # release and rewrites the notes afterwards.
   build:
     name: build what is missing
     needs: plan

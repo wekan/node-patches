@@ -109,26 +109,29 @@ fi
 
 # ── 2. Which platforms the release notes say it carries ───────────────────────
 #
-# The publish job turns the downloaded artifacts back into a list of platforms.
-# Everything in dist/ is an asset, so the filter has to drop what is NOT a
-# platform binary: the .sha256sum files, and the Windows .lib import library,
-# which otherwise became a platform of its own called `win32.lib`.
+# The publish job reads the RELEASE's asset names (every build attaches its own
+# files) and turns them back into a list of platforms. Everything on the release
+# is an asset, so the filter has to drop what is NOT a platform binary: the
+# .sha256sum files, and the Windows .lib import library, which otherwise became
+# a platform of its own called `win32.lib`. And a binary without its checksum is
+# not a complete platform - the same rule release-all-missing.yml applies.
 echo
 echo "The publish job's asset list is turned into platform names:"
 
 sed -n '/^          present="\$(/,/sort -u)"/p' "$ALL" | sed 's/^          //' > "$TMP/present.sh"
-if grep -q 'sort -u' "$TMP/present.sh"; then
-  ok "the filter was found in release-all.yml"
+if grep -q 'sort -u' "$TMP/present.sh" && grep -q 'assets.txt' "$TMP/present.sh"; then
+  ok "the filter was found in release-all.yml, and it reads the release's assets"
 else
-  fail "could not extract the asset filter from release-all.yml"
+  fail "could not extract the asset filter (reading assets.txt) from release-all.yml"
 fi
 
-rm -rf "$TMP/pub"; mkdir -p "$TMP/pub/dist"
-( cd "$TMP/pub/dist" && touch \
+rm -rf "$TMP/pub"; mkdir -p "$TMP/pub"
+printf '%s\n' \
     node-x64 node-x64.sha256sum \
     node-mac-arm64 node-mac-arm64.sha256sum \
-    node-win32.exe node-win32.sha256sum node-win32.lib node-win32.lib.sha256sum )
-got="$( cd "$TMP/pub" && . "$TMP/present.sh" && printf '%s\n' "$present" | tr '\n' ' ' )"
+    node-win32.exe node-win32.sha256sum node-win32.lib node-win32.lib.sha256sum \
+    node-armhf > "$TMP/pub/assets.txt"
+got="$( cd "$TMP/pub" && set -euo pipefail && . "$TMP/present.sh" && printf '%s\n' "$present" | tr '\n' ' ' )"
 want="mac-arm64 win32 x64 "
 if [ "$got" = "$want" ]; then
   ok "binaries become platforms, checksums and the .lib do not"
@@ -137,6 +140,10 @@ else
 fi
 case " $got " in *" win32.lib "*) fail "the Windows import library is still counted as a platform" ;;
                  *) ok "node-win32.lib is not a platform called win32.lib" ;; esac
+# NEGATIVE: node-armhf is on the release without node-armhf.sha256sum - a
+# half-attached platform, which must be reported missing, not present.
+case " $got " in *" armhf "*) fail "a binary without its checksum counted as a complete platform" ;;
+                 *) ok "a binary without its .sha256sum is not a complete platform" ;; esac
 
 # ── 3. The three platform lists have to agree ─────────────────────────────────
 #
@@ -406,6 +413,20 @@ if python3 "$ROOT/tests/runtime-workflow.py"; then
   ok "cross-qemu target snapshots and JavaScript failure gate"
 else
   fail "cross-qemu runtime validation regression"
+fi
+
+# ── 10. Every build attaches its OWN files, as soon as it is done ────────────
+#
+# The binaries used to reach the release only in a final job, after every build
+# had finished, so a platform built in twenty minutes waited hours for the
+# slowest one - and was never published at all when a slow one was cancelled.
+# releaseUpload.test.py pins the new shape (each build's last step attaches its
+# files; the final job only checks and writes notes) with negative tests for the
+# old one, and runs releases/upload-release-assets.sh against a fake gh.
+if python3 -B "$ROOT/tests/releaseUpload.test.py"; then
+  ok "each build attaches its own binary and checksum the moment it is done"
+else
+  fail "per-build release upload regression"
 fi
 
 if bash "$ROOT/tests/freebsd-build.sh"; then

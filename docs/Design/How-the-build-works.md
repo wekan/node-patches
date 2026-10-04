@@ -63,7 +63,13 @@ GitHub Release.
    the same QEMU/runtime libraries. The changed PPC64LE source build still needs
    a complete rebuild; workflow tests do not certify the resulting binary.
 7. **Checksum and publish.** Each platform writes `node-<platform>.sha256sum` beside
-   its binary, and both are uploaded with `gh release upload --clobber`. A release
+   its binary, and the build job's LAST step attaches both (plus the Windows
+   `.lib`) with `releases/upload-release-assets.sh` (`gh release upload --clobber`,
+   binary before checksum, retried and size-checked) — the moment that platform is
+   built and checked, without waiting for the other builds, and also when the run
+   is cancelled after it. A first `release` job resolves the tag once and creates
+   the release; the final `publish` job only reads the release's assets, reports
+   missing platforms and writes the notes. A release
    **accumulates**: a rebuilt platform overwrites only its own two assets; every other
    platform's binary is left in place, so all sixteen collect on one release across
    however many runs it takes. The release notes carry a **provenance table** — the

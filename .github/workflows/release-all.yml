@@ -79,6 +79,11 @@ name: Release All
 #   It is built here now, for the two reasons at the top: the patch set's fixes, and
 #   a backstop that covers everything.)
 #
+# Each build job attaches its OWN binary and checksum to the release as its last
+# step, the moment it has been built and checked - also when the run is cancelled
+# after that - so nothing waits for the slowest platform. The final `publish` job
+# only checks the release and writes the notes.
+#
 # A release ACCUMULATES: a run's freshly built platforms overwrite their own old
 # copies (gh release upload --clobber) and every other platform's binary is left
 # in place, so all platforms of a version collect on one release across however
@@ -139,11 +144,73 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The release has to EXIST before the first build finishes, because each build
+  # attaches its own binary the moment it has built and checked it (the last step
+  # of the build job below) rather than waiting for all sixteen. The slowest
+  # platforms take most of the six-hour job ceiling; a platform that finished in
+  # twenty minutes should not sit in an artifact for five more hours, and should
+  # not be lost when a slow one is cancelled or times out.
+  #
+  # So this job resolves the version ONCE - every build is handed this tag, so
+  # they cannot disagree with each other or with the release they upload to -
+  # and, when publishing, creates the release if it is not there yet. An
+  # existing release is left as it is: it ACCUMULATES (see the top of this
+  # file), and its notes are rewritten by the `publish` job at the end.
+  release:
+    name: open the release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      created: ${{ steps.release.outputs.created }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve the version, and create the release if it is not there yet
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          # The newest upstream v<MAJOR>.x release (node-major.txt), or the version
+          # input when given. The node-patches release is tagged with that exact
+          # upstream version, since it IS upstream Node.js plus the patches.
+          V="$(python3 releases/remote-release.py --upstream-version all "$REQUESTED_VERSION")"
+          echo "tag=$V" >> "$GITHUB_OUTPUT"
+          echo "Release version: $V"
+          if [ "$PUBLISH" != "true" ]; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "Not publishing - the builds keep their binaries as workflow artifacts only."
+            exit 0
+          fi
+          if gh release view "$V" >/dev/null 2>&1; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "Release $V already exists; builds will add or replace their own binaries on it."
+          else
+            # --target pins the NEW tag to the commit that was built rather than
+            # to whatever the default branch has moved to since. The notes are a
+            # placeholder until the `publish` job composes the real ones.
+            gh release create "$V" \
+              --title "$V" \
+              --target "${{ github.sha }}" \
+              --notes "Node.js $V with the wekan/node-patches patch sections. Binaries are attached one by one as each platform's build finishes; the full notes follow when every build is done."
+            echo "created=true" >> "$GITHUB_OUTPUT"
+            echo "Created release $V."
+          fi
+
   # One job per platform, so the three build in PARALLEL and one failing does
   # not take the other two down (fail-fast: false) - a platform that breaks is
   # then a single red job with its own log, not "the build failed".
   build:
     name: build ${{ matrix.platform }}
+    needs: release
+    # contents: write, because each build attaches its OWN binary to the release
+    # as its last step - see "Attach this platform's files to the release".
+    permissions:
+      contents: write
     # Linux platforms cross compile (or build in a container) on the Linux
     # runner; win32 needs a Windows one with MSVC, so the runner comes from the
     # matrix rather than being fixed.
@@ -534,7 +601,9 @@ jobs:
 
       - name: Fetch upstream Node.js and apply the patches
         env:
-          REQUESTED_VERSION: ${{ inputs.version }}
+          # The tag the `release` job resolved, so this build compiles exactly
+          # the version it is about to attach itself to.
+          REQUESTED_VERSION: ${{ needs.release.outputs.tag || inputs.version }}
         if: ${{ env.BUILD_THIS == 'true' }}
         shell: bash
         run: |
@@ -845,6 +914,7 @@ jobs:
             strip out/Release/node
 
       - name: Name it for the release, and say what it is
+        id: name_unix
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') }}
         run: |
           set -euo pipefail
@@ -867,6 +937,7 @@ jobs:
           cat "dist/node-${{ matrix.platform }}.sha256sum"
 
       - name: Name it for the release (Windows)
+        id: name_windows
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'windows') }}
         shell: bash
         run: |
@@ -905,41 +976,93 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Every binary that built, attached to the release of this version, with the
-  # notes composed here. `always()` so two good platforms are still published
-  # when a third fails - the release then simply lists the two it has.
+      # The LAST step: this platform's binary, its checksum and (Windows) its
+      # import library go onto the release the moment they are built and
+      # checked - risk audit, `file`, the checksum above, and for ppc64le/s390x
+      # the JavaScript smoke test inside the build step. Nothing waits for the
+      # other fifteen platforms. --clobber (inside the script) replaces this
+      # platform's old copy and leaves every other asset alone, so the release
+      # still ACCUMULATES. The checksum goes up AFTER the binary, so a
+      # .sha256sum on the release always means its binary is there too - which
+      # is what release-all-missing.yml's "present" test relies on.
+      #
+      # always(), gated on the naming step's OWN outcome: when the run is
+      # CANCELLED after this platform was built and checked, the binary is
+      # attached anyway. Cancelling a run whose slow platforms are still
+      # compiling must not throw away the ones that already finished. The naming
+      # step (name_unix or name_windows, whichever this platform runs) only
+      # succeeds after the build step and the checks before it succeeded, so a
+      # failed or cancelled build never reaches the release.
+      - name: Attach this platform's files to the release
+        if: ${{ always() && env.BUILD_THIS == 'true' && inputs.publish && (steps.name_unix.outcome == 'success' || steps.name_windows.outcome == 'success') }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GH_REPO, because the workspace root is the UPSTREAM nodejs/node
+          # clone: gh would otherwise read its remote and talk to nodejs/node.
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Built ${VERSION} but the release is ${TAG}; not attaching a binary to the wrong release."
+            exit 1
+          fi
+          bash _patches/releases/upload-release-assets.sh "$TAG" dist/node-${{ matrix.platform }}*
+
+  # The checks and the notes, once every build has finished. This job no longer
+  # attaches any binary - each build job has already attached its own the moment
+  # it was built and checked - so a platform that finished hours before the
+  # slowest one has been downloadable since then, and a run that is cancelled
+  # half way keeps every binary that did finish.
+  #
+  # What is left here reads the RELEASE, not this run's artifacts: the release
+  # accumulates across runs (a release-all-missing.yml run adds one platform to
+  # fifteen that are already there), so what it carries is the truth about what
+  # can be downloaded. `always()` so the report and the notes still happen when
+  # some platforms failed, AND when the run was cancelled (not !cancelled()):
+  # the binaries attached before the cancel are on the release and still get
+  # their notes. It needs only the `release` job to have succeeded.
+  #
+  # There is no combined checksum file to rebuild: every platform carries its
+  # own node-<platform>.sha256sum, written and attached by its own build.
   publish:
-    name: attach to the release
-    needs: build
-    if: ${{ always() && inputs.publish }}
+    name: check the release and write its notes
+    needs: [release, build]
+    if: ${{ always() && inputs.publish && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v8
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: Resolve the version
-        env:
-          REQUESTED_VERSION: ${{ inputs.version }}
+      - name: Read what the release carries
         id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.release.outputs.tag }}
         run: |
           set -euo pipefail
-          # The newest upstream v<MAJOR>.x release (node-major.txt), or the version
-          # input when given. The node-patches release is tagged with that exact
-          # upstream version, since it IS upstream Node.js plus the patches.
-          V="$(python3 releases/remote-release.py --upstream-version all "$REQUESTED_VERSION")"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Release version: $V"
+          # Retried, because a transient API error here would otherwise report
+          # every platform as missing.
+          n=1
+          until gh release view "$V" --json assets --jq '.assets[].name' > assets.txt; do
+            if [ "$n" -ge 5 ]; then
+              echo "::error::Could not read the assets of release $V."
+              exit 1
+            fi
+            sleep $((n*10)); n=$((n+1))
+          done
+          echo "The release carries $(wc -l < assets.txt | tr -d ' ') asset(s):"
+          cat assets.txt
 
       - name: Compose the release notes
         id: notes
         env:
-          # It asks the release what it already carries, so the notes describe
-          # what will be downloadable rather than only what this run built.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CREATED: ${{ needs.release.outputs.created }}
         run: |
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
@@ -956,24 +1079,21 @@ jobs:
           [ -n "$COMMIT" ] || COMMIT="$(git ls-remote https://github.com/nodejs/node.git \
             "refs/tags/$V" | cut -f1)"
 
-          # 1. Which platforms THIS RUN built - reported so the run's own log
-          #    says what it produced. The release itself ACCUMULATES (the publish
-          #    step leaves other runs' assets in place), so what is downloadable
-          #    is whatever gh release view reports, printed at the end.
+          # 1. Which platforms the RELEASE carries - read from its assets, which
+          #    every build attached for itself, so this covers earlier runs as
+          #    well as this one.
           #
-          # `|| true`: when EVERY build fails there are no artifacts, dist/ does
-          # not exist, and `ls` exits 2 - which under `set -e` killed this step
-          # with a bare "Process completed with exit code 2" and no word about
-          # what was actually wrong. The empty case is handled below, where it
-          # can say so.
-          # grep -v the checksum files: dist/ now holds node-i386 AND
-          # node-i386.sha256sum, and only the first is a platform. `.lib` goes
-          # the same way and for the same reason - the Windows jobs also upload
+          # A platform is PRESENT only when both its binary and its .sha256sum
+          # are on the release - the same rule release-all-missing.yml uses. A
+          # binary whose checksum upload failed is reported missing, so the
+          # missing-platform run rebuilds it rather than leaving it half done.
+          # grep -v the checksum files and `.lib`: the Windows jobs also attach
           # node-win32.lib (the import library native addons link against), and
-          # without this it became a "platform" called `win32.lib`, listed on the
-          # release beside the real ones by the unknown-platform loop below.
-          present="$( (ls dist 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
-            | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' | sort -u)"
+          # without this it became a "platform" called `win32.lib`.
+          present="$( (cat assets.txt 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
+            | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' \
+            | while read -r p; do if grep -qxF "node-${p}.sha256sum" assets.txt; then echo "$p"; fi; done \
+            | sort -u)"
           plats=""
           for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
@@ -982,25 +1102,30 @@ jobs:
             printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
-            echo "::error::No platform produced a binary - every build job failed. Their logs say why; nothing is published."
+            echo "::error::The release carries no complete platform - every build job failed. Their logs say why."
+            # A release this run created only to receive binaries, that received
+            # none, is removed again - the state before this run, when a run
+            # that built nothing published nothing. An existing release is never
+            # touched.
+            if [ "$CREATED" = "true" ] && [ ! -s assets.txt ]; then
+              gh release delete "$V" --yes --cleanup-tag \
+                || echo "::warning::Could not remove the empty release $V."
+            fi
             exit 1
           fi
 
-          # A platform this run's matrix can produce, but that is not in
-          # dist/, either failed to build (its own job's log says why) or
-          # built fine and then lost its artifact upload - e.g. a transient
-          # runner DNS/network glitch during actions/upload-artifact's
-          # CreateArtifact call, which is not a build failure and leaves no
-          # ::error:: of its own to notice. Warn rather than fail: partial
-          # success is the whole point of `always()` above, and
-          # release-all-missing.yml exists to build exactly the platforms
-          # this prints, once whatever caused the gap has cleared.
+          # The missing-asset report. A platform the matrix can produce that is
+          # not complete on the release either failed to build (its own job's
+          # log says why), or built and then failed to attach. Warn rather than
+          # fail: partial success is the whole point of `always()` above, and
+          # release-all-missing.yml exists to build exactly the platforms this
+          # prints, once whatever caused the gap has cleared.
           missing=""
           for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
             printf '%s\n' "$present" | grep -qx "$a" || missing="${missing:+$missing }$a"
           done
           if [ -n "$missing" ]; then
-            echo "::warning::These platforms have no binary in dist/ this run and are missing from the release: $missing. Their build jobs' logs say why (a real build failure, or e.g. a transient artifact-upload error); run release-all-missing.yml once fixed to complete them."
+            echo "::warning::These platforms are missing from the release (no binary, or no checksum): $missing. Their build jobs' logs say why; run release-all-missing.yml once fixed to complete them."
           fi
 
           # Comma-separated for the `Platforms:` line, which is the form the
@@ -1064,48 +1189,24 @@ jobs:
           cat release-notes.md
           echo "notes_file=release-notes.md" >> "$GITHUB_OUTPUT"
 
-      - name: Create or update the release, with a binary per platform
+      - name: Write the notes onto the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
           NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
-          shopt -s nullglob
-          assets=(dist/node-*)
-          if [ ${#assets[@]} -eq 0 ]; then
-            echo "::error::No binaries were built - nothing to publish."
-            exit 1
-          fi
-          # --clobber lets a re-run replace an asset of the same name in place
-          # rather than failing the upload on it, so a fixed build of a platform
-          # is published over the broken one on the release it is attached to.
-          # Assets this run did NOT build are LEFT ALONE (see the note below the
-          # upload) - the release ACCUMULATES every platform of this version.
-          # --target pins a NEW tag to the commit that was built rather than to
-          # whatever the default branch has moved to since.
-          if gh release view "$V" >/dev/null 2>&1; then
-            gh release upload "$V" "${assets[@]}" --clobber
-            gh release edit "$V" --title "$V" --notes-file "$NOTES_FILE"
-          else
-            gh release create "$V" "${assets[@]}" \
-              --title "$V" \
-              --target "${{ github.sha }}" \
-              --notes-file "$NOTES_FILE"
-          fi
-
-          # The release ACCUMULATES: assets from earlier runs that this run did
-          # not rebuild are LEFT IN PLACE, so every platform's binary for this
-          # version collects on one release across however many runs it takes to
-          # build them all. This is the whole point of "release all missing" -
-          # one CPU that fails today must not cost the release the binaries the
-          # others already published, and the ones that DID build here overwrite
-          # their old copies via --clobber above.
+          # Only the notes and the title: the binaries are already on the
+          # release, each attached by its own build job. Assets from earlier
+          # runs that this run did not rebuild are LEFT IN PLACE, so every
+          # platform's binary for this version collects on one release across
+          # however many runs it takes to build them all.
           #
           # (An earlier version SWEPT away every node-* not built by the current
           # run, to keep a release to a single run's binaries. That deleted the
           # platforms a partial run did not touch - the opposite of "add the
           # missing ones" - so it is gone. Each version has its own tag, so
           # accumulating within a tag only ever gathers builds of that version.)
-          echo "The release now carries these binaries (accumulated across runs):"
+          gh release edit "$V" --title "$V" --notes-file "$NOTES_FILE"
+          echo "The release now carries these assets (accumulated across runs):"
           gh release view "$V" --json assets --jq '.assets[].name'
