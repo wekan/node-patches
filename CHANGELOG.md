@@ -57,6 +57,31 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f5e687a2e850df0931ff47a38336b6af3d11693b">Attach each platform's binary to the release as soon as its build is done</a>. Thanks to xet7.</summary>
+
+The binaries used to reach the GitHub Release only in the final job, after all
+sixteen builds had finished, so a platform built in twenty minutes waited hours
+for the slowest one, and a cancelled run attached nothing at all. Now each build
+job attaches its own `node-<platform>` binary, its `.sha256sum` and the Windows
+`.lib` as its last step, through `releases/upload-release-assets.sh`
+(`gh release upload --clobber`, binary before checksum, retried and
+size-checked). That step uses `always()` gated on the naming step's own
+outcome, so finished platforms are attached even when the run is cancelled.
+
+A new `release` job resolves the tag once, hands it to every build and creates
+the release. The final job no longer uploads binaries: it reads the release's
+assets, reports missing platforms (a binary without its checksum counts as
+missing), writes the notes, and runs with `always()` when the `release` job
+succeeded. `release-all-missing.yml` gets the same behaviour through the
+reusable workflow. There is no combined checksum file to rebuild.
+
+`tests/releaseUpload.test.py` adds positive and negative tests for the workflow
+shape, cancellation and the upload script; `tests/workflow-logic.sh` passes and
+actionlint is clean. Hosted builds and publication were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/0c89733fcdbaaa70a38bcfa2197cf4ed955a998c">Distinguish known upstream references from new audit findings</a>. Thanks to xet7.</summary>
 
 Initialize the upstream URL/hash comparison baseline from the official
