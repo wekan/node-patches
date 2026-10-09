@@ -429,6 +429,90 @@ else
   fail "per-build release upload regression"
 fi
 
+# ── 11. A container image is pulled even when Docker Hub does not answer ─────
+#
+# One run lost all eight Linux container builds in their first seconds: six
+# timed out getting a token from auth.docker.io, two hit Docker Hub's
+# unauthenticated pull limit, and `docker run` pulls once. releases/pull-image.sh
+# retries and falls back to mirror.gcr.io and Amazon ECR Public. Here it runs
+# against a fake `docker` that plays each registry's part.
+PULL="$ROOT/releases/pull-image.sh"
+FAKE="$TMP/fakedocker"; mkdir -p "$FAKE"
+cat > "$FAKE/docker" <<'DOCKER'
+#!/usr/bin/env bash
+# Every call is logged; a pull succeeds only for a reference listed in $UP,
+# and a Docker Hub pull answers "toomanyrequests" when $LIMIT is set.
+echo "$*" >> "$CALLS"
+case "$1" in
+  pull)
+    ref="${@: -1}"
+    for up in $UP; do [ "$ref" = "$up" ] && exit 0; done
+    case "$ref" in mirror.gcr.io/*|public.ecr.aws/*) ;; *)
+      [ -n "${LIMIT:-}" ] && { echo "toomanyrequests: You have reached your unauthenticated pull rate limit."; exit 1; } ;;
+    esac
+    echo "Error response from daemon: context deadline exceeded"; exit 1 ;;
+  tag) exit 0 ;;
+esac
+exit 1
+DOCKER
+chmod +x "$FAKE/docker"
+pull_case() { # name, expected exit, expected calls (grep -c lines) ... ; env: UP LIMIT
+  CALLS="$TMP/calls"; : > "$CALLS"
+  PATH="$FAKE:$PATH" CALLS="$CALLS" PULL_IMAGE_SLEEP=0 bash "$PULL" "$@" > "$TMP/pull.out" 2>&1
+}
+UP="i386/debian:bookworm" LIMIT= pull_case i386/debian:bookworm linux/386 \
+  && [ "$(grep -c '^pull' "$TMP/calls")" -eq 1 ] && ! grep -q '^tag' "$TMP/calls" \
+  && ok "pull-image: Docker Hub answering is used as it is, with nothing re-tagged" \
+  || fail "pull-image: a working Docker Hub pull was not used directly"
+UP="mirror.gcr.io/i386/debian:bookworm" LIMIT= pull_case i386/debian:bookworm linux/386 \
+  && [ "$(grep -c '^pull --platform linux/386 i386/debian:bookworm' "$TMP/calls")" -eq 2 ] \
+  && grep -q '^tag mirror.gcr.io/i386/debian:bookworm i386/debian:bookworm' "$TMP/calls" \
+  && grep -q 'came from mirror.gcr.io' "$TMP/pull.out" \
+  && ok "pull-image: a Docker Hub timeout is retried, then the mirror's copy is used under the build's name" \
+  || fail "pull-image: timeout fallback to mirror.gcr.io"
+UP="mirror.gcr.io/tonistiigi/binfmt:latest" LIMIT=1 pull_case tonistiigi/binfmt:latest \
+  && [ "$(grep -c '^pull tonistiigi/binfmt:latest' "$TMP/calls")" -eq 1 ] \
+  && ok "pull-image: the pull limit is not asked twice; the mirror serves binfmt" \
+  || fail "pull-image: the pull limit was retried, or binfmt not taken from the mirror"
+UP="public.ecr.aws/docker/library/debian:bookworm" LIMIT= pull_case i386/debian:bookworm linux/386 \
+  && grep -q '^pull --platform linux/386 public.ecr.aws/docker/library/debian:bookworm' "$TMP/calls" \
+  && grep -q '^tag public.ecr.aws/docker/library/debian:bookworm i386/debian:bookworm' "$TMP/calls" \
+  && ok "pull-image: i386/debian comes from ECR Public as the official debian's linux/386 image" \
+  || fail "pull-image: ECR fallback for i386/debian"
+UP="public.ecr.aws/docker/library/debian:trixie" LIMIT= pull_case debian:trixie linux/amd64 \
+  && grep -q '^tag public.ecr.aws/docker/library/debian:trixie debian:trixie' "$TMP/calls" \
+  && ok "pull-image: an official image without a namespace maps to library/ on the mirrors" \
+  || fail "pull-image: library/ mapping"
+if UP= LIMIT= pull_case debian:trixie linux/amd64; then
+  fail "pull-image: negative - nothing answering still reported success"
+elif grep -q '::error::Could not pull debian:trixie' "$TMP/pull.out" && [ "$(grep -c '^pull' "$TMP/calls")" -eq 8 ]; then
+  ok "pull-image: negative - with every source down it fails, after 2 + 3 + 3 attempts"
+else
+  fail "pull-image: negative - wrong failure: $(tail -1 "$TMP/pull.out")"
+fi
+if UP= LIMIT= pull_case tonistiigi/binfmt:latest && false; then :; elif grep -q 'public.ecr.aws' "$TMP/calls"; then
+  fail "pull-image: negative - a non-official image was looked for on ECR's library"
+else
+  ok "pull-image: negative - only official images are looked for on ECR Public"
+fi
+# And the workflow pulls every image it runs, before it runs it.
+pull_step="$(python3 - "$ALL" <<'PYEOF'
+import sys, yaml
+steps = yaml.safe_load(open(sys.argv[1]))['jobs']
+for job in steps.values():
+    names = [s.get('name', '') for s in job.get('steps', [])]
+    if 'Pull the build container images' in names:
+        i = names.index('Pull the build container images')
+        later = [n for n in names[i + 1:] if 'qemu-user' in n or n.startswith('Build (')]
+        step = job['steps'][i]
+        print('ok' if later and 'pull-image.sh tonistiigi/binfmt:latest' in step['run']
+              and 'matrix.image' in step['run'] and "cross-container" in step['if'] else 'bad')
+PYEOF
+)"
+[ "$pull_step" = ok ] \
+  && ok "the build pulls binfmt and its container image through pull-image.sh before any docker run" \
+  || fail "the pull step is missing, misplaced or does not cover every container mode ($pull_step)"
+
 if bash "$ROOT/tests/freebsd-build.sh"; then
   ok "FreeBSD selects the native compiler for configure and make"
 else

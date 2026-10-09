@@ -702,6 +702,23 @@ jobs:
           echo "VERSION=$V" >> "$GITHUB_ENV"
           echo "UPSTREAM_COMMIT=$COMMIT" >> "$GITHUB_ENV"
 
+      # The container images come from Docker Hub, and `docker run` pulls once
+      # and gives up: one run lost all eight Linux container builds in their
+      # first seconds to Docker Hub's token service timing out and to its
+      # unauthenticated pull limit. pull-image.sh retries, then takes the same
+      # image from mirror.gcr.io or Amazon ECR Public, and tags it with the name
+      # the build uses, so the `docker run` below finds it locally.
+      - name: Pull the build container images
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode == 'container' || matrix.mode == 'cross-container' || matrix.mode == 'cross-qemu') }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.mode }}" = cross-qemu ]; then
+            bash _patches/releases/pull-image.sh tonistiigi/binfmt:latest
+            bash _patches/releases/pull-image.sh "${{ matrix.image }}" linux/amd64
+          else
+            bash _patches/releases/pull-image.sh "${{ matrix.image }}" "${{ matrix.docker_platform || 'linux/amd64' }}"
+          fi
+
       # Both ppc64le and s390x use real target build-tools under qemu-user.
       # Register binfmt with the F flag so the interpreter is also available
       # inside the build container. Remaining cross targets use host tools.
