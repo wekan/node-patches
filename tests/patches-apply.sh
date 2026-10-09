@@ -49,6 +49,10 @@ git init -q .
 # patch that CREATES a file - there is nothing upstream to fetch for it.
 files="$(cat "$ROOT"/dist/*/*.patch | sed -n 's#^--- a/##p' | sort -u)"
 [ -n "$files" ] || { echo "No patches found in $ROOT/dist."; exit 1; }
+# And the files the checks below read although no patch touches them any more:
+# upstream took over the histogram fix in v26.11.1, and the i386 check still
+# pins it, so a release that brings the 32-bit AVX2 path back is caught.
+files="$(printf '%s\n' $files deps/histogram/src/hdr_histogram.c | sort -u)"
 
 echo "Fetching the $(printf '%s\n' "$files" | wc -l | tr -d ' ') files the patches touch, at $V:"
 for f in $files; do

@@ -35,7 +35,13 @@ class RiskAudit(unittest.TestCase):
     def test_node_upstream_baseline_is_initialized_and_rejects_new_url(self):
         policy = json.loads((ROOT/'releases/upstream-risk-baseline.json').read_text())
         self.assertTrue(policy['initialized'])
-        self.assertEqual(policy['provenance']['version'], 'v26.10.0')
+        # The baseline is re-recorded for each new upstream release, so the
+        # exact number moves; what must hold is that it is a release of the
+        # major this repo builds and that its source link names that release.
+        major = (ROOT/'node-major.txt').read_text().strip()
+        version = policy['provenance']['version']
+        self.assertRegex(version, r'^v' + major + r'\.\d+\.\d+$')
+        self.assertEqual(policy['provenance']['source'], 'https://github.com/nodejs/node/tree/' + version)
         self.assertIn('lib/internal/bootstrap/node.js', policy['files'])
         self.file.write_text('fetch("https://new-telemetry.invalid/report")')
         with self.assertRaisesRegex(ValueError, 'new URL'): r.inspect(self.root, policy)

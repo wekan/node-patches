@@ -11,7 +11,7 @@ sections are version-agnostic and carry forward across upstream releases.
 | Section | Applies to | What it carries |
 |---------|-----------|-----------------|
 | `all/` | every platform | Cross-cutting Node.js 26 source fixes for 32-bit ARM CPU features, scalar Highway paths, x86 hashing, typed arrays and PPC64LE TOC range. |
-| `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping, histogram AVX2 kept off ia32. |
+| `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping. (Histogram AVX2 kept off ia32 is upstream since v26.11.1.) |
 | `arm/` | armhf, armv7 | 32-bit ARM: zlib `-mfpu=neon`, ARMv8-only CRC path kept off ARMv7. |
 | `armv6/` | armv6 | Set an explicit ARMv6 architecture for V8 snapshot compilation. |
 | `riscv64/` | riscv64 | Use linkable floating-point min/max assembler methods in Maglev. |
