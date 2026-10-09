@@ -57,6 +57,21 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/6951ffe70be51dc8c6419bc866b9d43b939e3a0d">Pull the build container images with retries and Docker Hub mirrors</a>. Thanks to xet7.</summary>
+
+All eight Linux container builds of one run died in their first seconds: six
+timed out getting a Docker Hub token, and the two qemu builds hit Docker Hub's
+unauthenticated pull limit, and `docker run` pulls only once.
+`releases/pull-image.sh` now pulls each image first - from Docker Hub with a
+retry, then from mirror.gcr.io, then for Debian from Amazon ECR Public's Docker
+Official Images - and tags a mirror's copy with the name the build uses.
+`tests/workflow-logic.sh` runs it against a fake docker for each case, with
+negative tests, and checks the step comes before every container build. Hosted
+builds were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/47a72f67883a8114b0c4aad880f66c57c186024d">Build Node.js v26.11.1: new source baseline, histogram patch now upstream</a>. Thanks to xet7.</summary>
 
 Every v26.11.1 build stopped at the source audit, whose URL baseline was
