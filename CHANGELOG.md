@@ -57,6 +57,24 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/47a72f67883a8114b0c4aad880f66c57c186024d">Build Node.js v26.11.1: new source baseline, histogram patch now upstream</a>. Thanks to xet7.</summary>
+
+Every v26.11.1 build stopped at the source audit, whose URL baseline was
+recorded from v26.10.0: 26.11.1 adds 39 URLs, 29 of them in the TF-PSA-Crypto
+part of Mbed TLS that LIEF now vendors, the rest issue, specification and paper
+references in undici, npm, OpenSSL, V8, spdlog and two Node source files. All
+are comments or message text, nothing fetches them, and no telemetry keyword is
+new. The baseline is re-recorded from the v26.11.1 tag (17,640 files).
+
+The i386 and win32 builds would then have failed: v26.11.1 keeps hdr-histogram's
+AVX2 dispatch off 32-bit x86 itself, so dist/ia32's histogram patch no longer
+applies and is removed. `tests/patches-apply.sh` still checks that guard - it
+passes on v26.11.1 and fails on v26.10.0 - and every section applies to
+v26.11.1. Hosted builds were not run.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/f5e687a2e850df0931ff47a38336b6af3d11693b">Attach each platform's binary to the release as soon as its build is done</a>. Thanks to xet7.</summary>
 
 The binaries used to reach the GitHub Release only in the final job, after all
