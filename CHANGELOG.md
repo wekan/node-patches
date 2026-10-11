@@ -57,6 +57,18 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/455b802">Release All works with a GitHub CLI older than 2.48</a>. Thanks to xet7.</summary>
+
+The release script read the list of earlier releases with
+`gh api --paginate --slurp`, and `--slurp` exists only from GitHub CLI 2.48
+on. With an older `gh` the release stopped with "unknown flag: --slurp".
+`--paginate` alone prints the pages one after another, and `gh_pages()` now
+reads them that way. A truncated page is still an error, never a shorter list.
+`tests/remoteRelease.test.py` feeds it pages the way `gh` prints them.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/6951ffe70be51dc8c6419bc866b9d43b939e3a0d">Pull the build container images with retries and Docker Hub mirrors</a>. Thanks to xet7.</summary>
 
 All eight Linux container builds of one run died in their first seconds: six
