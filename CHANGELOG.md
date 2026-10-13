@@ -55,6 +55,26 @@ Nothing carried yet — this is the first patch set.
 
 </details>
 
+# Upcoming node-patches release
+
+**In short:** the **android-x86** build is fixed.
+
+This release fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/3eda43c">Build V8's 32-bit x86 host tools with SSE2 for android-x86</a>. Thanks to xet7.</summary>
+
+V8's build tools run on the build machine, and for a 32-bit target they are
+32-bit host programs (`gcc -m32`). On x86 that targets i686 without SSE2, which
+V8 refuses ("Did not detect required SSE2 support on ia32/x64"), so the
+android-x86 job stopped while building them. `releases/build-android.sh` now
+adds `-msse2 -mfpmath=sse` to the host compilers for android-x86 only; the
+target is unchanged, as the Android x86 ABI already guarantees SSSE3.
+
+</details>
+
+Thanks to above GitHub users for their contributions and translators for their translations.
+
 # v26.11.1 2026-10-13 node-patches release
 
 <details>
