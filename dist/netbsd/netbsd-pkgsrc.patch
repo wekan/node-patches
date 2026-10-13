@@ -112,7 +112,7 @@ diff --git a/deps/v8/src/base/platform/platform-openbsd.cc b/deps/v8/src/base/pl
 index 84555e38..cab163bb 100644
 --- a/deps/v8/src/base/platform/platform-openbsd.cc
 +++ b/deps/v8/src/base/platform/platform-openbsd.cc
-@@ -34,6 +34,48 @@
+@@ -34,6 +34,47 @@
  namespace v8 {
  namespace base {
  
@@ -148,8 +148,7 @@ index 84555e38..cab163bb 100644
 +  return false;
 +#else
 +#error "Your version of GCC does not report the FP ABI compiled for."          \
-+       "Please report it on this issue"                                        \
-+       "http://code.google.com/p/v8/issues/detail?id=2140"
++       "Please report it on V8 issue 2140"
 +
 +#endif
 +#endif

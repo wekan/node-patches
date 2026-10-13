@@ -21,6 +21,11 @@ that matter for a build with Node's **bundled** dependencies on x86-64, one
   (`PTHREAD_STACK_MIN`, `<unistd.h>`, the `uint*_t` macros).
 - **configure:** accepts Python 3.15 too.
 
+One change from pkgsrc's text: in the NetBSD/arm hard-float check copied from
+V8, the `#error` message names V8 issue 2140 instead of carrying its old
+`code.google.com` address, so the release's risk audit finds no new URL in the
+patch. That code is not compiled for x86-64.
+
 Left out, because they do not apply to this build:
 
 - the SunOS `-lsocket` change;
