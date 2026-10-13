@@ -96,6 +96,11 @@ first release that has them.
 
 </details>
 
+and fixes the following bug:
+
+- [Release All Missing no longer stops at an old V8 URL in the NetBSD patch](https://github.com/wekan/node-patches/commit/ea35e7a).
+  Thanks to xet7.
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.11.1 2026-10-13 node-patches release
