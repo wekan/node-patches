@@ -73,8 +73,16 @@ export CC_host="gcc$m32" CXX_host="g++$m32" LINK_host="g++$m32" AR_host=ar
 
 export GYP_DEFINES="target_arch=$gyp_arch v8_target_arch=$gyp_arch android_target_arch=$gyp_arch host_os=linux OS=android android_ndk_path=$ndk"
 
+# Temporal off, as Termux builds it: Node's Rust crates (Temporal, ICU4X) are
+# one library for both halves of a cross build (deps/crates/crates.gyp sets a
+# Rust target only for Windows and macOS), so on Linux the build machine's
+# x86_64 crates were linked into V8's 32-bit host tools ("i386:x86-64
+# architecture of input file libnode_crates.a ... is incompatible with i386
+# output", android-armv7) and would be into the Android binary next. Without
+# cargo in the picture, every Android CPU builds; Temporal is the only thing
+# missing, and WeKan does not use it.
 ./configure --dest-cpu="$cpu" --dest-os=android --cross-compiling \
-  --openssl-no-asm --without-npm
+  --openssl-no-asm --without-npm --v8-disable-temporal-support
 make -j"${JOBS:-$(nproc)}"
 "$toolchain/bin/llvm-strip" out/Release/node
 file out/Release/node 2>/dev/null || true
