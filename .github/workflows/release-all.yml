@@ -52,6 +52,9 @@ name: Release All
 #   node-mac-x64   macOS Intel               native
 #   node-mac-arm64 macOS Apple silicon       native
 #   node-freebsd-x64 FreeBSD x86-64          native in a FreeBSD VM
+#   node-openbsd-x64   OpenBSD x86-64        native in an OpenBSD VM, dist/openbsd
+#   node-openbsd-arm64 OpenBSD arm64         native in an OpenBSD VM, dist/openbsd
+#   node-netbsd-x64    NetBSD x86-64         native in a NetBSD VM, dist/netbsd
 #   node-android-arm64 Android arm64-v8a     NDK cross build, for Termux
 #   node-android-armv7 Android armeabi-v7a   NDK cross build, for Termux
 #   node-android-x64   Android x86_64        NDK cross build, for Termux
@@ -560,6 +563,29 @@ jobs:
             runs_on: ubuntu-24.04
             configure_flags: ''
             timeout_minutes: 300
+          # OpenBSD and NetBSD: Node.js does not release them, so the patch sets
+          # the OS packagers keep are carried here, adapted to Node 26 -
+          # dist/openbsd from OpenBSD ports' lang/node, dist/netbsd from
+          # pkgsrc's lang/nodejs (already at 26.11.1). Native builds in a VM of
+          # each, like FreeBSD. WeKan's BSD bundles (wekan/wekan bsd.yml) use
+          # these the release they appear.
+          - platform: openbsd-x64
+            mode: openbsd
+            vm_arch: x86_64
+            runs_on: ubuntu-24.04
+            configure_flags: ''
+            timeout_minutes: 340
+          - platform: openbsd-arm64
+            mode: openbsd
+            vm_arch: aarch64
+            runs_on: ubuntu-24.04
+            configure_flags: ''
+            timeout_minutes: 340
+          - platform: netbsd-x64
+            mode: netbsd
+            runs_on: ubuntu-24.04
+            configure_flags: ''
+            timeout_minutes: 340
           # Android, all four CPUs Android runs on, for Termux. Termux packages
           # Node.js itself, but behind upstream and linked to Termux's shared
           # OpenSSL/ICU/SQLite/c-ares/zlib/libffi, so it cannot be carried inside
@@ -1007,6 +1033,65 @@ jobs:
             gmake -j"$(sysctl -n hw.ncpu)"
             strip out/Release/node
 
+      - name: Build natively in OpenBSD
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'openbsd' }}
+        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
+        with:
+          release: '7.7'
+          arch: ${{ matrix.vm_arch }}
+          mem: 12288
+          prepare: pkg_add python%3 gmake bash
+          run: |
+            set -eu
+            # V8's build runs code it has just written (mksnapshot), which
+            # OpenBSD allows only from a filesystem mounted wxallowed - the
+            # OpenBSD port builds under /usr/ports for that reason. Here the
+            # workspace's own filesystem is given it for the build.
+            fs="$(df -P . | awk 'NR==2 {print $6}')"
+            mount -u -o wxallowed "$fs" || true
+            # Compiling V8 needs more than the default data size limit.
+            ulimit -d "$(ulimit -H -d)" || true
+            # OpenBSD's base Clang, as the port uses (COMPILER = base-clang).
+            export CC=cc CXX=c++
+            ./configure ${{ matrix.configure_flags }}
+            gmake -j"$(sysctl -n hw.ncpuonline)"
+            strip out/Release/node
+            ./out/Release/node _patches/tests/runtime-smoke.cjs ${{ matrix.platform }}
+
+      - name: Build natively in NetBSD
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'netbsd' }}
+        uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92
+        with:
+          release: '10.1'
+          mem: 12288
+          prepare: |
+            /usr/sbin/pkg_add pkgin
+            pkgin -y install gcc14 python313 gmake bash
+          run: |
+            set -eu
+            # pkgsrc's lang/nodejs builds Node 26 with GCC 14 (GCC_REQD 14);
+            # NetBSD 10's own GCC is too old for its C++20. libstdc++ and
+            # libgcc are linked in, so the binary does not need gcc14 installed
+            # where it runs.
+            export CC=/usr/pkg/gcc14/bin/gcc CXX=/usr/pkg/gcc14/bin/g++
+            export LDFLAGS="-static-libstdc++ -static-libgcc"
+            # configure.py has no netbsd OS; gyp detects it, and pkgsrc says
+            # so explicitly the same way.
+            export GYP_DEFINES="OS=netbsd"
+            ./configure ${{ matrix.configure_flags }}
+            # PaX MPROTECT stops the snapshot tools from running the code they
+            # generate: paxctl +m each right after it is linked, as pkgsrc does.
+            # (awk, not sed: BSD sed puts no newline or tab for \n and \t.)
+            for mk in out/tools/v8_gypfiles/mksnapshot.target.mk out/node_mksnapshot.target.mk; do
+              [ -f "$mk" ] || continue
+              awk '{ print } /call do_cmd,link\)/ { print "\t/usr/sbin/paxctl +m $@" }' "$mk" > "$mk.pax"
+              mv "$mk.pax" "$mk"
+            done
+            gmake -j"$(sysctl -n hw.ncpuonline)"
+            strip out/Release/node
+            /usr/sbin/paxctl +m out/Release/node
+            ./out/Release/node _patches/tests/runtime-smoke.cjs ${{ matrix.platform }}
+
       - name: Name it for the release, and say what it is
         id: name_unix
         if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') }}
@@ -1189,11 +1274,11 @@ jobs:
             | while read -r p; do if grep -qxF "node-${p}.sha256sum" assets.txt; then echo "$p"; fi; done \
             | sort -u)"
           plats=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
           done
           for a in $present; do
-            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86" | grep -q " $a " || plats="${plats:+$plats }$a"
+            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
             echo "::error::The release carries no complete platform - every build job failed. Their logs say why."
@@ -1215,7 +1300,7 @@ jobs:
           # release-all-missing.yml exists to build exactly the platforms this
           # prints, once whatever caused the gap has cleared.
           missing=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" || missing="${missing:+$missing }$a"
           done
           if [ -n "$missing" ]; then

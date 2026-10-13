@@ -1,0 +1,346 @@
+diff --git a/common.gypi b/common.gypi
+index c2d6d3b6..468075d4 100644
+--- a/common.gypi
++++ b/common.gypi
+@@ -588,11 +588,11 @@
+           'NOMINMAX',
+         ],
+       }],
+-      [ 'OS in "linux freebsd openbsd solaris aix os400 openharmony zos"', {
++      [ 'OS in "linux freebsd openbsd solaris aix os400 openharmony zos netbsd"', {
+         'cflags': [ '-pthread' ],
+         'ldflags': [ '-pthread' ],
+       }],
+-      [ 'OS in "linux freebsd openbsd solaris android aix os400 cloudabi openharmony zos"', {
++      [ 'OS in "linux freebsd openbsd solaris android aix os400 cloudabi openharmony zos netbsd"', {
+         'cflags': [ '-Wall', '-Wextra', '-Wno-unused-parameter', ],
+         'cflags_cc': [
+           '-fno-rtti',
+diff --git a/configure b/configure
+index f39c2d55..5d8b8ac9 100755
+--- a/configure
++++ b/configure
+@@ -4,6 +4,7 @@
+ # Note that the mix of single and double quotes is intentional,
+ # as is the fact that the ] goes on a new line.
+ _=[ 'exec' '/bin/sh' '-c' '''
++command -v python3.15 >/dev/null && exec python3.15 "$0" "$@"
+ command -v python3.14 >/dev/null && exec python3.14 "$0" "$@"
+ command -v python3.13 >/dev/null && exec python3.13 "$0" "$@"
+ command -v python3.12 >/dev/null && exec python3.12 "$0" "$@"
+@@ -22,7 +23,7 @@ except ImportError:
+   from distutils.spawn import find_executable as which
+ 
+ print('Node.js configure: Found Python {}.{}.{}...'.format(*sys.version_info))
+-acceptable_pythons = ((3, 14), (3, 13), (3, 12), (3, 11), (3, 10))
++acceptable_pythons = ((3, 15), (3, 14), (3, 13), (3, 12), (3, 11), (3, 10))
+ if sys.version_info[:2] in acceptable_pythons:
+   import configure
+ else:
+diff --git a/deps/cares/cares.gyp b/deps/cares/cares.gyp
+index fee055c0..5f1f2ca5 100644
+--- a/deps/cares/cares.gyp
++++ b/deps/cares/cares.gyp
+@@ -231,6 +231,10 @@
+           'include_dirs': [ 'config/freebsd' ],
+           'sources': [ 'config/freebsd/ares_config.h' ]
+         }],
++        [ 'OS=="netbsd"', {
++          'include_dirs': [ 'config/netbsd' ],
++          'sources': [ 'config/netbsd/ares_config.h' ]
++        }],
+         [ 'OS=="openbsd"', {
+           'include_dirs': [ 'config/openbsd' ],
+           'sources': [ 'config/openbsd/ares_config.h' ]
+diff --git a/deps/uv/common.gypi b/deps/uv/common.gypi
+index cc9c98e7..b2c39dec 100644
+--- a/deps/uv/common.gypi
++++ b/deps/uv/common.gypi
+@@ -135,7 +135,7 @@
+           }]
+         ]
+       }],
+-      ['OS in "freebsd dragonflybsd linux openbsd solaris android aix os400"', {
++      ['OS in "freebsd dragonflybsd linux netbsd openbsd solaris android aix os400"', {
+         'cflags': [ '-Wall' ],
+         'cflags_cc': [ '-fno-rtti', '-fno-exceptions' ],
+         'target_conditions': [
+diff --git a/deps/uvwasi/include/wasi_serdes.h b/deps/uvwasi/include/wasi_serdes.h
+index b4829188..4d7de7c8 100644
+--- a/deps/uvwasi/include/wasi_serdes.h
++++ b/deps/uvwasi/include/wasi_serdes.h
+@@ -3,6 +3,13 @@
+ 
+ #include "wasi_types.h"
+ 
++#ifdef __NetBSD__
++#undef uint8_t
++#undef uint16_t
++#undef uint32_t
++#undef uint64_t
++#endif
++
+ /* Basic uint{8,16,32,64}_t read/write functions. */
+ 
+ #define BASIC_TYPE(name, type)                                                \
+diff --git a/deps/v8/src/base/memcopy.h b/deps/v8/src/base/memcopy.h
+index b1d8a36b..82e9a75c 100644
+--- a/deps/v8/src/base/memcopy.h
++++ b/deps/v8/src/base/memcopy.h
+@@ -5,6 +5,7 @@
+ #ifndef V8_BASE_MEMCOPY_H_
+ #define V8_BASE_MEMCOPY_H_
+ 
++#include <climits>
+ #include <stdlib.h>
+ 
+ #include <atomic>
+diff --git a/deps/v8/src/base/platform/memory.h b/deps/v8/src/base/platform/memory.h
+index 32161ba8..606c1d38 100644
+--- a/deps/v8/src/base/platform/memory.h
++++ b/deps/v8/src/base/platform/memory.h
+@@ -27,7 +27,7 @@
+ #include <malloc.h>
+ #endif
+ 
+-#if (V8_OS_POSIX && !V8_OS_AIX && !V8_OS_SOLARIS && !V8_OS_ZOS && !V8_OS_OPENBSD) || V8_OS_WIN
++#if (V8_OS_POSIX && !V8_OS_AIX && !V8_OS_SOLARIS && !V8_OS_ZOS && !V8_OS_OPENBSD && !V8_OS_NETBSD) || V8_OS_WIN
+ #define V8_HAS_MALLOC_USABLE_SIZE 1
+ #endif
+ 
+diff --git a/deps/v8/src/base/platform/platform-openbsd.cc b/deps/v8/src/base/platform/platform-openbsd.cc
+index 84555e38..cab163bb 100644
+--- a/deps/v8/src/base/platform/platform-openbsd.cc
++++ b/deps/v8/src/base/platform/platform-openbsd.cc
+@@ -34,6 +34,48 @@
+ namespace v8 {
+ namespace base {
+ 
++#ifdef __arm__
++
++bool OS::ArmUsingHardFloat() {
++  // GCC versions 4.6 and above define __ARM_PCS or __ARM_PCS_VFP to specify
++  // the Floating Point ABI used (PCS stands for Procedure Call Standard).
++  // We use these as well as a couple of other defines to statically determine
++  // what FP ABI used.
++  // GCC versions 4.4 and below don't support hard-fp.
++  // GCC versions 4.5 may support hard-fp without defining __ARM_PCS or
++  // __ARM_PCS_VFP.
++
++#define GCC_VERSION (__GNUC__ * 10000                                          \
++                     + __GNUC_MINOR__ * 100                                    \
++                     + __GNUC_PATCHLEVEL__)
++#if GCC_VERSION >= 40600
++#if defined(__ARM_PCS_VFP)
++  return true;
++#else
++  return false;
++#endif
++
++#elif GCC_VERSION < 40500
++  return false;
++
++#else
++#if defined(__ARM_PCS_VFP)
++  return true;
++#elif defined(__ARM_PCS) || defined(__SOFTFP__) || defined(__SOFTFP) || \
++      !defined(__VFP_FP__)
++  return false;
++#else
++#error "Your version of GCC does not report the FP ABI compiled for."          \
++       "Please report it on this issue"                                        \
++       "http://code.google.com/p/v8/issues/detail?id=2140"
++
++#endif
++#endif
++#undef GCC_VERSION
++}
++
++#endif  // def __arm__
++
+ TimezoneCache* OS::CreateTimezoneCache() {
+   return new PosixDefaultTimezoneCache();
+ }
+diff --git a/deps/v8/src/base/platform/platform-posix.cc b/deps/v8/src/base/platform/platform-posix.cc
+index 93639103..11d56dea 100644
+--- a/deps/v8/src/base/platform/platform-posix.cc
++++ b/deps/v8/src/base/platform/platform-posix.cc
+@@ -466,6 +466,10 @@ void* OS::GetRandomMmapAddr() {
+   raw_addr += 0x20000000;
+ #endif
+ #endif
++#endif
++
++#if V8_OS_NETBSD
++  raw_addr = 0;
+ #endif
+   return reinterpret_cast<void*>(raw_addr);
+ }
+@@ -659,14 +663,11 @@ bool OS::DiscardSystemPages(void* address, size_t size) {
+     // MADV_FREE_REUSABLE sometimes fails, so fall back to MADV_DONTNEED.
+     ret = madvise(address, size, MADV_DONTNEED);
+   }
+-#elif defined(_AIX) || defined(V8_OS_SOLARIS)
+-  int ret = madvise(reinterpret_cast<caddr_t>(address), size, MADV_FREE);
++#elif defined(POSIX_MADV_DONTNEED)
++  int ret = posix_madvise(address, size, POSIX_MADV_DONTNEED);
+   if (ret != 0 && errno == ENOSYS) {
+     return true;  // madvise is not available on all systems.
+   }
+-  if (ret != 0 && errno == EINVAL) {
+-    ret = madvise(reinterpret_cast<caddr_t>(address), size, MADV_DONTNEED);
+-  }
+ #else
+   int ret = madvise(address, size, MADV_DONTNEED);
+ #endif
+@@ -935,6 +936,8 @@ int OS::GetCurrentThreadIdInternal() {
+   return static_cast<int>(syscall(__NR_gettid));
+ #elif V8_OS_ANDROID
+   return static_cast<int>(gettid());
++#elif V8_OS_NETBSD || V8_OS_FREEBSD
++  return static_cast<int>(reinterpret_cast<intptr_t>(pthread_self()));
+ #elif V8_OS_AIX
+   return static_cast<int>(thread_self());
+ #elif V8_OS_FUCHSIA
+@@ -1240,7 +1243,11 @@ Thread::Thread(const Options& options)
+       stack_size_(options.stack_size()),
+       priority_(options.priority()),
+       start_semaphore_(nullptr) {
++#if V8_OS_NETBSD
++  const int min_stack_size = sysconf(_SC_THREAD_STACK_MIN);
++#else
+   const int min_stack_size = static_cast<int>(PTHREAD_STACK_MIN);
++#endif
+   if (stack_size_ > 0) stack_size_ = std::max(stack_size_, min_stack_size);
+   set_name(options.name());
+ }
+@@ -1255,7 +1262,7 @@ static void SetThreadName(const char* name) {
+   pthread_set_name_np(pthread_self(), name);
+ #elif V8_OS_NETBSD
+   static_assert(Thread::kMaxThreadNameLength <= PTHREAD_MAX_NAMELEN_NP);
+-  pthread_setname_np(pthread_self(), "%s", name);
++  pthread_setname_np(pthread_self(), "%s", (void *)name);
+ #elif V8_OS_DARWIN
+   // pthread_setname_np is only available in 10.6 or later, so test
+   // for it at runtime.
+diff --git a/deps/v8/src/base/platform/semaphore.cc b/deps/v8/src/base/platform/semaphore.cc
+index 2ac431db..20611bfb 100644
+--- a/deps/v8/src/base/platform/semaphore.cc
++++ b/deps/v8/src/base/platform/semaphore.cc
+@@ -12,6 +12,10 @@
+ 
+ #include <errno.h>
+ 
++#if V8_OS_NETBSD
++#include <sys/param.h>	// for __NetBSD_Version__
++#endif
++
+ #include "src/base/logging.h"
+ #include "src/base/platform/elapsed-timer.h"
+ #include "src/base/platform/time.h"
+diff --git a/deps/v8/src/base/strings.h b/deps/v8/src/base/strings.h
+index c3015e72..2ecbd5db 100644
+--- a/deps/v8/src/base/strings.h
++++ b/deps/v8/src/base/strings.h
+@@ -8,6 +8,7 @@
+ #include "src/base/base-export.h"
+ #include "src/base/macros.h"
+ #include "src/base/vector.h"
++#include <stdarg.h>
+ 
+ namespace v8 {
+ namespace base {
+diff --git a/deps/v8/src/common/globals.h b/deps/v8/src/common/globals.h
+index 0e0cfcb3..3f5c1d18 100644
+--- a/deps/v8/src/common/globals.h
++++ b/deps/v8/src/common/globals.h
+@@ -7,6 +7,7 @@
+ 
+ #include <stddef.h>
+ #include <stdint.h>
++#include <stdarg.h>
+ 
+ #include <limits>
+ #include <ostream>
+diff --git a/deps/v8/third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc b/deps/v8/third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc
+index 2c168309..63e29041 100644
+--- a/deps/v8/third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc
++++ b/deps/v8/third_party/abseil-cpp/absl/debugging/internal/elf_mem_image.cc
+@@ -377,7 +377,7 @@ void ElfMemImage::SymbolIterator::Update(uint32_t increment) {
+   const ElfW(Versym) *version_symbol = image->GetVersym(index_);
+   ABSL_RAW_CHECK(symbol && version_symbol, "");
+   const char *const symbol_name = image->GetDynstr(symbol->st_name);
+-#if defined(__NetBSD__)
++#if defined(__NetBSD__) && ((_SYS_EXEC_ELF_H_ + 0) < 2)
+   const int version_index = version_symbol->vs_vers & VERSYM_VERSION;
+ #else
+   const ElfW(Versym) version_index = version_symbol[0] & VERSYM_VERSION;
+diff --git a/src/compile_cache.cc b/src/compile_cache.cc
+index 6e891619..8bb47809 100644
+--- a/src/compile_cache.cc
++++ b/src/compile_cache.cc
+@@ -1,5 +1,6 @@
+ #include "compile_cache.h"
+ #include <string>
++#include <unistd.h>
+ #include "debug_utils-inl.h"
+ #include "env-inl.h"
+ #include "node_file.h"
+diff --git a/src/inspector_agent.cc b/src/inspector_agent.cc
+index 22506e26..5cb175ec 100644
+--- a/src/inspector_agent.cc
++++ b/src/inspector_agent.cc
+@@ -105,7 +105,7 @@ static int StartWatchdogThread() {
+   CHECK_EQ(0, uv_sem_init(&start_io_thread_semaphore, 0));
+   pthread_attr_t attr;
+   CHECK_EQ(0, pthread_attr_init(&attr));
+-#if defined(PTHREAD_STACK_MIN) && !defined(__FreeBSD__)
++#if defined(PTHREAD_STACK_MIN) && !defined(__FreeBSD__) && !defined(__NetBSD__)
+   // PTHREAD_STACK_MIN is 2 KiB with musl libc, which is too small to safely
+   // receive signals. PTHREAD_STACK_MIN + MINSIGSTKSZ is 8 KiB on arm64, which
+   // is the musl architecture with the biggest MINSIGSTKSZ so let's use that
+diff --git a/src/node_postmortem_metadata.cc b/src/node_postmortem_metadata.cc
+index e40d82c0..082c8e46 100644
+--- a/src/node_postmortem_metadata.cc
++++ b/src/node_postmortem_metadata.cc
+@@ -13,6 +13,10 @@
+ #define NODEDBG_OFFSET(Class, Member, Type) \
+     NODEDBG_SYMBOL(offset_ ## Class ## __ ## Member ## __ ## Type)
+ 
++// Some systems provide macros for the types as well, which get expanded
++// by the nested macros here.
++#undef uintptr_t
++
+ // These are the constants describing Node internal structures. Every constant
+ // should use the format described above.  These constants are declared as
+ // global integers so that they'll be present in the generated node binary. They
+diff --git a/tools/gyp/pylib/gyp/generator/make.py b/tools/gyp/pylib/gyp/generator/make.py
+index 16b6f4e8..c3abb083 100644
+--- a/tools/gyp/pylib/gyp/generator/make.py
++++ b/tools/gyp/pylib/gyp/generator/make.py
+@@ -2562,7 +2562,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
+                 "flock_index": 2,
+             }
+         )
+-    elif flavor == "freebsd":
++    elif flavor == "freebsd" or flavor == 'dragonflybsd' or flavor == 'netbsd':
+         # Note: OpenBSD has sysutils/flock. lockf seems to be FreeBSD specific.
+         header_params.update({"flock": "lockf"})
+     elif flavor == "openbsd":
+diff --git a/tools/v8_gypfiles/v8.gyp b/tools/v8_gypfiles/v8.gyp
+index fd8394b3..48f5c170 100644
+--- a/tools/v8_gypfiles/v8.gyp
++++ b/tools/v8_gypfiles/v8.gyp
+@@ -1410,6 +1410,12 @@
+         }],
+         # Platforms that don't have Compare-And-Swap (CAS) support need to link atomic library
+         # to implement atomic memory access.
++        # NetBSD/arm also needs -larm.
++        ['OS=="netbsd" and v8_current_cpu in ["arm"]', {
++          'link_settings': {
++            'libraries': ['-larm', ],
++          },
++        }],
+         # Clang needs it for some atomic operations (https://clang.llvm.org/docs/Toolchain.html#atomics-library).
+         ['(OS=="linux" and clang==1) or (v8_current_cpu in ["mips64", "mips64el", "arm", "riscv64", "loong64"])', {
+           'link_settings': {

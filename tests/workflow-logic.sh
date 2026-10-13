@@ -167,15 +167,33 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
 
-[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 20 ] \
-  && ok "the matrix contains all 20 release targets" \
-  || fail "expected 20 release targets"
+[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 23 ] \
+  && ok "the matrix contains all 23 release targets" \
+  || fail "expected 23 release targets (20 + openbsd-x64, openbsd-arm64, netbsd-x64)"
 grep -A 5 -E '^ +- platform: win-arm64$' "$ALL" | grep -q 'vcbuild_arch: arm64' \
   && ok "Windows ARM64 uses the upstream arm64 vcbuild target" \
   || fail "Windows ARM64 is not wired to vcbuild arm64"
 grep -q 'uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1' "$ALL" \
   && ok "FreeBSD uses an immutable pinned VM action" \
   || fail "FreeBSD VM action is absent or not commit-pinned"
+# OpenBSD and NetBSD (dist/openbsd, dist/netbsd): pinned VM actions, and the
+# two things each OS needs before V8 can run the code it generates.
+grep -q 'uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945' "$ALL" \
+  && ok "OpenBSD uses an immutable pinned VM action" \
+  || fail "OpenBSD VM action is absent or not commit-pinned"
+grep -q 'uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92' "$ALL" \
+  && ok "NetBSD uses an immutable pinned VM action" \
+  || fail "NetBSD VM action is absent or not commit-pinned"
+grep -q 'mount -u -o wxallowed "$fs"' "$ALL" \
+  && ok "OpenBSD builds on a wxallowed filesystem (mksnapshot runs JIT code)" \
+  || fail "OpenBSD build does not mount its workspace wxallowed"
+grep -q '/usr/sbin/paxctl +m out/Release/node' "$ALL" && grep -q 'print "\\t/usr/sbin/paxctl +m \$@"' "$ALL" \
+  && ok "NetBSD marks mksnapshot, node_mksnapshot and node paxctl +m" \
+  || fail "NetBSD build does not paxctl +m its snapshot tools and node"
+[ "$(bash "$ROOT/releases/dist-dirs-for.sh" openbsd-arm64 | tr '\n' ' ')" = "all openbsd " ] \
+  && [ "$(bash "$ROOT/releases/dist-dirs-for.sh" netbsd-x64 | tr '\n' ' ')" = "all netbsd " ] \
+  && ok "the apply-map gives OpenBSD and NetBSD their patch sets" \
+  || fail "dist-dirs-for.sh does not map openbsd/netbsd to their sections"
 
 # ── 3b. What the armv6 target's compiler flags have to say ───────────────────
 #

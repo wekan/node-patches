@@ -80,7 +80,23 @@ GitHub Release.
 Windows ARM64 uses upstream's supported `vcbuild arm64` cross-build on the
 Windows x64 runner. FreeBSD x64 builds natively with clang and gmake in a
 FreeBSD 14 VM; the VM action is pinned to an immutable commit and copies the
-result back into the shared checksum/publish path. Node 24 also supports AIX
+result back into the shared checksum/publish path.
+
+OpenBSD (`openbsd-x64`, `openbsd-arm64`) and NetBSD (`netbsd-x64`) build the
+same way, natively in a VM of each with commit-pinned actions. Node.js releases
+neither, so the patch sets their own packagers keep are carried, adapted to
+Node 26:
+
+- **OpenBSD:** OpenBSD ports' `lang/node` patches, in `dist/openbsd`. The build
+  uses base Clang, and the workspace is mounted `wxallowed`, because V8's
+  `mksnapshot` runs the code it generates.
+- **NetBSD:** pkgsrc's `lang/nodejs` patches, which are already at 26.11.1, in
+  `dist/netbsd`. The build uses GCC 14 from pkgsrc with libstdc++ linked in,
+  sets `GYP_DEFINES=OS=netbsd`, and runs `paxctl +m` on `mksnapshot`,
+  `node_mksnapshot` and `node`.
+
+Each binary then runs `tests/runtime-smoke.cjs` inside its own VM, which checks
+that it reports that BSD and CPU. Node 24 also supports AIX
 ppc64 and SmartOS x64, but GitHub-hosted Actions supplies neither OS nor its
 native SDK/toolchain. Those require dedicated self-hosted runners and are not
 claimed as buildable workflow targets. OpenHarmony is an application platform

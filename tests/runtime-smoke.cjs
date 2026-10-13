@@ -10,6 +10,12 @@ const expected = {
   'android-arm64': 'arm64', 'android-armv7': 'arm', 'android-x64': 'x64', 'android-x86': 'ia32',
 }[process.argv[2]];
 if (expected) assert.equal(process.arch, expected, 'built runtime has wrong architecture');
+// The BSDs: the binary must say it is that BSD and that CPU.
+const bsd = /^(freebsd|openbsd|netbsd)-(x64|arm64)$/.exec(String(process.argv[2]));
+if (bsd) {
+  assert.equal(process.platform, bsd[1], 'built runtime is not this BSD');
+  assert.equal(process.arch, bsd[2], 'built runtime has wrong architecture');
+}
 // Android (run inside Termux): the platform is android, and dist/android's
 // paths patch put the temporary directory in Termux's prefix, not /tmp.
 if (String(process.argv[2]).startsWith('android-')) {

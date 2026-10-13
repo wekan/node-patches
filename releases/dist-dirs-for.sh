@@ -11,6 +11,8 @@
 #   mac    mac-x64 + mac-arm64   (Apple Clang)
 #   win32  win32                 (Windows 32-bit only)
 #   android android-arm64, -armv7, -x64, -x86 (Android/Termux, NDK)
+#   openbsd openbsd-x64, openbsd-arm64 (OpenBSD ports' patches)
+#   netbsd  netbsd-x64            (pkgsrc's patches)
 #
 # s390x takes the common set only: it builds like a native s390x build (its
 # real mksnapshot runs under qemu-user, see release-all.yml's cross-qemu mode),
@@ -39,6 +41,10 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   # cpu_features.c, so the two never meet in one file.
   android-armv7)     echo arm; echo android ;;
   android-arm64|android-x64|android-x86) echo android ;;
+  # The OS packagers' patch sets, adapted to Node 26: OpenBSD ports' lang/node
+  # and pkgsrc's lang/nodejs (dist/openbsd, dist/netbsd).
+  openbsd-x64|openbsd-arm64) echo openbsd ;;
+  netbsd-x64)        echo netbsd ;;
   # x64, arm64, ppc64le, loong64, s390x, win64, win-arm64 and
   # freebsd-x64 take the common set only.
 esac
