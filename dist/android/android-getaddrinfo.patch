@@ -27,7 +27,7 @@ index 00000000..aca4a411
 --- /dev/null
 +++ b/src/getaddrinfo.c
 @@ -0,0 +1,45 @@
-+// A really ugly fix for https://github.com/termux/termux-packages/issues/10277
++// A really ugly fix for termux/termux-packages#10277
 +#include <dlfcn.h>
 +#include <netdb.h>
 +#include <stdio.h>

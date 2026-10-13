@@ -160,5 +160,10 @@
       ],
       "keywords": {}
     }
+  },
+  "allowUrlPatternsByFile": {
+    ".github/workflows/release-all.yml": [
+      "https://dl\\.google\\.com/android/repository/\\$ndk_zip"
+    ]
   }
 }
