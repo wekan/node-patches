@@ -63,6 +63,41 @@ handled (their commits carry the short description and link).
 
 </details>
 
+# Upcoming node-patches release
+
+**In short:** Node.js for **OpenBSD** (amd64, arm64) and **NetBSD** (amd64),
+from the patch sets OpenBSD ports and pkgsrc keep, adapted to Node 26.
+
+This release adds the following new features:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/4cd7730">Build Node.js for OpenBSD amd64/arm64 and NetBSD amd64</a>. Thanks to xet7.</summary>
+
+Node.js releases neither, so the OS packagers' patch sets are carried, adapted
+to Node 26 and applied after `dist/all`:
+
+- `dist/openbsd`: OpenBSD ports' `lang/node` set. It had 52 patches for Node
+  24.21.0; 37 are carried for an amd64/arm64 build with bundled dependencies,
+  one hunk re-placed by hand, and the rest are already upstream or not needed.
+- `dist/netbsd`: pkgsrc's `lang/nodejs` set, which is already at 26.11.1.
+
+Each builds natively in a commit-pinned VM, as FreeBSD does:
+
+- **OpenBSD:** with base Clang, on a filesystem mounted `wxallowed`, because
+  `mksnapshot` runs the code it generates.
+- **NetBSD:** with pkgsrc's GCC 14 and libstdc++ linked in, and `paxctl +m` on
+  the snapshot tools and on `node`.
+
+Each binary runs `tests/runtime-smoke.cjs` in its VM, which checks that it
+reports that BSD and CPU. `tests/patches-apply.sh` applies both sets to
+v26.11.1, and `tests/workflow-logic.sh` pins the VM actions and both build
+steps. WeKan's BSD bundles (wekan/wekan `bsd.yml`) use these binaries in the
+first release that has them.
+
+</details>
+
+Thanks to above GitHub users for their contributions and translators for their translations.
+
 # v26.11.1 2026-10-13 node-patches release
 
 **In short:** the **android-x86**, **android-armv7**, **android-arm64** and **android-x64** builds are fixed.
