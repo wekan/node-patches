@@ -58,6 +58,29 @@ Nothing carried yet — this is the first patch set.
 # Upcoming node-patches release
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/9e41405">Build Node.js for Android (Termux) on all four Android CPUs</a>. Thanks to xet7.</summary>
+
+New platforms `android-arm64`, `android-armv7`, `android-x64` and `android-x86`:
+the same Node.js release as every other platform, with OpenSSL, ICU, SQLite,
+c-ares, zlib and libffi bundled, so the binary needs only Android's libc (API
+24 and up) and can be carried inside a WeKan bundle for Termux. Termux's own
+`nodejs` package was at 26.4.0 when 26.11.1 was current, and is linked to
+Termux's shared libraries. `releases/build-android.sh` cross compiles with
+Android NDK r30, the NDK Termux uses, pinned by checksum: the target with the
+NDK's clang, V8's host tools with the runner's GCC, as 32-bit programs for the
+32-bit targets. `dist/android` carries Termux's nodejs patches, adapted
+(Termux paths, `localhost` on IPv6, `OS=="android"` in V8's and libuv's gyp,
+bionic runtime fixes), and a zlib fix so the bundled zlib reads CPU features
+with `getauxval`; `android-armv7` also takes `dist/arm`. Each binary runs
+`tests/runtime-smoke.cjs` inside Termux's own Docker image before it is named
+or attached, which also checks `process.platform` and Termux's `tmp`.
+`tests/workflow-logic.sh` checks the apply-map, the patch checksums and docs,
+the pinned NDK and the test-before-publish order. The hosted builds have not
+run yet.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/455b802">Release All works with a GitHub CLI older than 2.48</a>. Thanks to xet7.</summary>
 
 The release script read the list of earlier releases with
