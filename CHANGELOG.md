@@ -63,7 +63,7 @@ handled (their commits carry the short description and link).
 
 </details>
 
-# Upcoming node-patches release
+# v26.11.1 2026-10-13 node-patches release
 
 **In short:** the **android-x86**, **android-armv7**, **android-arm64** and **android-x64** builds are fixed.
 
