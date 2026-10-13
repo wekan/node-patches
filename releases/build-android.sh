@@ -64,6 +64,11 @@ export CXXFLAGS="-D__TERMUX__ -Daligned_alloc=memalign ${CXXFLAGS:-}"
 
 m32=""
 [ "$bits" = 32 ] && m32=" -m32"
+# A 32-bit x86 host build must also say SSE2: gcc -m32 targets i686 without
+# it, and V8 refuses ia32 without SSE2 ("Did not detect required SSE2 support
+# on ia32/x64", swiss-hash-table-helpers.h). The target needs nothing - the
+# Android x86 ABI guarantees SSSE3, and the NDK's clang assumes it.
+[ "$platform" = android-x86 ] && m32="$m32 -msse2 -mfpmath=sse"
 export CC_host="gcc$m32" CXX_host="g++$m32" LINK_host="g++$m32" AR_host=ar
 
 export GYP_DEFINES="target_arch=$gyp_arch v8_target_arch=$gyp_arch android_target_arch=$gyp_arch host_os=linux OS=android android_ndk_path=$ndk"
