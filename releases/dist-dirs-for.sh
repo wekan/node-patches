@@ -10,6 +10,7 @@
 #   riscv64 riscv64             (RISC-V Maglev link fix)
 #   mac    mac-x64 + mac-arm64   (Apple Clang)
 #   win32  win32                 (Windows 32-bit only)
+#   android android-arm64, -armv7, -x64, -x86 (Android/Termux, NDK)
 #
 # s390x takes the common set only: it builds like a native s390x build (its
 # real mksnapshot runs under qemu-user, see release-all.yml's cross-qemu mode),
@@ -33,6 +34,11 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   armv6)             echo armv6 ;;
   riscv64)           echo riscv64 ;;
   mac-x64|mac-arm64) echo mac ;;
+  # android-armv7 is 32-bit ARM too: dist/arm gives zlib its NEON flag and keeps
+  # the ARMv8-only CRC32 path off. It touches only zlib.gyp, android only
+  # cpu_features.c, so the two never meet in one file.
+  android-armv7)     echo arm; echo android ;;
+  android-arm64|android-x64|android-x86) echo android ;;
   # x64, arm64, ppc64le, loong64, s390x, win64, win-arm64 and
   # freebsd-x64 take the common set only.
 esac

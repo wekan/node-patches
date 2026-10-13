@@ -24,7 +24,7 @@ in by the build from the tag it cloned.
 <summary>Version</summary>
 
 - Patches are organised by **platform**, not by version: a common `dist/all/` section
-  plus family/platform sections (`ia32/`, `arm/`, `s390x/`, `mac/`, `win32/`). Every
+  plus family/platform sections (`ia32/`, `arm/`, `s390x/`, `mac/`, `win32/`, `android/`). Every
   build applies `dist/all` plus the sections the apply-map assigns its target. See
   [dist/README.md](dist/README.md).
 - Each patch is a `*.patch` file with a `*.sha256sum` (the checksum of the patch file)
@@ -35,9 +35,10 @@ in by the build from the tag it cloned.
 - The binaries a release carries are named `node-<platform>` (`node-<platform>.exe`
   on Windows), each with a `node-<platform>.sha256sum`. A release accumulates
   binaries — a rebuilt platform clobbers its own asset and leaves the rest alone.
-- The sixteen platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
+- The twenty platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
   `arm64`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win-arm64`, `win32`,
-  `mac-x64`, `mac-arm64`, `freebsd-x64`.
+  `mac-x64`, `mac-arm64`, `freebsd-x64`, and for Android/Termux
+  `android-arm64`, `android-armv7`, `android-x64`, `android-x86`.
 
 </details>
 

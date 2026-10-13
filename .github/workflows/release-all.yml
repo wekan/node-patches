@@ -52,6 +52,10 @@ name: Release All
 #   node-mac-x64   macOS Intel               native
 #   node-mac-arm64 macOS Apple silicon       native
 #   node-freebsd-x64 FreeBSD x86-64          native in a FreeBSD VM
+#   node-android-arm64 Android arm64-v8a     NDK cross build, for Termux
+#   node-android-armv7 Android armeabi-v7a   NDK cross build, for Termux
+#   node-android-x64   Android x86_64        NDK cross build, for Termux
+#   node-android-x86   Android x86           NDK cross build, for Termux
 #
 # armhf and armv7 are both 32-bit hard-float ARM: the difference is the FPU
 # baseline, which is the difference that matters on the older boards this exists
@@ -556,6 +560,39 @@ jobs:
             runs_on: ubuntu-24.04
             configure_flags: ''
             timeout_minutes: 300
+          # Android, all four CPUs Android runs on, for Termux. Termux packages
+          # Node.js itself, but behind upstream and linked to Termux's shared
+          # OpenSSL/ICU/SQLite/c-ares/zlib/libffi, so it cannot be carried inside
+          # anything else. These bundle every dependency and need only Android's
+          # own libc: cross compiled with the Android NDK on the x64 runner
+          # (releases/build-android.sh), patched by dist/android (Termux's
+          # patches, adapted), and run in Termux's own Docker image before they
+          # are named or attached - x86_64 and x86 natively, the ARM ones under
+          # qemu-user.
+          - platform: android-arm64
+            mode: android
+            runs_on: ubuntu-24.04
+            termux_arch: aarch64
+            docker_platform: linux/arm64
+            timeout_minutes: 360
+          - platform: android-armv7
+            mode: android
+            runs_on: ubuntu-24.04
+            termux_arch: arm
+            docker_platform: linux/arm/v7
+            timeout_minutes: 360
+          - platform: android-x64
+            mode: android
+            runs_on: ubuntu-24.04
+            termux_arch: x86_64
+            docker_platform: linux/amd64
+            timeout_minutes: 360
+          - platform: android-x86
+            mode: android
+            runs_on: ubuntu-24.04
+            termux_arch: i686
+            docker_platform: linux/386
+            timeout_minutes: 360
           # 32-bit Windows. nodejs.org stopped publishing it and upstream removed
           # the build itself in 7ad0cc3e571 ("build: remove support for 32-bit
           # Windows"); the 32bit-windows-build patch puts the removed pieces back
@@ -913,6 +950,46 @@ jobs:
           make -j"$JOBS"
           strip out/Release/node 2>/dev/null || true
 
+      - name: Build for Android (NDK cross compile)
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'android' }}
+        env:
+          # The NDK Termux builds its own packages with
+          # (termux-packages scripts/properties.sh), pinned by checksum.
+          NDK_VERSION: r30
+          NDK_SHA256: 753611f410d002cfcd3f3dc2ef49aad532089d3180b436c060a90bf0fcb64df2
+        run: |
+          set -euo pipefail
+          # 32-bit targets build V8's host tools as 32-bit host programs.
+          case "${{ matrix.platform }}" in
+            android-armv7|android-x86)
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends gcc-multilib g++-multilib ;;
+          esac
+          ndk_zip="android-ndk-${NDK_VERSION}-linux.zip"
+          curl -fsSL --retry 5 --retry-delay 10 -o "$RUNNER_TEMP/$ndk_zip" \
+            "https://dl.google.com/android/repository/$ndk_zip"
+          echo "$NDK_SHA256  $RUNNER_TEMP/$ndk_zip" | sha256sum -c
+          unzip -q "$RUNNER_TEMP/$ndk_zip" -d "$RUNNER_TEMP"
+          bash _patches/releases/build-android.sh "$RUNNER_TEMP/android-ndk-${NDK_VERSION}" "${{ matrix.platform }}"
+
+      - name: Smoke test inside Termux
+        if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'android' }}
+        run: |
+          set -euo pipefail
+          case "${{ matrix.termux_arch }}" in
+            aarch64|arm) docker run --privileged --rm tonistiigi/binfmt:latest --install arm64,arm ;;
+          esac
+          bash _patches/releases/pull-image.sh "termux/termux-docker:${{ matrix.termux_arch }}" "${{ matrix.docker_platform }}"
+          mkdir -p "$RUNNER_TEMP/smoke"
+          cp out/Release/node _patches/tests/runtime-smoke.cjs "$RUNNER_TEMP/smoke/"
+          chmod -R a+rwX "$RUNNER_TEMP/smoke"
+          # Termux's entrypoint switches to its unprivileged user; the binary is
+          # copied into Termux's home, where an Android app user may execute.
+          docker run --rm --security-opt seccomp=unconfined --platform "${{ matrix.docker_platform }}" \
+            -v "$RUNNER_TEMP/smoke:/smoke" "termux/termux-docker:${{ matrix.termux_arch }}" \
+            bash -ec 'cp /smoke/node /smoke/runtime-smoke.cjs "$HOME/" && chmod +x "$HOME/node" &&
+              "$HOME/node" --version && "$HOME/node" "$HOME/runtime-smoke.cjs" "${{ matrix.platform }}"'
+
       - name: Build natively in FreeBSD
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'freebsd' }}
         uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1
@@ -1112,11 +1189,11 @@ jobs:
             | while read -r p; do if grep -qxF "node-${p}.sha256sum" assets.txt; then echo "$p"; fi; done \
             | sort -u)"
           plats=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
           done
           for a in $present; do
-            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64" | grep -q " $a " || plats="${plats:+$plats }$a"
+            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
             echo "::error::The release carries no complete platform - every build job failed. Their logs say why."
@@ -1138,7 +1215,7 @@ jobs:
           # release-all-missing.yml exists to build exactly the platforms this
           # prints, once whatever caused the gap has cleared.
           missing=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64; do
+          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" || missing="${missing:+$missing }$a"
           done
           if [ -n "$missing" ]; then

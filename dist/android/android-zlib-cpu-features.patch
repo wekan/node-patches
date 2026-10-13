@@ -1,0 +1,20 @@
+diff --git a/deps/zlib/cpu_features.c b/deps/zlib/cpu_features.c
+index 6613a65e..0629c8e0 100644
+--- a/deps/zlib/cpu_features.c
++++ b/deps/zlib/cpu_features.c
+@@ -8,6 +8,15 @@
+ #include "cpu_features.h"
+ #include "zutil.h"
+ 
++/* Android: read the CPU features with getauxval(AT_HWCAP), exactly as on
++ * Linux (bionic has it since API 18), instead of the NDK's cpufeatures
++ * library - Node's zlib.gyp defines ARMV8_OS_ANDROID but never builds
++ * cpu-features.c, so android_getCpuFeatures() would not link. */
++#if defined(ARMV8_OS_ANDROID)
++#undef ARMV8_OS_ANDROID
++#define ARMV8_OS_LINUX
++#endif
++
+ #include <stdint.h>
+ #if defined(_MSC_VER)
+ #include <intrin.h>

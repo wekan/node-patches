@@ -83,9 +83,22 @@ FreeBSD 14 VM; the VM action is pinned to an immutable commit and copies the
 result back into the shared checksum/publish path. Node 24 also supports AIX
 ppc64 and SmartOS x64, but GitHub-hosted Actions supplies neither OS nor its
 native SDK/toolchain. Those require dedicated self-hosted runners and are not
-claimed as buildable workflow targets. Android and OpenHarmony are application
-platform builds, not the standalone desktop/server executable set published
-here.
+claimed as buildable workflow targets. OpenHarmony is an application platform
+build, not part of the standalone executable set published here.
+
+Android is built for Termux, on all four Android CPUs (`android-arm64`,
+`android-armv7`, `android-x64`, `android-x86`). Termux packages Node.js itself,
+but behind upstream and linked to Termux's shared OpenSSL, ICU, SQLite, c-ares,
+zlib and libffi, so its binary cannot be carried inside anything else. These
+bundle every dependency and need only Android's libc (bionic), API level 24 and
+up. `releases/build-android.sh` cross compiles with the Android NDK (r30, the
+NDK Termux uses, checksum-pinned) on the x64 runner: the target with the NDK's
+clang, V8's host tools with the runner's GCC, as 32-bit host programs for the
+32-bit targets. `dist/android` carries Termux's nodejs patches, adapted, plus a
+zlib fix for the bundled zlib. Before a binary is named or attached it runs
+`tests/runtime-smoke.cjs` inside Termux's own Docker image (x86_64 and i686
+natively, aarch64 and arm under qemu-user), which also checks it reports
+`process.platform === 'android'` and Termux's temporary directory.
 
 ## Release All Missing (`.github/workflows/release-all-missing.yml`)
 

@@ -1,0 +1,61 @@
+diff --git a/deps/uv/src/unix/core.c b/deps/uv/src/unix/core.c
+index 73027cbc..9eddf999 100644
+--- a/deps/uv/src/unix/core.c
++++ b/deps/uv/src/unix/core.c
+@@ -1323,7 +1323,7 @@ int uv_os_tmpdir(char* buffer, size_t* size) {
+ 
+   /* No temp environment variables defined */
+   #if defined(__ANDROID__)
+-    buf = "/data/local/tmp";
++    buf = "/data/data/com.termux/files/usr/tmp";
+   #else
+     buf = "/tmp";
+   #endif
+diff --git a/deps/v8/src/flags/flag-definitions.h b/deps/v8/src/flags/flag-definitions.h
+index 15d4341f..ca4ae5f9 100644
+--- a/deps/v8/src/flags/flag-definitions.h
++++ b/deps/v8/src/flags/flag-definitions.h
+@@ -3825,7 +3825,7 @@ DEFINE_BOOL(ll_prof, false, "Enable low-level linux profiler.")
+ #define DEFAULT_PERF_BASIC_PROF_PATH "/data/local/tmp"
+ #define DEFAULT_PERF_PROF_PATH DEFAULT_PERF_BASIC_PROF_PATH
+ #else
+-#define DEFAULT_PERF_BASIC_PROF_PATH "/tmp"
++#define DEFAULT_PERF_BASIC_PROF_PATH "/data/data/com.termux/files/usr/tmp"
+ #define DEFAULT_PERF_PROF_PATH "."
+ #endif
+ 
+@@ -3868,7 +3868,7 @@ DEFINE_BOOL_READONLY(
+ #undef DEFINE_PERF_PROF_BOOL
+ #undef DEFINE_PERF_PROF_IMPLICATION
+ 
+-DEFINE_STRING(gc_fake_mmap, "/tmp/__v8_gc__",
++DEFINE_STRING(gc_fake_mmap, "/data/data/com.termux/files/usr/tmp/__v8_gc__",
+               "Specify the name of the file for fake gc mmap used in ll_prof")
+ 
+ DEFINE_BOOL(redirect_code_traces, false,
+diff --git a/lib/child_process.js b/lib/child_process.js
+index 32317b66..cdfd3d4b 100644
+--- a/lib/child_process.js
++++ b/lib/child_process.js
+@@ -687,7 +687,7 @@ function normalizeSpawnArguments(file, args, options) {
+       if (typeof options.shell === 'string')
+         file = options.shell;
+       else if (process.platform === 'android')
+-        file = '/system/bin/sh';
++        file = '/data/data/com.termux/files/usr/bin/sh';
+       else
+         file = '/bin/sh';
+       args = ['-c', command];
+diff --git a/lib/os.js b/lib/os.js
+index 5e53879b..dad03c52 100644
+--- a/lib/os.js
++++ b/lib/os.js
+@@ -191,7 +191,7 @@ function tmpdir() {
+     return path;
+   }
+ 
+-  return getTempDir() || '/tmp';
++  return getTempDir() || '/data/data/com.termux/files/usr/tmp';
+ }
+ tmpdir[SymbolToPrimitive] = () => tmpdir();
+ 

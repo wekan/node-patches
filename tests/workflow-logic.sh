@@ -167,9 +167,9 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
 
-[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 16 ] \
-  && ok "the matrix contains all 16 release targets" \
-  || fail "expected 16 release targets"
+[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 20 ] \
+  && ok "the matrix contains all 20 release targets" \
+  || fail "expected 20 release targets"
 grep -A 5 -E '^ +- platform: win-arm64$' "$ALL" | grep -q 'vcbuild_arch: arm64' \
   && ok "Windows ARM64 uses the upstream arm64 vcbuild target" \
   || fail "Windows ARM64 is not wired to vcbuild arm64"
@@ -518,6 +518,36 @@ if bash "$ROOT/tests/freebsd-build.sh"; then
 else
   fail "FreeBSD compiler selection regression"
 fi
+
+echo
+echo "Android (Termux) builds:"
+for p in android-arm64 android-x64 android-x86; do
+  [ "$(bash "$ROOT/releases/dist-dirs-for.sh" "$p" | tr '\n' ' ')" = "all android " ] \
+    && ok "$p applies dist/all then dist/android" || fail "$p apply-map is wrong"
+done
+[ "$(bash "$ROOT/releases/dist-dirs-for.sh" android-armv7 | tr '\n' ' ')" = "all arm android " ] \
+  && ok "android-armv7 also takes dist/arm (32-bit ARM zlib)" || fail "android-armv7 apply-map is wrong"
+# Termux's common.gypi patch is not carried: dist/all owns that file.
+if ! grep -qh '^+++ b/common.gypi' "$ROOT"/dist/android/*.patch; then
+  ok "dist/android leaves common.gypi to dist/all"
+else
+  fail "dist/android patches common.gypi, which dist/all already patches"
+fi
+for f in "$ROOT"/dist/android/*.patch; do
+  ( cd "$(dirname "$f")" && sha256sum -c --quiet "$(basename "$f" .patch).sha256sum" ) \
+    && ok "$(basename "$f") matches its checksum" || fail "$(basename "$f") checksum mismatch"
+  [ -f "${f%.patch}.md" ] && ok "$(basename "$f") is documented" || fail "$(basename "$f") has no .md"
+done
+bash -n "$ROOT/releases/build-android.sh" && ok "build-android.sh parses" || fail "build-android.sh has a syntax error"
+grep -q 'ndk="$(cd "$ndk" && pwd)"' "$ROOT/releases/build-android.sh" \
+  && ok "build-android.sh makes the NDK path absolute (make runs from out/)" || fail "build-android.sh NDK path may be relative"
+grep -q 'NDK_SHA256: [0-9a-f]\{64\}' "$ALL" && ok "the NDK download is pinned by checksum" || fail "the NDK download is not checksum-pinned"
+build_line="$(grep -n 'name: Build for Android (NDK cross compile)' "$ALL" | cut -d: -f1)"
+smoke_line="$(grep -n 'name: Smoke test inside Termux' "$ALL" | cut -d: -f1)"
+name_line="$(grep -n 'name: Name it for the release, and say what it is' "$ALL" | cut -d: -f1)"
+[ -n "$build_line" ] && [ -n "$smoke_line" ] && [ "$build_line" -lt "$smoke_line" ] && [ "$smoke_line" -lt "$name_line" ] \
+  && ok "an Android binary is smoke-tested in Termux before it is named or attached" \
+  || fail "the Android smoke test is missing or runs after naming"
 
 echo
 if [ "$fails" -eq 0 ]; then

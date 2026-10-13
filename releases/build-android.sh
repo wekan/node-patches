@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Build Node.js for Android (Termux), in a Node.js source tree that already has
+# dist/all and dist/android applied (releases/dist-dirs-for.sh android-*).
+#
+#   releases/build-android.sh <android-ndk-dir> <platform>
+#
+#   platform       Android ABI      Node --dest-cpu   NDK clang target
+#   android-arm64  arm64-v8a        arm64             aarch64-linux-android
+#   android-armv7  armeabi-v7a      arm               armv7a-linux-androideabi
+#   android-x64    x86_64           x64               x86_64-linux-android
+#   android-x86    x86              ia32              i686-linux-android
+#
+# WHY THIS EXISTS. Termux packages Node.js for all four Android CPUs, but it is
+# behind upstream (26.4.0 when 26.11.1 was current) and it is linked to
+# Termux's own shared OpenSSL, ICU, SQLite, c-ares, zlib and libffi - so its
+# binary cannot be carried inside anything else. This builds the same Node.js
+# release WeKan ships everywhere else, with every dependency bundled: the
+# result needs only Android's own libc (bionic), so it can be embedded in a
+# single-file WeKan for Termux.
+#
+# HOW. Node's own android-configure, by hand, so the HOST half is ours: V8's
+# build tools (mksnapshot, torque, ...) run on the build machine, so they are
+# built with the host GCC, and for a 32-bit target (armv7, x86) as 32-bit host
+# programs (-m32) - V8 needs the host pointer width to match the target's, the
+# same reason Termux and the armhf build in release-all.yml use a 32-bit host.
+# The Android API level is 24 (Android 7.0), Node's and Termux's minimum.
+#
+# The source patches (dist/android) are Termux's nodejs patches, adapted:
+# Termux paths (/tmp -> $PREFIX/tmp, /system/bin/sh -> $PREFIX/bin/sh), the
+# getaddrinfo shim for localhost on IPv6, and the gyp conditions that let V8
+# and libuv build for OS=android. __TERMUX__ is defined, as Termux's own
+# toolchain does, because those patches key on it.
+set -euo pipefail
+
+ndk="${1:?usage: build-android.sh <android-ndk-dir> <platform>}"
+# Absolute: make runs the compilers from out/, where a relative path is wrong.
+ndk="$(cd "$ndk" && pwd)"
+platform="${2:?usage: build-android.sh <android-ndk-dir> <platform>}"
+api="${ANDROID_API_LEVEL:-24}"
+
+case "$platform" in
+  android-arm64) cpu=arm64 gyp_arch=arm64 triple=aarch64-linux-android bits=64 ;;
+  android-armv7) cpu=arm   gyp_arch=arm   triple=armv7a-linux-androideabi bits=32 ;;
+  android-x64)   cpu=x64   gyp_arch=x64   triple=x86_64-linux-android bits=64 ;;
+  android-x86)   cpu=ia32  gyp_arch=x86   triple=i686-linux-android bits=32 ;;
+  *) echo "build-android.sh: unknown platform $platform" >&2; exit 2 ;;
+esac
+
+toolchain="$ndk/toolchains/llvm/prebuilt/linux-x86_64"
+[ -x "$toolchain/bin/${triple}${api}-clang" ] || {
+  echo "build-android.sh: no ${triple}${api}-clang in $toolchain - is $ndk an Android NDK?" >&2
+  exit 1
+}
+
+export CC="$toolchain/bin/${triple}${api}-clang"
+export CXX="$toolchain/bin/${triple}${api}-clang++"
+export LINK="$CXX"
+export AR="$toolchain/bin/llvm-ar"
+export RANLIB="$toolchain/bin/llvm-ranlib"
+# __TERMUX__: the dist/android patches select Termux's paths with it.
+# aligned_alloc only exists from API 28; Termux maps it the same way.
+export CFLAGS="-D__TERMUX__ -Daligned_alloc=memalign ${CFLAGS:-}"
+export CXXFLAGS="-D__TERMUX__ -Daligned_alloc=memalign ${CXXFLAGS:-}"
+
+m32=""
+[ "$bits" = 32 ] && m32=" -m32"
+export CC_host="gcc$m32" CXX_host="g++$m32" LINK_host="g++$m32" AR_host=ar
+
+export GYP_DEFINES="target_arch=$gyp_arch v8_target_arch=$gyp_arch android_target_arch=$gyp_arch host_os=linux OS=android android_ndk_path=$ndk"
+
+./configure --dest-cpu="$cpu" --dest-os=android --cross-compiling \
+  --openssl-no-asm --without-npm
+make -j"${JOBS:-$(nproc)}"
+"$toolchain/bin/llvm-strip" out/Release/node
+file out/Release/node 2>/dev/null || true
