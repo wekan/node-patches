@@ -51,13 +51,21 @@ Investigated but not finished, with findings recorded for whoever picks them up
 next. Entries that have since been done are removed from this list as they are
 handled (their commits carry the short description and link).
 
-Nothing carried yet — this is the first patch set.
+<details>
+<summary>Temporal on Android</summary>
+
+- Build Node's Rust crates for both halves of an Android cross build: the
+  build machine's triple for V8's host tools (i686 for the 32-bit targets) and
+  the Android triple for the binary, two `cargo rustc --target` runs instead of
+  the one `deps/crates/crates.gyp` makes, so Android gets `Temporal` too.
+
+</details>
 
 </details>
 
 # Upcoming node-patches release
 
-**In short:** the **android-x86** build is fixed.
+**In short:** the **android-x86**, **android-armv7**, **android-arm64** and **android-x64** builds are fixed.
 
 This release fixes the following bugs:
 
@@ -70,6 +78,26 @@ V8 refuses ("Did not detect required SSE2 support on ia32/x64"), so the
 android-x86 job stopped while building them. `releases/build-android.sh` now
 adds `-msse2 -mfpmath=sse` to the host compilers for android-x86 only; the
 target is unchanged, as the Android x86 ABI already guarantees SSSE3.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/724139c">Build Node for Android without Temporal, as Termux does</a>. Thanks to xet7.</summary>
+
+Node's Rust crates (Temporal, ICU4X) are one library for both halves of a cross
+build: `deps/crates/crates.gyp` sets a Rust target only for Windows and macOS.
+On Linux the build machine's x86_64 crates were linked into V8's 32-bit host
+tools, and the android-armv7 job failed with "i386:x86-64 architecture of
+input file libnode_crates.a is incompatible with i386 output"; android-arm64,
+whose host tools are 64-bit, got as far as linking the Android binary and
+failed there ("libnode_crates.a ... is incompatible with aarch64linux"); and
+android-x64, the same CPU as the build machine, linked them and found glibc's
+symbols missing from Android's libc ("undefined symbol: __errno_location",
+`gnu_get_libc_version`, `posix_spawn*`). `releases/build-android.sh` now configures
+with `--v8-disable-temporal-support`, as Termux's own Node package is built.
+Every Android CPU builds, and `Temporal` is the only thing missing on Android.
+WeKan does not use it. Building the crates for both halves is listed in TODO
+Later.
 
 </details>
 
