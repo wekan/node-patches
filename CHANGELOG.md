@@ -55,7 +55,7 @@ Nothing carried yet — this is the first patch set.
 
 </details>
 
-# Upcoming node-patches release
+# v26.11.1 2026-10-13 node-patches release
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/9e41405">Build Node.js for Android (Termux) on all four Android CPUs</a>. Thanks to xet7.</summary>
