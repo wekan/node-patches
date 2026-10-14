@@ -20,20 +20,17 @@ index c2d6d3b6..a7ed2d23 100644
          'conditions': [
            ['enable_lto=="true"', {
              'cflags': ['<(lto)'],
-@@ -608,8 +610,10 @@
+@@ -608,8 +610,8 @@
              'standalone_static_library': 1,
            }],
            ['OS=="openbsd"', {
 -            'cflags': [ '-I/usr/local/include' ],
--            'ldflags': [ '-Wl,-z,wxneeded' ],
 +            'cflags': [ '-idirafter /usr/local/include' ],
-+            'ldflags': [ '-Wl,-z,wxneeded'
-+                , '-Wl,-rpath,${EOPENSSL_LIB}'
-+            ],
+             'ldflags': [ '-Wl,-z,wxneeded' ],
            }],
            [ 'OS=="zos"', {
              'ldflags!': [ '-rdynamic' ],
-@@ -624,7 +628,7 @@
+@@ -624,7 +626,7 @@
                  'cflags': [ '-m64' ],
                  'ldflags': [ '-m64' ],
                }],

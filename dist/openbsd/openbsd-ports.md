@@ -20,7 +20,11 @@ carried for an amd64/arm64 build with Node's bundled dependencies:
   - `v8_flags` are made immutable (`mimmutable`).
   - Irregexp runs as bytecode (`regexp_interpret_all`), because the regexp
     JIT rewrites a return address, which retguard refuses.
-  - `node` is linked `-z wxneeded` (`common.gypi`).
+  - `node` is linked `-z wxneeded` (`common.gypi`). The ports tree also adds
+    `-Wl,-rpath,${EOPENSSL_LIB}`, for its build against an external OpenSSL;
+    that is left out here. This build bundles OpenSSL, the variable is not
+    set, and an empty `-rpath,` took the next argument - `--start-group` - as
+    its value, so every executable failed to link with "stray --end-group".
 - **IBT/BTI:** `toolchain.gypi` and `features.gypi` enable V8's CET/IBT on
   amd64, and `configure.py` enables control-flow integrity on arm64, both of
   which OpenBSD enforces.
