@@ -11,7 +11,7 @@ sections are version-agnostic and carry forward across upstream releases.
 | Section | Applies to | What it carries |
 |---------|-----------|-----------------|
 | `all/` | every platform | Cross-cutting Node.js 26 source fixes for 32-bit ARM CPU features, scalar Highway paths, x86 hashing, typed arrays and PPC64LE TOC range. |
-| `ia32/` | i386, win32 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping. (Histogram AVX2 kept off ia32 is upstream since v26.11.1.) |
+| `ia32/` | i386, win32, android-x86 | 32-bit x86: V8 ia32 `push_registers`, zlib `-msse2`, ICU `genccode` name mapping. (Histogram AVX2 kept off ia32 is upstream since v26.11.1.) |
 | `arm/` | armhf, armv7 | 32-bit ARM: zlib `-mfpu=neon`, ARMv8-only CRC path kept off ARMv7. |
 | `armv6/` | armv6 | Set an explicit ARMv6 architecture for V8 snapshot compilation. |
 | `riscv64/` | riscv64 | Use linkable floating-point min/max assembler methods in Maglev. |
@@ -38,14 +38,18 @@ with the build matrix in [`../.github/workflows/release-all.yml`](../.github/wor
 | riscv64 | `all`, `riscv64` |
 | s390x | `all` |
 | mac-x64, mac-arm64 | `all`, `mac` |
-| android-arm64, android-x64, android-x86 | `all`, `android` |
+| android-arm64, android-x64 | `all`, `android` |
+| android-x86 | `all`, `ia32`, `android` |
 | android-armv7 | `all`, `arm`, `android` |
 | openbsd-x64 | `all`, `openbsd` |
 | openbsd-arm64 | `all`, `openbsd`, `bsd-arm64` |
 | netbsd-x64 | `all`, `netbsd` |
 
-`all/` is applied first, then each family/platform section. No single build applies
-two sections that touch the same file, so order within a build never conflicts.
+`all/` is applied first, then each family/platform section, in the order above.
+Two sections of one build may touch the same file - android-x86's `ia32/` and
+`android/` both change `tools/v8_gypfiles/v8.gyp` - so they are applied
+cumulatively, and `tests/patches-apply.sh` applies every platform's sections in
+that order against the upstream release.
 
 ## Each patch is three files
 

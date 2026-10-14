@@ -4,7 +4,7 @@
 # says which patch sets a platform gets:
 #
 #   all    every platform (the common section)
-#   ia32   i386 + win32          (32-bit x86)
+#   ia32   i386 + win32 + android-x86 (32-bit x86)
 #   arm    armhf + armv7         (32-bit ARM that may use NEON)
 #   armv6  armv6                 (ARMv6 build configuration)
 #   riscv64 riscv64             (RISC-V Maglev link fix)
@@ -40,7 +40,10 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   # the ARMv8-only CRC32 path off. It touches only zlib.gyp, android only
   # cpu_features.c, so the two never meet in one file.
   android-armv7)     echo arm; echo android ;;
-  android-arm64|android-x64|android-x86) echo android ;;
+  android-arm64|android-x64) echo android ;;
+  # android-x86 is 32-bit x86: it needs dist/ia32's V8, ICU and zlib fixes as
+  # i386 and win32 do (its V8 had no ia32 code generator without them).
+  android-x86)       echo ia32; echo android ;;
   # The OS packagers' patch sets, adapted to Node 26: OpenBSD ports' lang/node
   # and pkgsrc's lang/nodejs (dist/openbsd, dist/netbsd).
   openbsd-x64)       echo openbsd ;;

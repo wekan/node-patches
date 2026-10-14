@@ -42,7 +42,10 @@ case "$platform" in
   android-arm64) cpu=arm64 gyp_arch=arm64 triple=aarch64-linux-android bits=64 ;;
   android-armv7) cpu=arm   gyp_arch=arm   triple=armv7a-linux-androideabi bits=32 ;;
   android-x64)   cpu=x64   gyp_arch=x64   triple=x86_64-linux-android bits=64 ;;
-  android-x86)   cpu=ia32  gyp_arch=x86   triple=i686-linux-android bits=32 ;;
+  # gyp and V8 call 32-bit x86 "ia32"; the NDK calls it "x86". With
+  # target_arch=x86 V8 compiled no architecture at all, and mksnapshot
+  # failed to link: no ia32 Assembler, MacroAssembler or CpuFeatures.
+  android-x86)   cpu=ia32  gyp_arch=ia32  triple=i686-linux-android bits=32 ;;
   *) echo "build-android.sh: unknown platform $platform" >&2; exit 2 ;;
 esac
 
@@ -77,7 +80,10 @@ m32=""
 [ "$platform" = android-x86 ] && m32="$m32 -msse2 -mfpmath=sse"
 export CC_host="gcc$m32" CXX_host="g++$m32" LINK_host="g++$m32" AR_host=ar
 
-export GYP_DEFINES="target_arch=$gyp_arch v8_target_arch=$gyp_arch android_target_arch=$gyp_arch host_os=linux OS=android android_ndk_path=$ndk"
+# android_target_arch is the NDK's name for the ABI (x86, not ia32).
+android_arch="$gyp_arch"
+[ "$gyp_arch" = ia32 ] && android_arch=x86
+export GYP_DEFINES="target_arch=$gyp_arch v8_target_arch=$gyp_arch android_target_arch=$android_arch host_os=linux OS=android android_ndk_path=$ndk"
 
 # Temporal off, as Termux builds it: Node's Rust crates (Temporal, ICU4X) are
 # one library for both halves of a cross build (deps/crates/crates.gyp sets a

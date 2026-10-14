@@ -570,11 +570,42 @@ else
 fi
 
 echo
+echo "BSD link and c-ares fixes:"
+# The OpenBSD ports tree's -Wl,-rpath,${EOPENSSL_LIB} is for an external
+# OpenSSL; empty here, it took --start-group as its value ("stray
+# --end-group", every executable, v26.11.1).
+if ! grep -q 'rpath,\${' "$ROOT/dist/openbsd/openbsd-ports.patch"; then
+  ok "openbsd-ports.patch adds no rpath from an unset ports variable"
+else
+  fail "openbsd-ports.patch adds an rpath from a ports variable"
+fi
+# NetBSD declares getservbyport_r only under _NETBSD_SOURCE, and returns a
+# pointer where c-ares expects 0 for success: c-ares uses getservbyport.
+if grep -q '^+/\* #undef HAVE_GETSERVBYPORT_R \*/' "$ROOT/dist/netbsd/netbsd-cares-getservbyport.patch" \
+   && (cd "$ROOT/dist/netbsd" && sha256sum -c --status netbsd-cares-getservbyport.sha256sum); then
+  ok "NetBSD c-ares does not use getservbyport_r"
+else
+  fail "NetBSD c-ares config patch missing or changed"
+fi
+
+echo
 echo "Android (Termux) builds:"
-for p in android-arm64 android-x64 android-x86; do
+for p in android-arm64 android-x64; do
   [ "$(bash "$ROOT/releases/dist-dirs-for.sh" "$p" | tr '\n' ' ')" = "all android " ] \
     && ok "$p applies dist/all then dist/android" || fail "$p apply-map is wrong"
 done
+# 32-bit x86: dist/ia32's V8, ICU and zlib fixes, as i386 and win32 take them.
+[ "$(bash "$ROOT/releases/dist-dirs-for.sh" android-x86 | tr '\n' ' ')" = "all ia32 android " ] \
+  && ok "android-x86 also takes dist/ia32 (32-bit x86)" || fail "android-x86 apply-map is wrong"
+# gyp and V8 say ia32 for 32-bit x86; with x86, V8 built no code generator and
+# mksnapshot failed to link (v26.11.1). The NDK's name stays x86.
+if grep -q 'android-x86)   cpu=ia32  gyp_arch=ia32 ' "$ROOT/releases/build-android.sh" \
+   && grep -q '\[ "\$gyp_arch" = ia32 \] && android_arch=x86' "$ROOT/releases/build-android.sh" \
+   && grep -q 'android_target_arch=\$android_arch' "$ROOT/releases/build-android.sh"; then
+  ok "android-x86 builds V8 for ia32, with the NDK's x86 ABI"
+else
+  fail "android-x86 must give gyp ia32 and the NDK x86"
+fi
 [ "$(bash "$ROOT/releases/dist-dirs-for.sh" android-armv7 | tr '\n' ' ')" = "all arm android " ] \
   && ok "android-armv7 also takes dist/arm (32-bit ARM zlib)" || fail "android-armv7 apply-map is wrong"
 # Termux's common.gypi patch is not carried: dist/all owns that file.
