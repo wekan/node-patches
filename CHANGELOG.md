@@ -121,6 +121,30 @@ NetBSD OpenSSL patch that does not route x86-64 to `BSD-x86_64`.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/3e41efe">The OpenBSD arm64 build compiles OpenSSL</a>. Thanks to xet7.</summary>
+
+Node's bundled OpenSSL has no BSD arm64 configuration: arm64 builds other
+than Linux, OpenHarmony, macOS and Windows fell through to linux-x86_64
+sources and linux-elf headers, and OpenBSD arm64 failed compiling
+`crypto/bn/asm/x86_64-gcc.c`. It is now configured `--openssl-no-asm`, and
+`dist/bsd-arm64` gives a BSD on arm64 the linux-aarch64 no-asm sources and
+headers (the gyp list and 31 dispatcher headers). `tests/workflow-logic.sh`
+checks the apply-map, the patch and the flag.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/e159065">Android binaries need only Android's libc</a>. Thanks to xet7.</summary>
+
+The NDK's `clang++` linked `libc++_shared.so`, which Termux has only after
+`pkg install libc++`, so every Android binary stopped in the smoke test with
+"library libc++_shared.so not found". The C++ library is now linked
+statically. `releases/pull-image.sh` also closes a `[` test it left open,
+which printed "[: missing ']'" on every pull.
+
+</details>
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.11.1 2026-10-13 node-patches release
