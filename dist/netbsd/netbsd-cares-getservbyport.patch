@@ -1,0 +1,22 @@
+diff --git a/deps/cares/config/netbsd/ares_config.h b/deps/cares/config/netbsd/ares_config.h
+index 4efcd2d..c2fd303 100644
+--- a/deps/cares/config/netbsd/ares_config.h
++++ b/deps/cares/config/netbsd/ares_config.h
+@@ -38,7 +38,7 @@
+ /* #undef GETSERVBYNAME_R_ARGS */
+ 
+ /* number of arguments for getservbyport_r() */
+-#define GETSERVBYPORT_R_ARGS 4 
++/* #undef GETSERVBYPORT_R_ARGS */
+ 
+ /* Define to 1 if you have AF_INET6 */
+ #define HAVE_AF_INET6 1
+@@ -119,7 +119,7 @@
+ /* #undef HAVE_GETRANDOM */
+ 
+ /* Define to 1 if you have `getservbyport_r` */
+-#define HAVE_GETSERVBYPORT_R 1
++/* #undef HAVE_GETSERVBYPORT_R */
+ 
+ /* Define to 1 if you have `gettimeofday` */
+ #define HAVE_GETTIMEOFDAY 1
