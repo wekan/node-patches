@@ -1037,7 +1037,9 @@ jobs:
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'openbsd' }}
         uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
         with:
-          release: '7.7'
+          # 7.8 is the first release whose base Clang (19.1.7) Node 26
+          # accepts: 7.7's 16.0.6 has no std::atomic_ref, which V8 uses.
+          release: '7.8'
           arch: ${{ matrix.vm_arch }}
           mem: 12288
           prepare: pkg_add python%3 gmake bash

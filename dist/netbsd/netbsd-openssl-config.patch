@@ -1,0 +1,1074 @@
+diff --git a/deps/openssl/config/asn1_asm.h b/deps/openssl/config/asn1_asm.h
+index caf8c0c..2ac331b 100644
+--- a/deps/openssl/config/asn1_asm.h
++++ b/deps/openssl/config/asn1_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/asn1.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/asn1.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/asn1.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/asn1.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/asn1.h"
+diff --git a/deps/openssl/config/asn1_no-asm.h b/deps/openssl/config/asn1_no-asm.h
+index 38356ae..0a0f27f 100644
+--- a/deps/openssl/config/asn1_no-asm.h
++++ b/deps/openssl/config/asn1_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/asn1.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/asn1.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/asn1.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/asn1.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/asn1.h"
+diff --git a/deps/openssl/config/asn1t_asm.h b/deps/openssl/config/asn1t_asm.h
+index 8ec1596..fc45365 100644
+--- a/deps/openssl/config/asn1t_asm.h
++++ b/deps/openssl/config/asn1t_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/asn1t.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/asn1t.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/asn1t.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/asn1t.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/asn1t.h"
+diff --git a/deps/openssl/config/asn1t_no-asm.h b/deps/openssl/config/asn1t_no-asm.h
+index 952c6d2..5f8ef00 100644
+--- a/deps/openssl/config/asn1t_no-asm.h
++++ b/deps/openssl/config/asn1t_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/asn1t.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/asn1t.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/asn1t.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/asn1t.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/asn1t.h"
+diff --git a/deps/openssl/config/bio_asm.h b/deps/openssl/config/bio_asm.h
+index 646d223..148d95e 100644
+--- a/deps/openssl/config/bio_asm.h
++++ b/deps/openssl/config/bio_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/bio.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/bio.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/bio.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/bio.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/bio.h"
+diff --git a/deps/openssl/config/bio_no-asm.h b/deps/openssl/config/bio_no-asm.h
+index f1a60ed..55ee164 100644
+--- a/deps/openssl/config/bio_no-asm.h
++++ b/deps/openssl/config/bio_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/bio.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/bio.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/bio.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/bio.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/bio.h"
+diff --git a/deps/openssl/config/bn_conf_asm.h b/deps/openssl/config/bn_conf_asm.h
+index 80f61ea..b5b8e10 100644
+--- a/deps/openssl/config/bn_conf_asm.h
++++ b/deps/openssl/config/bn_conf_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/crypto/bn_conf.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/crypto/bn_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/crypto/bn_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/crypto/bn_conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/crypto/bn_conf.h"
+diff --git a/deps/openssl/config/bn_conf_no-asm.h b/deps/openssl/config/bn_conf_no-asm.h
+index fcb60c5..977516d 100644
+--- a/deps/openssl/config/bn_conf_no-asm.h
++++ b/deps/openssl/config/bn_conf_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/crypto/bn_conf.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/crypto/bn_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/crypto/bn_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/crypto/bn_conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/crypto/bn_conf.h"
+diff --git a/deps/openssl/config/cmp_asm.h b/deps/openssl/config/cmp_asm.h
+index 68c0b63..9f9d30e 100644
+--- a/deps/openssl/config/cmp_asm.h
++++ b/deps/openssl/config/cmp_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/cmp.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/cmp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/cmp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/cmp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/cmp.h"
+diff --git a/deps/openssl/config/cmp_no-asm.h b/deps/openssl/config/cmp_no-asm.h
+index 41e56b4..8bb56a3 100644
+--- a/deps/openssl/config/cmp_no-asm.h
++++ b/deps/openssl/config/cmp_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/cmp.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/cmp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/cmp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/cmp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/cmp.h"
+diff --git a/deps/openssl/config/cms_asm.h b/deps/openssl/config/cms_asm.h
+index 806bebf..45f0c7a 100644
+--- a/deps/openssl/config/cms_asm.h
++++ b/deps/openssl/config/cms_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/cms.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/cms.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/cms.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/cms.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/cms.h"
+diff --git a/deps/openssl/config/cms_no-asm.h b/deps/openssl/config/cms_no-asm.h
+index 57c6ca2..d973bd7 100644
+--- a/deps/openssl/config/cms_no-asm.h
++++ b/deps/openssl/config/cms_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/cms.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/cms.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/cms.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/cms.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/cms.h"
+diff --git a/deps/openssl/config/comp_asm.h b/deps/openssl/config/comp_asm.h
+index 200503f..bba373c 100644
+--- a/deps/openssl/config/comp_asm.h
++++ b/deps/openssl/config/comp_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/comp.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/comp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/comp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/comp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/comp.h"
+diff --git a/deps/openssl/config/comp_no-asm.h b/deps/openssl/config/comp_no-asm.h
+index 8910b93..4e3a5ed 100644
+--- a/deps/openssl/config/comp_no-asm.h
++++ b/deps/openssl/config/comp_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/comp.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/comp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/comp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/comp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/comp.h"
+diff --git a/deps/openssl/config/conf_asm.h b/deps/openssl/config/conf_asm.h
+index d609084..4e32100 100644
+--- a/deps/openssl/config/conf_asm.h
++++ b/deps/openssl/config/conf_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/conf.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/conf.h"
+diff --git a/deps/openssl/config/conf_no-asm.h b/deps/openssl/config/conf_no-asm.h
+index 27877b1..cb1bfdb 100644
+--- a/deps/openssl/config/conf_no-asm.h
++++ b/deps/openssl/config/conf_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/conf.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/conf.h"
+diff --git a/deps/openssl/config/configuration_asm.h b/deps/openssl/config/configuration_asm.h
+index 28a086b..57c458b 100644
+--- a/deps/openssl/config/configuration_asm.h
++++ b/deps/openssl/config/configuration_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/configuration.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/configuration.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/configuration.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/configuration.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/configuration.h"
+diff --git a/deps/openssl/config/configuration_no-asm.h b/deps/openssl/config/configuration_no-asm.h
+index 1f49de7..ca147bf 100644
+--- a/deps/openssl/config/configuration_no-asm.h
++++ b/deps/openssl/config/configuration_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/configuration.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/configuration.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/configuration.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/configuration.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/configuration.h"
+diff --git a/deps/openssl/config/core_names_asm.h b/deps/openssl/config/core_names_asm.h
+index 3c69a03..96d0b6e 100644
+--- a/deps/openssl/config/core_names_asm.h
++++ b/deps/openssl/config/core_names_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/core_names.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/core_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/core_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/core_names.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/core_names.h"
+diff --git a/deps/openssl/config/core_names_no-asm.h b/deps/openssl/config/core_names_no-asm.h
+index bdad83f..d0311c7 100644
+--- a/deps/openssl/config/core_names_no-asm.h
++++ b/deps/openssl/config/core_names_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/core_names.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/core_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/core_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/core_names.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/core_names.h"
+diff --git a/deps/openssl/config/crmf_asm.h b/deps/openssl/config/crmf_asm.h
+index 6ce6fd4..8790e6b 100644
+--- a/deps/openssl/config/crmf_asm.h
++++ b/deps/openssl/config/crmf_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/crmf.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/crmf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/crmf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/crmf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/crmf.h"
+diff --git a/deps/openssl/config/crmf_no-asm.h b/deps/openssl/config/crmf_no-asm.h
+index f3a8a86..04c8fae 100644
+--- a/deps/openssl/config/crmf_no-asm.h
++++ b/deps/openssl/config/crmf_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/crmf.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/crmf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/crmf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/crmf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/crmf.h"
+diff --git a/deps/openssl/config/crypto_asm.h b/deps/openssl/config/crypto_asm.h
+index a885156..5943b86 100644
+--- a/deps/openssl/config/crypto_asm.h
++++ b/deps/openssl/config/crypto_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/crypto.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/crypto.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/crypto.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/crypto.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/crypto.h"
+diff --git a/deps/openssl/config/crypto_no-asm.h b/deps/openssl/config/crypto_no-asm.h
+index dbd5527..2b098cf 100644
+--- a/deps/openssl/config/crypto_no-asm.h
++++ b/deps/openssl/config/crypto_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/crypto.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/crypto.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/crypto.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/crypto.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/crypto.h"
+diff --git a/deps/openssl/config/ct_asm.h b/deps/openssl/config/ct_asm.h
+index 0976f60..5284770 100644
+--- a/deps/openssl/config/ct_asm.h
++++ b/deps/openssl/config/ct_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/ct.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/ct.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/ct.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/ct.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/ct.h"
+diff --git a/deps/openssl/config/ct_no-asm.h b/deps/openssl/config/ct_no-asm.h
+index f196103..cdf9ebe 100644
+--- a/deps/openssl/config/ct_no-asm.h
++++ b/deps/openssl/config/ct_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/ct.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/ct.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/ct.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/ct.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/ct.h"
+diff --git a/deps/openssl/config/dso_conf_asm.h b/deps/openssl/config/dso_conf_asm.h
+index efe5d74..fa18340 100644
+--- a/deps/openssl/config/dso_conf_asm.h
++++ b/deps/openssl/config/dso_conf_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/crypto/dso_conf.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/crypto/dso_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/crypto/dso_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/crypto/dso_conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/crypto/dso_conf.h"
+diff --git a/deps/openssl/config/dso_conf_no-asm.h b/deps/openssl/config/dso_conf_no-asm.h
+index edead61..d88e894 100644
+--- a/deps/openssl/config/dso_conf_no-asm.h
++++ b/deps/openssl/config/dso_conf_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/crypto/dso_conf.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/crypto/dso_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/crypto/dso_conf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/crypto/dso_conf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/crypto/dso_conf.h"
+diff --git a/deps/openssl/config/err_asm.h b/deps/openssl/config/err_asm.h
+index 80b0575..632b587 100644
+--- a/deps/openssl/config/err_asm.h
++++ b/deps/openssl/config/err_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/err.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/err.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/err.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/err.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/err.h"
+diff --git a/deps/openssl/config/err_no-asm.h b/deps/openssl/config/err_no-asm.h
+index 4d78b14..f9d148b 100644
+--- a/deps/openssl/config/err_no-asm.h
++++ b/deps/openssl/config/err_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/err.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/err.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/err.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/err.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/err.h"
+diff --git a/deps/openssl/config/ess_asm.h b/deps/openssl/config/ess_asm.h
+index 3c495ea..8e86a74 100644
+--- a/deps/openssl/config/ess_asm.h
++++ b/deps/openssl/config/ess_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/ess.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/ess.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/ess.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/ess.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/ess.h"
+diff --git a/deps/openssl/config/ess_no-asm.h b/deps/openssl/config/ess_no-asm.h
+index c62a836..b388ed5 100644
+--- a/deps/openssl/config/ess_no-asm.h
++++ b/deps/openssl/config/ess_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/ess.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/ess.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/ess.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/ess.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/ess.h"
+diff --git a/deps/openssl/config/fipskey_asm.h b/deps/openssl/config/fipskey_asm.h
+index b9e020f..3425604 100644
+--- a/deps/openssl/config/fipskey_asm.h
++++ b/deps/openssl/config/fipskey_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/fipskey.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/fipskey.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/fipskey.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/fipskey.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/fipskey.h"
+diff --git a/deps/openssl/config/fipskey_no-asm.h b/deps/openssl/config/fipskey_no-asm.h
+index 903a00b..a28a338 100644
+--- a/deps/openssl/config/fipskey_no-asm.h
++++ b/deps/openssl/config/fipskey_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/fipskey.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/fipskey.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/fipskey.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/fipskey.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/fipskey.h"
+diff --git a/deps/openssl/config/lhash_asm.h b/deps/openssl/config/lhash_asm.h
+index fd2777f..d7787ba 100644
+--- a/deps/openssl/config/lhash_asm.h
++++ b/deps/openssl/config/lhash_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/lhash.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/lhash.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/lhash.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/lhash.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/lhash.h"
+diff --git a/deps/openssl/config/lhash_no-asm.h b/deps/openssl/config/lhash_no-asm.h
+index fb2d1d1..6b4a2c4 100644
+--- a/deps/openssl/config/lhash_no-asm.h
++++ b/deps/openssl/config/lhash_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/lhash.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/lhash.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/lhash.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/lhash.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/lhash.h"
+diff --git a/deps/openssl/config/ocsp_asm.h b/deps/openssl/config/ocsp_asm.h
+index efd552f..03d2f13 100644
+--- a/deps/openssl/config/ocsp_asm.h
++++ b/deps/openssl/config/ocsp_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/ocsp.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/ocsp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/ocsp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/ocsp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/ocsp.h"
+diff --git a/deps/openssl/config/ocsp_no-asm.h b/deps/openssl/config/ocsp_no-asm.h
+index 8acfd1e..f0325de 100644
+--- a/deps/openssl/config/ocsp_no-asm.h
++++ b/deps/openssl/config/ocsp_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/ocsp.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/ocsp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/ocsp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/ocsp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/ocsp.h"
+diff --git a/deps/openssl/config/opensslconf_asm.h b/deps/openssl/config/opensslconf_asm.h
+index f20d622..e073714 100644
+--- a/deps/openssl/config/opensslconf_asm.h
++++ b/deps/openssl/config/opensslconf_asm.h
+@@ -109,9 +109,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/opensslconf.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/opensslconf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/opensslconf.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/opensslconf.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/opensslconf.h"
+diff --git a/deps/openssl/config/opensslv_asm.h b/deps/openssl/config/opensslv_asm.h
+index f998a5b..a927180 100644
+--- a/deps/openssl/config/opensslv_asm.h
++++ b/deps/openssl/config/opensslv_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/opensslv.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/opensslv.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/opensslv.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/opensslv.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/opensslv.h"
+diff --git a/deps/openssl/config/opensslv_no-asm.h b/deps/openssl/config/opensslv_no-asm.h
+index 3162d12..0d3731a 100644
+--- a/deps/openssl/config/opensslv_no-asm.h
++++ b/deps/openssl/config/opensslv_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/opensslv.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/opensslv.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/opensslv.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/opensslv.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/opensslv.h"
+diff --git a/deps/openssl/config/param_names_asm.h b/deps/openssl/config/param_names_asm.h
+index 4b01f8d..64b2404 100644
+--- a/deps/openssl/config/param_names_asm.h
++++ b/deps/openssl/config/param_names_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/internal/param_names.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/internal/param_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/internal/param_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/internal/param_names.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/internal/param_names.h"
+diff --git a/deps/openssl/config/param_names_no-asm.h b/deps/openssl/config/param_names_no-asm.h
+index 8a0c785..04e41c6 100644
+--- a/deps/openssl/config/param_names_no-asm.h
++++ b/deps/openssl/config/param_names_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/internal/param_names.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/internal/param_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/internal/param_names.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/internal/param_names.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/internal/param_names.h"
+diff --git a/deps/openssl/config/pkcs12_asm.h b/deps/openssl/config/pkcs12_asm.h
+index 902a847..4fa45e5 100644
+--- a/deps/openssl/config/pkcs12_asm.h
++++ b/deps/openssl/config/pkcs12_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/pkcs12.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/pkcs12.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/pkcs12.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/pkcs12.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/pkcs12.h"
+diff --git a/deps/openssl/config/pkcs12_no-asm.h b/deps/openssl/config/pkcs12_no-asm.h
+index 29d59df..44011c6 100644
+--- a/deps/openssl/config/pkcs12_no-asm.h
++++ b/deps/openssl/config/pkcs12_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/pkcs12.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/pkcs12.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/pkcs12.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/pkcs12.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/pkcs12.h"
+diff --git a/deps/openssl/config/pkcs7_asm.h b/deps/openssl/config/pkcs7_asm.h
+index 145b5af..0b113a5 100644
+--- a/deps/openssl/config/pkcs7_asm.h
++++ b/deps/openssl/config/pkcs7_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/pkcs7.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/pkcs7.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/pkcs7.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/pkcs7.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/pkcs7.h"
+diff --git a/deps/openssl/config/pkcs7_no-asm.h b/deps/openssl/config/pkcs7_no-asm.h
+index 4ced6af..cfbf461 100644
+--- a/deps/openssl/config/pkcs7_no-asm.h
++++ b/deps/openssl/config/pkcs7_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/pkcs7.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/pkcs7.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/pkcs7.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/pkcs7.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/pkcs7.h"
+diff --git a/deps/openssl/config/safestack_asm.h b/deps/openssl/config/safestack_asm.h
+index febbe90..8f2daad 100644
+--- a/deps/openssl/config/safestack_asm.h
++++ b/deps/openssl/config/safestack_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/safestack.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/safestack.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/safestack.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/safestack.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/safestack.h"
+diff --git a/deps/openssl/config/safestack_no-asm.h b/deps/openssl/config/safestack_no-asm.h
+index bebe9a0..039e805 100644
+--- a/deps/openssl/config/safestack_no-asm.h
++++ b/deps/openssl/config/safestack_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/safestack.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/safestack.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/safestack.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/safestack.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/safestack.h"
+diff --git a/deps/openssl/config/srp_asm.h b/deps/openssl/config/srp_asm.h
+index f8f8088..57c9c60 100644
+--- a/deps/openssl/config/srp_asm.h
++++ b/deps/openssl/config/srp_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/srp.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/srp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/srp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/srp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/srp.h"
+diff --git a/deps/openssl/config/srp_no-asm.h b/deps/openssl/config/srp_no-asm.h
+index 6b0e5d0..e94865f 100644
+--- a/deps/openssl/config/srp_no-asm.h
++++ b/deps/openssl/config/srp_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/srp.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/srp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/srp.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/srp.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/srp.h"
+diff --git a/deps/openssl/config/ssl_asm.h b/deps/openssl/config/ssl_asm.h
+index 169e3ee..0c7247c 100644
+--- a/deps/openssl/config/ssl_asm.h
++++ b/deps/openssl/config/ssl_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/ssl.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/ssl.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/ssl.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/ssl.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/ssl.h"
+diff --git a/deps/openssl/config/ssl_no-asm.h b/deps/openssl/config/ssl_no-asm.h
+index 0ca05e1..39564b0 100644
+--- a/deps/openssl/config/ssl_no-asm.h
++++ b/deps/openssl/config/ssl_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/ssl.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/ssl.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/ssl.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/ssl.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/ssl.h"
+diff --git a/deps/openssl/config/ui_asm.h b/deps/openssl/config/ui_asm.h
+index c5b82a2..2ebd965 100644
+--- a/deps/openssl/config/ui_asm.h
++++ b/deps/openssl/config/ui_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/ui.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/ui.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/ui.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/ui.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/ui.h"
+diff --git a/deps/openssl/config/ui_no-asm.h b/deps/openssl/config/ui_no-asm.h
+index eb29511..dd44671 100644
+--- a/deps/openssl/config/ui_no-asm.h
++++ b/deps/openssl/config/ui_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/ui.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/ui.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/ui.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/ui.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/ui.h"
+diff --git a/deps/openssl/config/x509_acert_asm.h b/deps/openssl/config/x509_acert_asm.h
+index 07f04a9..fad10d4 100644
+--- a/deps/openssl/config/x509_acert_asm.h
++++ b/deps/openssl/config/x509_acert_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/x509_acert.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/x509_acert.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/x509_acert.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/x509_acert.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/x509_acert.h"
+diff --git a/deps/openssl/config/x509_acert_no-asm.h b/deps/openssl/config/x509_acert_no-asm.h
+index eb2fca3..6a49ba0 100644
+--- a/deps/openssl/config/x509_acert_no-asm.h
++++ b/deps/openssl/config/x509_acert_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/x509_acert.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/x509_acert.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/x509_acert.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/x509_acert.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/x509_acert.h"
+diff --git a/deps/openssl/config/x509_asm.h b/deps/openssl/config/x509_asm.h
+index bf69421..cbd8523 100644
+--- a/deps/openssl/config/x509_asm.h
++++ b/deps/openssl/config/x509_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/x509.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/x509.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/x509.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/x509.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/x509.h"
+diff --git a/deps/openssl/config/x509_no-asm.h b/deps/openssl/config/x509_no-asm.h
+index 0f28e11..24e10e9 100644
+--- a/deps/openssl/config/x509_no-asm.h
++++ b/deps/openssl/config/x509_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/x509.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/x509.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/x509.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/x509.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/x509.h"
+diff --git a/deps/openssl/config/x509_vfy_asm.h b/deps/openssl/config/x509_vfy_asm.h
+index 67fd542..66fcd5a 100644
+--- a/deps/openssl/config/x509_vfy_asm.h
++++ b/deps/openssl/config/x509_vfy_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/x509_vfy.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/x509_vfy.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/x509_vfy.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/x509_vfy.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/x509_vfy.h"
+diff --git a/deps/openssl/config/x509_vfy_no-asm.h b/deps/openssl/config/x509_vfy_no-asm.h
+index cb2ac84..d738cad 100644
+--- a/deps/openssl/config/x509_vfy_no-asm.h
++++ b/deps/openssl/config/x509_vfy_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/x509_vfy.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/x509_vfy.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/x509_vfy.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/x509_vfy.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/x509_vfy.h"
+diff --git a/deps/openssl/config/x509v3_asm.h b/deps/openssl/config/x509v3_asm.h
+index 37da735..d8bb278 100644
+--- a/deps/openssl/config/x509v3_asm.h
++++ b/deps/openssl/config/x509v3_asm.h
+@@ -25,9 +25,9 @@
+ # include "./archs/VC-WIN32/asm/include/openssl/x509v3.h"
+ #elif defined(_WIN32) && defined(_M_X64)
+ # include "./archs/VC-WIN64A/asm/include/openssl/x509v3.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/asm/include/openssl/x509v3.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/asm/include/openssl/x509v3.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/asm/include/openssl/x509v3.h"
+diff --git a/deps/openssl/config/x509v3_no-asm.h b/deps/openssl/config/x509v3_no-asm.h
+index 6bad83c..e65cccb 100644
+--- a/deps/openssl/config/x509v3_no-asm.h
++++ b/deps/openssl/config/x509v3_no-asm.h
+@@ -29,9 +29,9 @@
+ # include "./archs/VC-WIN64A/no-asm/include/openssl/x509v3.h"
+ #elif defined(_WIN32) && defined(_M_ARM64)
+ # include "./archs/VC-WIN64-ARM/no-asm/include/openssl/x509v3.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__i386__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__i386__)
+ # include "./archs/BSD-x86/no-asm/include/openssl/x509v3.h"
+-#elif (defined(__FreeBSD__) || defined(__OpenBSD__)) && defined(__x86_64__)
++#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)
+ # include "./archs/BSD-x86_64/no-asm/include/openssl/x509v3.h"
+ #elif defined(__sun) && defined(__i386__)
+ # include "./archs/solaris-x86-gcc/no-asm/include/openssl/x509v3.h"
+diff --git a/deps/openssl/openssl_asm.gypi b/deps/openssl/openssl_asm.gypi
+index 6ad6065..83ca48c 100644
+--- a/deps/openssl/openssl_asm.gypi
++++ b/deps/openssl/openssl_asm.gypi
+@@ -12,7 +12,7 @@
+       'includes': ['config/archs/linux-aarch64/asm/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-arm64-cc/asm/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86/asm/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm/openssl.gypi'],
+@@ -40,7 +40,7 @@
+       ],
+     }, 'target_arch=="ia32"', {
+       'includes': ['config/archs/linux-elf/asm/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm/openssl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm/openssl.gypi'],
+diff --git a/deps/openssl/openssl_asm_avx2.gypi b/deps/openssl/openssl_asm_avx2.gypi
+index 52c89bb..79d11ea 100644
+--- a/deps/openssl/openssl_asm_avx2.gypi
++++ b/deps/openssl/openssl_asm_avx2.gypi
+@@ -10,7 +10,7 @@
+       'includes': ['config/archs/linux-armv4/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS in ("linux", "openharmony")', {
+       'includes': ['config/archs/linux-aarch64/asm_avx2/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl.gypi'],
+@@ -38,7 +38,7 @@
+       ],
+     }, 'target_arch=="ia32"', {
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm_avx2/openssl.gypi'],
+diff --git a/deps/openssl/openssl_no_asm.gypi b/deps/openssl/openssl_no_asm.gypi
+index 8169f60..b229e2c 100644
+--- a/deps/openssl/openssl_no_asm.gypi
++++ b/deps/openssl/openssl_no_asm.gypi
+@@ -11,7 +11,7 @@
+       'includes': ['config/archs/linux-armv4/no-asm/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS in ("linux", "android", "openharmony")', {
+       'includes': ['config/archs/linux-aarch64/no-asm/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86/no-asm/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/no-asm/openssl.gypi'],
+@@ -24,7 +24,7 @@
+     }, 'target_arch=="ia32"', {
+       # noasm linux-elf for other ia32 platforms
+       'includes': ['config/archs/linux-elf/no-asm/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "netbsd")', {
+       'includes': ['config/archs/BSD-x86_64/no-asm/openssl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/no-asm/openssl.gypi'],

@@ -190,6 +190,18 @@ grep -q 'mount -u -o wxallowed "$fs"' "$ALL" \
 grep -q '/usr/sbin/paxctl +m out/Release/node' "$ALL" && grep -q 'print "\\t/usr/sbin/paxctl +m \$@"' "$ALL" \
   && ok "NetBSD marks mksnapshot, node_mksnapshot and node paxctl +m" \
   || fail "NetBSD build does not paxctl +m its snapshot tools and node"
+# Node 26 needs clang 19 and a libc++ with std::atomic_ref: OpenBSD's base
+# toolchain has them from 7.8 (7.7's clang 16 failed in V8's atomicops.h).
+obsd_rel="$(grep -A4 'uses: vmactions/openbsd-vm@' "$ALL" | sed -n "s/.*release: '\([0-9.]*\)'.*/\1/p" | head -n1)"
+python3 -c 'import sys; v=tuple(map(int, sys.argv[1].split("."))); sys.exit(0 if v >= (7, 8) else 1)' "${obsd_rel:-0.0}" \
+  && ok "OpenBSD builds on $obsd_rel, whose base clang Node 26 accepts" \
+  || fail "OpenBSD release '$obsd_rel' is older than 7.8: its base clang cannot build V8"
+# NetBSD's bundled OpenSSL must pick the BSD x86-64 configuration, not fall
+# through to a 32-bit one (x86_64-gcc.c then fails to assemble).
+grep -q 'defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)' "$ROOT/dist/netbsd/netbsd-openssl-config.patch" \
+  && grep -q 'target_arch==\"x64\" and OS in (\"freebsd\", \"netbsd\")' "$ROOT/dist/netbsd/netbsd-openssl-config.patch" \
+  && ok "NetBSD's bundled OpenSSL uses the BSD x86-64 configuration" \
+  || fail "dist/netbsd/netbsd-openssl-config.patch does not route NetBSD to BSD-x86_64"
 [ "$(bash "$ROOT/releases/dist-dirs-for.sh" openbsd-arm64 | tr '\n' ' ')" = "all openbsd " ] \
   && [ "$(bash "$ROOT/releases/dist-dirs-for.sh" netbsd-x64 | tr '\n' ' ')" = "all netbsd " ] \
   && ok "the apply-map gives OpenBSD and NetBSD their patch sets" \
