@@ -65,8 +65,9 @@ handled (their commits carry the short description and link).
 
 # Upcoming node-patches release
 
-**In short:** Node.js for **OpenBSD** (amd64, arm64) and **NetBSD** (amd64),
-from the patch sets OpenBSD ports and pkgsrc keep, adapted to Node 26.
+**In short:** Node.js for **OpenBSD** (amd64, arm64, built on OpenBSD 7.8)
+and **NetBSD** (amd64), from the patch sets OpenBSD ports and pkgsrc keep,
+adapted to Node 26.
 
 This release adds the following new features:
 
@@ -96,10 +97,29 @@ first release that has them.
 
 </details>
 
-and fixes the following bug:
+and fixes the following bugs:
 
 - [Release All Missing no longer stops at an old V8 URL in the NetBSD patch](https://github.com/wekan/node-patches/commit/ea35e7a).
   Thanks to xet7.
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/2077efa">The OpenBSD and NetBSD x64 builds compile</a>. Thanks to xet7.</summary>
+
+**NetBSD:** Node's bundled OpenSSL picks its per-platform headers by
+compiler macros, and knew FreeBSD and OpenBSD but not NetBSD. A NetBSD
+x86-64 build therefore got the 32-bit `linux-elf` configuration, and
+`crypto/bn/asm/x86_64-gcc.c` failed to assemble. The new
+`dist/netbsd/netbsd-openssl-config.patch` routes NetBSD to `BSD-x86_64` in
+the 63 dispatcher headers and in the three gyp files, as FreeBSD is routed.
+
+**OpenBSD:** 7.7's base clang 16.0.6 has no `std::atomic_ref`, which V8
+uses. The build now runs on OpenBSD 7.8, whose base LLVM is 19.1.7, the
+version Node 26 asks for.
+
+`tests/workflow-logic.sh` fails for an OpenBSD release older than 7.8, or a
+NetBSD OpenSSL patch that does not route x86-64 to `BSD-x86_64`.
+
+</details>
 
 Thanks to above GitHub users for their contributions and translators for their translations.
 
