@@ -575,11 +575,13 @@ jobs:
             runs_on: ubuntu-24.04
             configure_flags: ''
             timeout_minutes: 340
+          # --openssl-no-asm with dist/bsd-arm64: Node's bundled OpenSSL has
+          # no BSD arm64 configuration, and fell through to linux-x86_64.
           - platform: openbsd-arm64
             mode: openbsd
             vm_arch: aarch64
             runs_on: ubuntu-24.04
-            configure_flags: ''
+            configure_flags: --openssl-no-asm
             timeout_minutes: 340
           - platform: netbsd-x64
             mode: netbsd

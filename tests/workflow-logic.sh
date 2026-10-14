@@ -202,10 +202,30 @@ grep -q 'defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__x86_64__)' "$
   && grep -q 'target_arch==\"x64\" and OS in (\"freebsd\", \"netbsd\")' "$ROOT/dist/netbsd/netbsd-openssl-config.patch" \
   && ok "NetBSD's bundled OpenSSL uses the BSD x86-64 configuration" \
   || fail "dist/netbsd/netbsd-openssl-config.patch does not route NetBSD to BSD-x86_64"
-[ "$(bash "$ROOT/releases/dist-dirs-for.sh" openbsd-arm64 | tr '\n' ' ')" = "all openbsd " ] \
+# openbsd-arm64 also takes dist/bsd-arm64 (Node's OpenSSL has no BSD arm64
+# configuration); openbsd-x64 does not.
+[ "$(bash "$ROOT/releases/dist-dirs-for.sh" openbsd-arm64 | tr '\n' ' ')" = "all openbsd bsd-arm64 " ] \
+  && [ "$(bash "$ROOT/releases/dist-dirs-for.sh" openbsd-x64 | tr '\n' ' ')" = "all openbsd " ] \
   && [ "$(bash "$ROOT/releases/dist-dirs-for.sh" netbsd-x64 | tr '\n' ' ')" = "all netbsd " ] \
   && ok "the apply-map gives OpenBSD and NetBSD their patch sets" \
   || fail "dist-dirs-for.sh does not map openbsd/netbsd to their sections"
+# OpenBSD arm64's OpenSSL: no assembly, and the no-asm sources and headers of
+# linux-aarch64 instead of the linux-x86_64 / linux-elf fall-through.
+grep -q 'OS in ("linux", "android", "openharmony", "freebsd", "openbsd", "netbsd")' "$ROOT/dist/bsd-arm64/bsd-arm64-openssl-config.patch" \
+  && [ "$(grep -c '^+#elif (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)) && defined(__aarch64__)' "$ROOT/dist/bsd-arm64/bsd-arm64-openssl-config.patch")" = 31 ] \
+  && grep -A4 'platform: openbsd-arm64' "$ROOT/.github/workflows/release-all.yml" | grep -q 'configure_flags: --openssl-no-asm' \
+  && ok "OpenBSD arm64 builds OpenSSL without assembly, from linux-aarch64's C configuration" \
+  || fail "OpenBSD arm64's OpenSSL still falls through to linux-x86_64 / linux-elf"
+# Android binaries carry their C++ library: Termux has libc++_shared.so only
+# after pkg install libc++.
+grep -q '^export LDFLAGS="-static-libstdc++ ' "$ROOT/releases/build-android.sh" \
+  && ok "an Android binary links libc++ statically" \
+  || fail "an Android binary still needs libc++_shared.so"
+# pull-image.sh: a [ test closed with ] (the missing one made bash say
+# "[: missing ']'" on every pull).
+bash -n "$ROOT/releases/pull-image.sh" && ! grep -q 'localhost; }' "$ROOT/releases/pull-image.sh" \
+  && ok "pull-image.sh closes its [ test" \
+  || fail "pull-image.sh has an unclosed [ test"
 
 # ── 3b. What the armv6 target's compiler flags have to say ───────────────────
 #

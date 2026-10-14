@@ -43,7 +43,10 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   android-arm64|android-x64|android-x86) echo android ;;
   # The OS packagers' patch sets, adapted to Node 26: OpenBSD ports' lang/node
   # and pkgsrc's lang/nodejs (dist/openbsd, dist/netbsd).
-  openbsd-x64|openbsd-arm64) echo openbsd ;;
+  openbsd-x64)       echo openbsd ;;
+  # arm64 also takes dist/bsd-arm64: Node's bundled OpenSSL has no BSD arm64
+  # configuration, and is built --openssl-no-asm from linux-aarch64's.
+  openbsd-arm64)     echo openbsd; echo bsd-arm64 ;;
   netbsd-x64)        echo netbsd ;;
   # x64, arm64, ppc64le, loong64, s390x, win64, win-arm64 and
   # freebsd-x64 take the common set only.
