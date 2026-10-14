@@ -145,6 +145,34 @@ which printed "[: missing ']'" on every pull.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/365ea26">The OpenBSD x64 build links</a>. Thanks to xet7.</summary>
+
+The OpenBSD ports patch carried `-Wl,-rpath,${EOPENSSL_LIB}`, for the ports
+tree's build against an external OpenSSL. Here the variable is unset, the empty
+`-rpath` took `--start-group` as its value, and every executable failed with
+"stray --end-group". The line is left out.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f703673">The NetBSD x64 build compiles c-ares</a>. Thanks to xet7.</summary>
+
+Node's c-ares config for NetBSD names a `getservbyport_r` that NetBSD declares
+only under `_NETBSD_SOURCE`, and whose return value c-ares would read the wrong
+way round. `netbsd-cares-getservbyport` makes c-ares use `getservbyport`.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/a57d9ba">The Android x86 build links mksnapshot</a>. Thanks to xet7.</summary>
+
+`build-android.sh` gave gyp `x86`, but gyp and V8 say `ia32`, so V8 compiled no
+code generator. gyp now gets `ia32` (the NDK keeps `x86`), and android-x86
+applies `dist/ia32` like i386 and win32.
+
+</details>
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.11.1 2026-10-13 node-patches release
