@@ -61,6 +61,12 @@ export RANLIB="$toolchain/bin/llvm-ranlib"
 # aligned_alloc only exists from API 28; Termux maps it the same way.
 export CFLAGS="-D__TERMUX__ -Daligned_alloc=memalign ${CFLAGS:-}"
 export CXXFLAGS="-D__TERMUX__ -Daligned_alloc=memalign ${CXXFLAGS:-}"
+# The C++ library goes INTO the binary. The NDK's clang++ links
+# libc++_shared.so by default, and Termux has it only once `pkg install
+# libc++` has run - the smoke test's clean Termux image does not, and stopped
+# with "library libc++_shared.so not found". A binary that needs only
+# Android's own libc is the point of building these.
+export LDFLAGS="-static-libstdc++ ${LDFLAGS:-}"
 
 m32=""
 [ "$bits" = 32 ] && m32=" -m32"

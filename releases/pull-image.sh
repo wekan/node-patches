@@ -41,7 +41,7 @@ pause="${PULL_IMAGE_SLEEP:-15}"
 # Only Docker Hub names: no registry host before the first "/" (a host has a
 # "." or ":" in it, or is localhost).
 first="${image%%/*}"
-if [ "$first" != "$image" ] && { [[ "$first" == *.* ]] || [[ "$first" == *:* ]] || [ "$first" = localhost; }; then
+if [ "$first" != "$image" ] && { [[ "$first" == *.* ]] || [[ "$first" == *:* ]] || [ "$first" = localhost ]; }; then
   echo "pull-image.sh: $image is not a Docker Hub image; pulling it as named." >&2
   hub_only=1
 else
