@@ -219,6 +219,21 @@ for n in range(2, 7):
     assert (w['previous'], w['stage'], w['last']) == (str(n - 1), str(n), n == 6), w
     prev = f'openbsd_arm64_stage_{n}'
 assert all(f'openbsd_arm64_stage_{n}' in jobs['publish']['needs'] for n in range(2, 7))
+# A stage asks whether there is anything to resume before downloading it, and
+# may: actions: read on every link of the chain, from both entry points.
+for n in range(2, 7):
+    assert jobs[f'openbsd_arm64_stage_{n}']['permissions'].get('actions') == 'read'
+import os
+root = os.path.dirname(os.path.dirname(sys.argv[1]))
+resume = yaml.safe_load(open(os.path.join(root, 'workflows/openbsd-resume.yml')))
+assert resume['permissions'].get('actions') == 'read'
+steps = resume['jobs']['resume']['steps']
+ask = next(s for s in steps if s.get('id') == 'staged')
+fetch = next(s for s in steps if s.get('id') == 'fetch')
+assert steps.index(ask) < steps.index(fetch) and 'continue-on-error' not in fetch
+assert fetch['if'] == "${{ steps.staged.outputs.exists == 'true' }}"
+missing = yaml.safe_load(open(os.path.join(root, 'workflows/release-all-missing.yml')))
+assert missing['jobs']['build']['permissions'].get('actions') == 'read'
 PY
 grep -q '/usr/sbin/paxctl +m out/Release/node' "$ALL" && grep -q 'print "\\t/usr/sbin/paxctl +m \$@"' "$ALL" \
   && ok "NetBSD marks mksnapshot, node_mksnapshot and node paxctl +m" \

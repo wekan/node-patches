@@ -148,8 +148,11 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.count != '0' }}
     uses: ./.github/workflows/release-all.yml
+    # actions: read for openbsd-arm64's resume stages, which ask whether this
+    # run saved a stage (.github/workflows/openbsd-resume.yml).
     permissions:
       contents: write
+      actions: read
     with:
       version: ${{ needs.plan.outputs.version }}
       publish: true

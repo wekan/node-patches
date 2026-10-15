@@ -1248,6 +1248,7 @@ jobs:
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
+      actions: read
     with:
       platform: openbsd-arm64
       vm_arch: aarch64
@@ -1264,6 +1265,7 @@ jobs:
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
+      actions: read
     with:
       platform: openbsd-arm64
       vm_arch: aarch64
@@ -1280,6 +1282,7 @@ jobs:
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
+      actions: read
     with:
       platform: openbsd-arm64
       vm_arch: aarch64
@@ -1296,6 +1299,7 @@ jobs:
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
+      actions: read
     with:
       platform: openbsd-arm64
       vm_arch: aarch64
@@ -1312,6 +1316,7 @@ jobs:
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
+      actions: read
     with:
       platform: openbsd-arm64
       vm_arch: aarch64
