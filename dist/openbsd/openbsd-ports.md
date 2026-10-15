@@ -16,6 +16,10 @@ carried for an amd64/arm64 build with Node's bundled dependencies:
   - The embedded builtins go into a page-aligned `.openbsd.mutable`
     section, and `isolate.cc` makes them read+execute after start-up.
   - `perf-jit` and `atomicops.h` build there, and `cpu.cc` assumes an FPU.
+    That hunk adds an OpenBSD branch to the RISC-V `#if V8_OS_LINUX`; Node 26
+    nests a glibc `#if`/`#else` inside it, so it is placed on the OUTER
+    `#endif` - on the inner one it read "#elif after #else", which the
+    preprocessor rejects even in code it skips, and every OpenBSD build failed.
 - **W^X and retguard:**
   - `v8_flags` are made immutable (`mimmutable`).
   - Irregexp runs as bytecode (`regexp_interpret_all`), because the regexp

@@ -261,18 +261,18 @@ diff --git a/deps/v8/src/base/cpu.cc b/deps/v8/src/base/cpu.cc
 index f64e1e71..6f5a9a06 100644
 --- a/deps/v8/src/base/cpu.cc
 +++ b/deps/v8/src/base/cpu.cc
-@@ -1074,7 +1074,10 @@ CPU::CPU()
-     has_fpu_ = true;
-     has_rvv_ = true;
+@@ -1086,7 +1086,10 @@ CPU::CPU()
+   if (HasListItem(mmu, "sv57")) {
+     riscv_mmu_ = RV_MMU_MODE::kRiscvSV57;
    }
 -#endif
-+#elif V8_OS_OPENBSD // V8_OS_LINUX
++#elif V8_OS_OPENBSD  // V8_OS_LINUX
 +  // OpenBSD requires and defaults to FP support.
 +  has_fpu_ = true;
 +#endif  // V8_OS_OPENBSD
- 
-   char* mmu = cpu_info.ExtractField("mmu");
-   if (HasListItem(mmu, "sv48")) {
+   if (has_rvv_) {
+     vlen_ = vlen_intrinsic();
+   }
 diff --git a/deps/v8/src/base/platform/memory.h b/deps/v8/src/base/platform/memory.h
 index 32161ba8..7d5c31e3 100644
 --- a/deps/v8/src/base/platform/memory.h
