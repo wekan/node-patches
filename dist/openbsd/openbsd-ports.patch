@@ -1028,3 +1028,22 @@ index fd8394b3..3d12d1b4 100644
            'link_settings': {
              'libraries': ['-latomic', ],
            },
+diff --git a/deps/openssl/openssl.gyp b/deps/openssl/openssl.gyp
+index 144085fd..78cc2821 100644
+--- a/deps/openssl/openssl.gyp
++++ b/deps/openssl/openssl.gyp
+@@ -83,6 +83,14 @@
+         }, {
+           'includes': ['./openssl-cl_asm.gypi'],
+         }],
++        # OpenBSD has no libdl - dlopen is in libc - and the configuration its
++        # openssl-cli falls through to (linux-x86_64, or linux-aarch64 with
++        # dist/bsd-arm64) links "-lm -ldl -pthread": "unable to find library
++        # -ldl". The same libraries without it.
++        ['OS=="openbsd"', {
++          'libraries!': ['-lm -ldl -pthread'],
++          'libraries': ['-lm', '-pthread'],
++        }],
+         # Avoid excessive LTO
+         ['enable_lto=="true"', {
+           'ldflags': [ '-fno-lto' ],

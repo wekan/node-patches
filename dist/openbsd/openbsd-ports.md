@@ -20,6 +20,10 @@ carried for an amd64/arm64 build with Node's bundled dependencies:
     nests a glibc `#if`/`#else` inside it, so it is placed on the OUTER
     `#endif` - on the inner one it read "#elif after #else", which the
     preprocessor rejects even in code it skips, and every OpenBSD build failed.
+- **No libdl:** OpenBSD's `dlopen` is in libc, and the OpenSSL configuration
+  its `openssl-cli` falls through to (linux-x86_64, or linux-aarch64 with
+  `dist/bsd-arm64`) links `-lm -ldl -pthread`. `openssl.gyp` removes that item
+  for OpenBSD and links `-lm -pthread` instead.
 - **W^X and retguard:**
   - `v8_flags` are made immutable (`mimmutable`).
   - Irregexp runs as bytecode (`regexp_interpret_all`), because the regexp
