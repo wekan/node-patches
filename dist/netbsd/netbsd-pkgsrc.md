@@ -10,8 +10,7 @@ that matter for a build with Node's **bundled** dependencies on x86-64, one
 - **gyp:** `netbsd` added to the OS lists in `common.gypi` (pthread, warnings)
   and `deps/uv/common.gypi`; c-ares takes its `config/netbsd`; the gyp make
   generator uses `lockf` for NetBSD as for FreeBSD; `-larm` for NetBSD/arm.
-- **V8:** `memcopy.h` includes `<climits>` (nodejs/node#63146);
-  `platform/memory.h` keeps NetBSD off the `malloc_usable_size` path;
+- **V8:** `platform/memory.h` keeps NetBSD off the `malloc_usable_size` path;
   `platform-posix.cc` gives `mmap` no address hint, which NetBSD answered with
   ENOMEM; `platform-openbsd.cc` (which NetBSD uses) builds for NetBSD/arm;
   `semaphore.cc`, `strings.h`, `globals.h` and abseil's `elf_mem_image.cc`
@@ -19,7 +18,6 @@ that matter for a build with Node's **bundled** dependencies on x86-64, one
 - **Node:** `wasi_serdes.h`, `compile_cache.cc`, `inspector_agent.cc` and
   `node_postmortem_metadata.cc` build against NetBSD's headers
   (`PTHREAD_STACK_MIN`, `<unistd.h>`, the `uint*_t` macros).
-- **configure:** accepts Python 3.15 too.
 
 One change from pkgsrc's text: in the NetBSD/arm hard-float check copied from
 V8, the `#error` message names V8 issue 2140 instead of carrying its old
@@ -33,6 +31,13 @@ Left out, because they do not apply to this build:
 - the i386 SSE2 hasher change (`dist/all` covers that file);
 - OpenSSL 1.1.1 compatibility (OpenSSL is bundled);
 - the install-path patches.
+
+Dropped since, because upstream now makes the same change itself (from
+v26.12.0 on, where pkgsrc's hunks no longer apply):
+
+- `configure` accepting Python 3.15;
+- `memcopy.h` including a limits header (nodejs/node#63146; upstream includes
+  `<limits.h>`).
 
 The build itself (`release-all.yml`, mode `netbsd`):
 

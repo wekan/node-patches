@@ -16,27 +16,6 @@ index c2d6d3b6..468075d4 100644
          'cflags': [ '-Wall', '-Wextra', '-Wno-unused-parameter', ],
          'cflags_cc': [
            '-fno-rtti',
-diff --git a/configure b/configure
-index f39c2d55..5d8b8ac9 100755
---- a/configure
-+++ b/configure
-@@ -4,6 +4,7 @@
- # Note that the mix of single and double quotes is intentional,
- # as is the fact that the ] goes on a new line.
- _=[ 'exec' '/bin/sh' '-c' '''
-+command -v python3.15 >/dev/null && exec python3.15 "$0" "$@"
- command -v python3.14 >/dev/null && exec python3.14 "$0" "$@"
- command -v python3.13 >/dev/null && exec python3.13 "$0" "$@"
- command -v python3.12 >/dev/null && exec python3.12 "$0" "$@"
-@@ -22,7 +23,7 @@ except ImportError:
-   from distutils.spawn import find_executable as which
- 
- print('Node.js configure: Found Python {}.{}.{}...'.format(*sys.version_info))
--acceptable_pythons = ((3, 14), (3, 13), (3, 12), (3, 11), (3, 10))
-+acceptable_pythons = ((3, 15), (3, 14), (3, 13), (3, 12), (3, 11), (3, 10))
- if sys.version_info[:2] in acceptable_pythons:
-   import configure
- else:
 diff --git a/deps/cares/cares.gyp b/deps/cares/cares.gyp
 index fee055c0..5f1f2ca5 100644
 --- a/deps/cares/cares.gyp
@@ -83,18 +62,6 @@ index b4829188..4d7de7c8 100644
  /* Basic uint{8,16,32,64}_t read/write functions. */
  
  #define BASIC_TYPE(name, type)                                                \
-diff --git a/deps/v8/src/base/memcopy.h b/deps/v8/src/base/memcopy.h
-index b1d8a36b..82e9a75c 100644
---- a/deps/v8/src/base/memcopy.h
-+++ b/deps/v8/src/base/memcopy.h
-@@ -5,6 +5,7 @@
- #ifndef V8_BASE_MEMCOPY_H_
- #define V8_BASE_MEMCOPY_H_
- 
-+#include <climits>
- #include <stdlib.h>
- 
- #include <atomic>
 diff --git a/deps/v8/src/base/platform/memory.h b/deps/v8/src/base/platform/memory.h
 index 32161ba8..606c1d38 100644
 --- a/deps/v8/src/base/platform/memory.h
