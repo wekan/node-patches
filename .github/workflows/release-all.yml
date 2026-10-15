@@ -577,12 +577,21 @@ jobs:
             timeout_minutes: 340
           # --openssl-no-asm with dist/bsd-arm64: Node's bundled OpenSSL has
           # no BSD arm64 configuration, and fell through to linux-x86_64.
+          #
+          # STAGED: the aarch64 VM is emulated on the x86-64 runner (vmactions
+          # advises against the arm runner, which is slower still), and the
+          # build takes several times the six hours a job may run - the first
+          # attempts were stopped compiling OpenSSL, then ICU. So this job
+          # builds until its deadline, saves the workspace with its
+          # timestamps, and the openbsd_arm64_stage_* jobs below resume it
+          # (releases/build-openbsd.sh, .github/workflows/openbsd-resume.yml).
           - platform: openbsd-arm64
             mode: openbsd
             vm_arch: aarch64
             runs_on: ubuntu-24.04
             configure_flags: --openssl-no-asm
-            timeout_minutes: 340
+            staged: true
+            timeout_minutes: 355
           - platform: netbsd-x64
             mode: netbsd
             runs_on: ubuntu-24.04
@@ -653,6 +662,13 @@ jobs:
       # workspace root, and apply every patch on top - after which the workspace
       # is an ordinary Node.js source tree and every build step below (which works
       # in $PWD) is unchanged from the old fork.
+      #
+      # First, when this job began, for a staged platform's build deadline.
+      - name: Note when the job started
+        if: ${{ env.BUILD_THIS == 'true' && matrix.staged == true }}
+        shell: bash
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Check out the patches
         if: ${{ env.BUILD_THIS == 'true' }}
         uses: actions/checkout@v7
@@ -1035,6 +1051,14 @@ jobs:
             gmake -j"$(sysctl -n hw.ncpu)"
             strip out/Release/node
 
+      # A staged platform builds until a deadline that leaves the rest of the
+      # job for copying the tree back out of the VM and saving it (60 minutes
+      # of the 355). Every other OpenBSD build has no deadline.
+      - name: Set the build deadline (staged platform)
+        if: ${{ env.BUILD_THIS == 'true' && matrix.staged == true }}
+        shell: bash
+        run: echo "STAGE_DEADLINE=$(( JOB_START + 295 * 60 ))" >> "$GITHUB_ENV"
+
       - name: Build natively in OpenBSD
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'openbsd' }}
         uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
@@ -1044,23 +1068,29 @@ jobs:
           release: '7.8'
           arch: ${{ matrix.vm_arch }}
           mem: 12288
+          # The VM's clock against the deadline, and the deadline itself.
+          sync-time: true
+          envs: 'STAGE_DEADLINE'
           prepare: pkg_add python%3 gmake bash
-          run: |
-            set -eu
-            # V8's build runs code it has just written (mksnapshot), which
-            # OpenBSD allows only from a filesystem mounted wxallowed - the
-            # OpenBSD port builds under /usr/ports for that reason. Here the
-            # workspace's own filesystem is given it for the build.
-            fs="$(df -P . | awk 'NR==2 {print $6}')"
-            mount -u -o wxallowed "$fs" || true
-            # Compiling V8 needs more than the default data size limit.
-            ulimit -d "$(ulimit -H -d)" || true
-            # OpenBSD's base Clang, as the port uses (COMPILER = base-clang).
-            export CC=cc CXX=c++
-            ./configure ${{ matrix.configure_flags }}
-            gmake -j"$(sysctl -n hw.ncpuonline)"
-            strip out/Release/node
-            ./out/Release/node _patches/tests/runtime-smoke.cjs ${{ matrix.platform }}
+          # wxallowed, the data size limit, base Clang and the staged
+          # deadline are all in the script, shared with the resume jobs.
+          run: sh _patches/releases/build-openbsd.sh ${{ matrix.platform }} ${{ matrix.configure_flags }}
+
+      # The deadline came first: save the whole workspace - the patched tree
+      # and out/, with their timestamps, so make resumes instead of starting
+      # over - for openbsd_arm64_stage_2, and publish nothing from this job.
+      - name: Save the partial build for the next stage
+        if: ${{ env.BUILD_THIS == 'true' && matrix.staged == true && hashFiles('.stage-partial') != '' }}
+        shell: bash
+        run: bash _patches/releases/save-build-stage.sh
+      - uses: actions/upload-artifact@v7
+        if: ${{ env.BUILD_THIS == 'true' && env.STAGED_PARTIAL == 'true' }}
+        with:
+          name: ${{ matrix.platform }}-stage-1
+          path: stage.tar.zst
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
 
       - name: Build natively in NetBSD
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'netbsd' }}
@@ -1098,7 +1128,7 @@ jobs:
 
       - name: Name it for the release, and say what it is
         id: name_unix
-        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') }}
+        if: ${{ env.BUILD_THIS == 'true' && (matrix.mode != 'windows') && env.STAGED_PARTIAL != 'true' }}
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -1152,7 +1182,7 @@ jobs:
           fi
 
       - uses: actions/upload-artifact@v7
-        if: ${{ env.BUILD_THIS == 'true' }}
+        if: ${{ env.BUILD_THIS == 'true' && env.STAGED_PARTIAL != 'true' }}
         with:
           name: node-${{ matrix.platform }}
           path: dist/node-${{ matrix.platform }}*
@@ -1209,9 +1239,92 @@ jobs:
   #
   # There is no combined checksum file to rebuild: every platform carries its
   # own node-<platform>.sha256sum, written and attached by its own build.
+  # openbsd-arm64's staged build (see its matrix entry): up to five more jobs
+  # of about five hours each, one after the other, each resuming the last
+  # one's saved workspace. A stage with nothing to resume stops in seconds.
+  openbsd_arm64_stage_2:
+    needs: [release, build]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '1'
+      stage: '2'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_3:
+    needs: [release, openbsd_arm64_stage_2]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '2'
+      stage: '3'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_4:
+    needs: [release, openbsd_arm64_stage_3]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '3'
+      stage: '4'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_5:
+    needs: [release, openbsd_arm64_stage_4]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '4'
+      stage: '5'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_6:
+    needs: [release, openbsd_arm64_stage_5]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '5'
+      stage: '6'
+      last: true
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
   publish:
     name: check the release and write its notes
-    needs: [release, build]
+    needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6]
     if: ${{ always() && inputs.publish && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:

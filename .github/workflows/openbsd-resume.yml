@@ -1,0 +1,146 @@
+# Resume a staged OpenBSD build (release-all.yml's openbsd_arm64_stage_* jobs).
+#
+# openbsd-arm64 builds in an emulated aarch64 VM and takes several times the
+# six hours a GitHub job may run. The build job builds until its deadline and
+# saves the workspace as <platform>-stage-1 (releases/save-build-stage.sh);
+# each stage here restores the previous one with its timestamps, so make
+# builds only what is still missing (releases/build-openbsd.sh skips
+# configure), and either saves the next stage or - when the build finishes -
+# names, checks and attaches the binary exactly as the build job does.
+#
+# A stage with nothing to resume (the build already finished, or this run
+# did not build the platform) finds no artifact and stops in seconds.
+name: resume a staged OpenBSD build
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: true
+      configure_flags:
+        type: string
+        default: ''
+      vm_arch:
+        type: string
+        required: true
+      previous:
+        description: the stage to resume (its artifact is <platform>-stage-<previous>)
+        type: string
+        required: true
+      stage:
+        type: string
+        required: true
+      last:
+        description: the final stage builds to the end, with no deadline
+        type: boolean
+        default: false
+      tag:
+        type: string
+        default: ''
+      publish:
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  resume:
+    name: resume ${{ inputs.platform }} (stage ${{ inputs.stage }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    steps:
+      - name: Note when the job started
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Fetch the previous stage
+        id: fetch
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.platform }}-stage-${{ inputs.previous }}
+
+      - name: Restore the workspace
+        if: ${{ steps.fetch.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # -p and tar's own timestamps: make must see the objects as newer
+          # than the sources they came from, as they were in the VM.
+          tar --zstd -xpf stage.tar.zst
+          rm -f stage.tar.zst
+          cat .stage-env >> "$GITHUB_ENV"
+          echo "RESUMING=true" >> "$GITHUB_ENV"
+          echo "Resuming ${{ inputs.platform }} from stage ${{ inputs.previous }}: $(du -sh out | cut -f1) of out/."
+
+      - name: Set the build deadline
+        if: ${{ env.RESUMING == 'true' && !inputs.last }}
+        shell: bash
+        run: echo "STAGE_DEADLINE=$(( JOB_START + 295 * 60 ))" >> "$GITHUB_ENV"
+
+      - name: Build natively in OpenBSD
+        if: ${{ env.RESUMING == 'true' }}
+        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
+        with:
+          release: '7.8'
+          arch: ${{ inputs.vm_arch }}
+          mem: 12288
+          sync-time: true
+          envs: 'STAGE_DEADLINE'
+          prepare: pkg_add python%3 gmake bash
+          run: sh _patches/releases/build-openbsd.sh ${{ inputs.platform }} ${{ inputs.configure_flags }}
+
+      - name: Save the partial build for the next stage
+        if: ${{ env.RESUMING == 'true' && hashFiles('.stage-partial') != '' }}
+        shell: bash
+        run: bash _patches/releases/save-build-stage.sh
+      - uses: actions/upload-artifact@v7
+        if: ${{ env.STAGED_PARTIAL == 'true' }}
+        with:
+          name: ${{ inputs.platform }}-stage-${{ inputs.stage }}
+          path: stage.tar.zst
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
+
+      # The build finished: the same naming, checks and attachment as
+      # release-all.yml's build job.
+      - name: Name it for the release, and say what it is
+        id: name_unix
+        if: ${{ env.RESUMING == 'true' && env.STAGED_PARTIAL != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          python3 _patches/releases/risk-audit.py --artifact out/Release/node
+          cp out/Release/node "dist/node-${{ inputs.platform }}"
+          chmod +x "dist/node-${{ inputs.platform }}"
+          file "dist/node-${{ inputs.platform }}"
+          ls -l "dist/node-${{ inputs.platform }}"
+          ( cd dist && sha256sum "node-${{ inputs.platform }}" \
+              > "node-${{ inputs.platform }}.sha256sum" )
+          cat "dist/node-${{ inputs.platform }}.sha256sum"
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ steps.name_unix.outcome == 'success' }}
+        with:
+          name: node-${{ inputs.platform }}
+          path: dist/node-${{ inputs.platform }}*
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Attach this platform's files to the release
+        if: ${{ always() && inputs.publish && steps.name_unix.outcome == 'success' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Built ${VERSION} but the release is ${TAG}; not attaching a binary to the wrong release."
+            exit 1
+          fi
+          bash _patches/releases/upload-release-assets.sh "$TAG" dist/node-${{ inputs.platform }}*

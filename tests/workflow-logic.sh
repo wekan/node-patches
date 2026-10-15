@@ -184,9 +184,42 @@ grep -q 'uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945' "$
 grep -q 'uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92' "$ALL" \
   && ok "NetBSD uses an immutable pinned VM action" \
   || fail "NetBSD VM action is absent or not commit-pinned"
-grep -q 'mount -u -o wxallowed "$fs"' "$ALL" \
+# The OpenBSD build itself is releases/build-openbsd.sh, run by the build job
+# and by the staged build's resume jobs alike.
+OBSD="$ROOT/releases/build-openbsd.sh"
+RESUME="$ROOT/.github/workflows/openbsd-resume.yml"
+grep -q 'mount -u -o wxallowed "$fs"' "$OBSD" \
   && ok "OpenBSD builds on a wxallowed filesystem (mksnapshot runs JIT code)" \
   || fail "OpenBSD build does not mount its workspace wxallowed"
+[ "$(grep -c 'run: sh _patches/releases/build-openbsd.sh ' "$ALL" "$RESUME" | awk -F: '{s+=$2} END {print s}')" = 2 ] \
+  && ok "the build job and the resume jobs build OpenBSD with the same script" \
+  || fail "an OpenBSD build step does not run releases/build-openbsd.sh"
+# Staged openbsd-arm64 (an emulated VM cannot finish within a job): a deadline
+# that stops gmake and marks the tree, a save that keeps timestamps, a resume
+# that restores with them and skips configure, and a chain the release waits on.
+grep -q 'kill -TERM "$make_pid"' "$OBSD" && grep -q 'touch .stage-partial' "$OBSD" \
+  && grep -q 'if \[ -f out/Makefile \]; then' "$OBSD" \
+  && ok "a staged build stops gmake at its deadline and resumes without configure" \
+  || fail "build-openbsd.sh does not stop at STAGE_DEADLINE or resume from out/"
+grep -q "tar --zstd -cf stage.tar.zst" "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
+  && ok "a stage is saved and restored with its timestamps" \
+  || fail "the staged workspace is not saved and restored with tar"
+python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-6, the last without a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
+import sys, yaml
+wf = yaml.safe_load(open(sys.argv[1]))
+jobs = wf['jobs']
+arm = [e for e in jobs['build']['strategy']['matrix']['include'] if e.get('platform') == 'openbsd-arm64'][0]
+assert arm.get('staged') is True
+prev = 'build'
+for n in range(2, 7):
+    j = jobs[f'openbsd_arm64_stage_{n}']
+    assert j['uses'] == './.github/workflows/openbsd-resume.yml'
+    assert prev in j['needs'] and 'always()' in j['if']
+    w = j['with']
+    assert (w['previous'], w['stage'], w['last']) == (str(n - 1), str(n), n == 6), w
+    prev = f'openbsd_arm64_stage_{n}'
+assert all(f'openbsd_arm64_stage_{n}' in jobs['publish']['needs'] for n in range(2, 7))
+PY
 grep -q '/usr/sbin/paxctl +m out/Release/node' "$ALL" && grep -q 'print "\\t/usr/sbin/paxctl +m \$@"' "$ALL" \
   && ok "NetBSD marks mksnapshot, node_mksnapshot and node paxctl +m" \
   || fail "NetBSD build does not paxctl +m its snapshot tools and node"
