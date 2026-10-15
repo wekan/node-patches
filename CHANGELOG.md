@@ -100,6 +100,17 @@ first release that has them.
 and fixes the following bugs:
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/bc2ed87">OpenBSD arm64 builds in stages, each job resuming the last</a>. Thanks to xet7.</summary>
+
+Its aarch64 VM is emulated on the x86-64 runner, and a Node build takes several
+times the six hours a job may run, so it never finished. The build job now
+builds until a deadline and saves the workspace with its timestamps; up to five
+resume jobs continue it, skipping configure, and the one that finishes checks
+and attaches the binary. The other OpenBSD builds run as before.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/790d983">OpenBSD builds get past V8's cpu.cc</a>. Thanks to xet7.</summary>
 
 The ports hunk that gives OpenBSD an FPU in `cpu.cc` landed after a glibc
