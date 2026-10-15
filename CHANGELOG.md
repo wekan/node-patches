@@ -100,6 +100,19 @@ first release that has them.
 and fixes the following bugs:
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/bdbd22e">OpenBSD's openssl-cli links without -ldl</a>. Thanks to xet7.</summary>
+
+Past the cpu.cc fix, both OpenBSD builds stopped linking OpenSSL's command line
+tool: "unable to find library -ldl". OpenBSD's `dlopen` is in libc, and the
+Linux configuration the tool falls through to links `-ldl`. For OpenBSD it now
+links the same libraries without it, checked by generating the build files.
+
+</details>
+
+- [OpenBSD arm64 resume stages ask before downloading, so a run with nothing staged shows no errors](https://github.com/wekan/node-patches/commit/d266ff2).
+  Thanks to xet7.
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/bc2ed87">OpenBSD arm64 builds in stages, each job resuming the last</a>. Thanks to xet7.</summary>
 
 Its aarch64 VM is emulated on the x86-64 runner, and a Node build takes several
