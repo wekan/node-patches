@@ -99,6 +99,26 @@ first release that has them.
 
 and fixes the following bugs:
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/790d983">OpenBSD builds get past V8's cpu.cc</a>. Thanks to xet7.</summary>
+
+The ports hunk that gives OpenBSD an FPU in `cpu.cc` landed after a glibc
+`#else` that Node 26 added, so every OpenBSD build stopped at "#elif after
+#else" - the preprocessor rejects that even in the RISC-V code an x64 build
+skips. The hunk now closes the outer `#if V8_OS_LINUX`.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/10a210e">NetBSD's openssl-cli links without -ldl</a>. Thanks to xet7.</summary>
+
+The NetBSD OpenSSL patch mapped the library to FreeBSD's BSD-x86_64
+configuration but not the `openssl-cli` tool, which fell through to Linux's and
+linked `-ldl`; NetBSD has no libdl. The tool's three gyp files now map NetBSD as
+FreeBSD, checked by generating the build files for NetBSD.
+
+</details>
+
 - [Release All Missing no longer stops at an old V8 URL in the NetBSD patch](https://github.com/wekan/node-patches/commit/ea35e7a).
   Thanks to xet7.
 
