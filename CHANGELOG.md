@@ -63,7 +63,7 @@ handled (their commits carry the short description and link).
 
 </details>
 
-# Upcoming node-patches release
+# v26.12.0 2026-10-15 node-patches release
 
 **In short:** Node.js for **OpenBSD** (amd64, arm64, built on OpenBSD 7.8)
 and **NetBSD** (amd64), from the patch sets OpenBSD ports and pkgsrc keep,
