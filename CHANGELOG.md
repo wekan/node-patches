@@ -67,7 +67,7 @@ handled (their commits carry the short description and link).
 
 **In short:** Node.js for **OpenBSD** (amd64, arm64, built on OpenBSD 7.8)
 and **NetBSD** (amd64), from the patch sets OpenBSD ports and pkgsrc keep,
-adapted to Node 26.
+adapted to Node 26, and the builds move to Node.js **v26.12.0**.
 
 This release adds the following new features:
 
@@ -98,6 +98,23 @@ first release that has them.
 </details>
 
 and fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/2fcca90">Build Node.js v26.12.0: new source baseline, two NetBSD hunks now upstream</a>. Thanks to xet7.</summary>
+
+Every build of v26.12.0 stopped at the source audit, whose URL baseline was
+from v26.11.1. The 11 new URLs are references in comments of the newer
+vendored simdjson, a 127.0.0.1 connection in an http2 benchmark, and the ICU
+KEYS download in the maintainer-only `update-icu.sh`; none is in the binary
+and no telemetry keyword is new. The baseline is re-recorded from the
+v26.12.0 tag (commit 26e72d85a611, 17,646 files).
+
+NetBSD would have failed next: v26.12.0 itself accepts Python 3.15 in
+`configure` and includes `<limits.h>` in V8's `memcopy.h`, so those two hunks
+of `netbsd-pkgsrc.patch` no longer applied and are removed.
+`tests/patches-apply.sh` passes on v26.12.0 for every section.
+
+</details>
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/bdbd22e">OpenBSD's openssl-cli links without -ldl</a>. Thanks to xet7.</summary>
