@@ -16,6 +16,10 @@ Node ships OpenSSL pre-configured per platform under
   which pick the matching sources by gyp `OS`. These now give `netbsd` the
   same `BSD-x86`/`BSD-x86_64` sources as `freebsd`, so headers and sources
   agree.
+- `openssl-cl_asm.gypi`, `openssl-cl_asm_avx2.gypi` and `openssl-cl_no_asm.gypi`,
+  the same choice for the `openssl-cli` tool. Left out, NetBSD's `openssl-cli`
+  fell through to the linux-x86_64 configuration and linked `-ldl`, a library
+  NetBSD does not have (its `dlopen` is in libc): "cannot find -ldl".
 
 The change is `defined(__NetBSD__)` beside `defined(__OpenBSD__)` in each
 dispatcher, and `OS in ("freebsd", "netbsd")` in the three gyp files: NetBSD
