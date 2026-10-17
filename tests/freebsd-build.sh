@@ -29,7 +29,10 @@ cat > "$work/bin/gmake" <<'SH'
 set -eu
 [ "$CC" = cc ] && [ "$CXX" = c++ ] || exit 43
 [ "$*" = '-j2' ]
-"$CXX" -std=c++20 -x c++ -o out/Release/node - <<'CPP'
+# FreeBSD's cc links a non-PIE unless told otherwise; -no-pie first stands in
+# for that default, and the workflow's CXXFLAGS/LDFLAGS come after it.
+# shellcheck disable=SC2086
+"$CXX" -no-pie -std=c++20 ${CXXFLAGS:-} ${LDFLAGS:-} -x c++ -o out/Release/node - <<'CPP'
 #include <array>
 struct Buffer { const void* data; unsigned long len; };
 int main() {
@@ -58,5 +61,15 @@ chmod +x "$work/configure" "$work/bin/gmake" "$work/bin/sysctl"
    echo 'FAIL: removing native compiler selection was not detected' >&2
    exit 1
  fi
+ # The single-file injection needs a PIE here (WeKan v12.51 freebsd-x64):
+ # building without the PIE flags must be caught by the workflow's own check.
+ LC_ALL=C readelf -h out/Release/node | grep -q 'Type: *DYN '
+ sed '/export CFLAGS=-fPIE CXXFLAGS=-fPIE LDFLAGS=-pie/d' build.sh > nopie.sh
+ grep -q "Type: \*DYN " nopie.sh
+ if sh nopie.sh > nopie.log 2>&1; then
+   echo 'FAIL: a non-PIE FreeBSD node was not detected' >&2
+   exit 1
+ fi
+ grep -q 'is not a PIE' nopie.log
 )
 echo 'freebsd-build: workflow exports native C/C++ toolchain; C++20 compile/run and negative regression pass.'

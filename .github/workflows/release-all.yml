@@ -274,6 +274,16 @@ jobs:
             # linux-x86, so they rotted. The C implementations are slower at
             # crypto and they compile.
             configure_flags: --dest-cpu=x86 --dest-os=linux --openssl-no-asm
+            # NOT a PIE, as nodejs.org builds Linux. Debian's gcc makes a PIE
+            # by default, and an i386 PIE carries R_386_32 relocations that
+            # LIEF - which Node.js injects a single executable application
+            # with - does not adjust when it moves the program headers: WeKan
+            # v12.51's i386 single file stopped with std::bad_alloc, and
+            # postject "succeeded" with 1,524 "Relocation R32 not supported!".
+            # The build checks the ELF type it produced.
+            pie_cflags: -fno-pie
+            pie_ldflags: -no-pie
+            elf_type: EXEC
             timeout_minutes: 240        # measured 115: native container, no host toolset
           # 32-bit ARM CROSS COMPILES, from a 32-bit x86 host. V8 states the
           # rule itself, in deps/v8/include/v8config.h:
@@ -821,6 +831,8 @@ jobs:
           docker run --rm --platform ${{ matrix.docker_platform }} \
             -v "$PWD":/src -w /src \
             -e MAKEFLAGS="-j$(nproc)" \
+            -e CFLAGS="${{ matrix.pie_cflags }}" -e CXXFLAGS="${{ matrix.pie_cflags }}" \
+            -e LDFLAGS="${{ matrix.pie_ldflags }}" \
             ${{ matrix.image }} \
             sh -c '
               set -eu
@@ -830,6 +842,11 @@ jobs:
               ./configure ${{ matrix.configure_flags }}
               make -j"$(nproc)"
               strip out/Release/node
+              want="${{ matrix.elf_type }}"
+              if [ -n "$want" ] && ! LC_ALL=C readelf -h out/Release/node | grep -q "Type: *$want "; then
+                LC_ALL=C readelf -h out/Release/node | grep "Type:"
+                echo "::error::out/Release/node is not ELF type $want."; exit 1
+              fi
             '
 
       - name: Build (cross compile, in a container that has the toolchain)
@@ -1047,9 +1064,19 @@ jobs:
             # before configure can explain which executable is absent.
             # Export for both configure and the generated gmake build.
             export CC=cc CXX=c++
+            # A PIE. FreeBSD's cc links a non-PIE by default, and lld gives it
+            # two bss-like segments (RELRO in a PT_LOAD of its own), which LIEF
+            # cannot add a segment to: WeKan v12.51's freebsd-x64 single file
+            # stopped with "Failed to relocate ELF program headers". A PIE is
+            # shifted instead, and LIEF adjusts every x86-64 relocation.
+            export CFLAGS=-fPIE CXXFLAGS=-fPIE LDFLAGS=-pie
             ./configure ${{ matrix.configure_flags }}
             gmake -j"$(sysctl -n hw.ncpu)"
             strip out/Release/node
+            if ! LC_ALL=C readelf -h out/Release/node | grep -q 'Type: *DYN '; then
+              LC_ALL=C readelf -h out/Release/node | grep 'Type:'
+              echo 'out/Release/node is not a PIE.' >&2; exit 1
+            fi
 
       # A staged platform builds until a deadline that leaves the rest of the
       # job for copying the tree back out of the VM and saving it (60 minutes

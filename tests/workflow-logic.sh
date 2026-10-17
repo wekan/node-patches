@@ -617,6 +617,29 @@ else
   fail "FreeBSD compiler selection regression"
 fi
 
+# i386 is linked as a non-PIE, as nodejs.org links Linux: an i386 PIE carries
+# R_386_32 relocations LIEF cannot adjust when it injects a single executable
+# application (WeKan v12.51's i386 single file). The flags reach the build,
+# and the build refuses a binary of any other ELF type.
+i386_pie="$(python3 - "$ALL" <<'PYEOF'
+import sys, yaml
+wf = yaml.safe_load(open(sys.argv[1]))
+build = wf['jobs']['build']
+i386 = next(m for m in build['strategy']['matrix']['include'] if m['platform'] == 'i386')
+step = next(s for s in build['steps'] if s.get('name') == 'Build (in a container of the target architecture)')
+run = step['run']
+good = (i386.get('pie_cflags') == '-fno-pie' and i386.get('pie_ldflags') == '-no-pie' and i386.get('elf_type') == 'EXEC'
+        and '-e CFLAGS="${{ matrix.pie_cflags }}" -e CXXFLAGS="${{ matrix.pie_cflags }}"' in run
+        and '-e LDFLAGS="${{ matrix.pie_ldflags }}"' in run
+        and 'readelf -h out/Release/node | grep -q "Type: *$want "' in run
+        and run.index('strip out/Release/node') < run.index('readelf -h'))
+print('ok' if good else 'bad')
+PYEOF
+)"
+[ "$i386_pie" = ok ] \
+  && ok "i386 is built as a non-PIE and the build checks its ELF type" \
+  || fail "i386 PIE flags or the ELF type check are missing ($i386_pie)"
+
 echo
 echo "BSD link and c-ares fixes:"
 # The OpenBSD ports tree's -Wl,-rpath,${EOPENSSL_LIB} is for an external
