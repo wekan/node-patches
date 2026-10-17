@@ -68,7 +68,13 @@ handled (their commits carry the short description and link).
 **In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
 a PIE, so that Node.js can inject a single executable application into both.
 
-This release fixes the following bugs:
+This release updates the following dependency:
+
+- [vmactions/freebsd-vm 1.5.5 → 1.5.9](https://github.com/wekan/node-patches/commit/ec4e188),
+  the commit WeKan's `bsd.yml` uses, so both build in the same FreeBSD VM.
+  Thanks to xet7.
+
+and fixes the following bugs:
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/ab1542d">node-i386 is a non-PIE and node-freebsd-x64 a PIE, so a single executable can be injected</a>. Thanks to xet7.</summary>
