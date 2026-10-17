@@ -631,7 +631,7 @@ run = step['run']
 good = (i386.get('pie_cflags') == '-fno-pie' and i386.get('pie_ldflags') == '-no-pie' and i386.get('elf_type') == 'EXEC'
         and '-e CFLAGS="${{ matrix.pie_cflags }}" -e CXXFLAGS="${{ matrix.pie_cflags }}"' in run
         and '-e LDFLAGS="${{ matrix.pie_ldflags }}"' in run
-        and 'readelf -h out/Release/node | grep -q "Type: *$want "' in run
+        and 'readelf -h out/Release/node | grep -q "Type:[[:space:]]*$want "' in run
         and run.index('strip out/Release/node') < run.index('readelf -h'))
 print('ok' if good else 'bad')
 PYEOF

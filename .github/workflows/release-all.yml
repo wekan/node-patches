@@ -843,7 +843,7 @@ jobs:
               make -j"$(nproc)"
               strip out/Release/node
               want="${{ matrix.elf_type }}"
-              if [ -n "$want" ] && ! LC_ALL=C readelf -h out/Release/node | grep -q "Type: *$want "; then
+              if [ -n "$want" ] && ! LC_ALL=C readelf -h out/Release/node | grep -q "Type:[[:space:]]*$want "; then
                 LC_ALL=C readelf -h out/Release/node | grep "Type:"
                 echo "::error::out/Release/node is not ELF type $want."; exit 1
               fi
@@ -1073,7 +1073,7 @@ jobs:
             ./configure ${{ matrix.configure_flags }}
             gmake -j"$(sysctl -n hw.ncpu)"
             strip out/Release/node
-            if ! LC_ALL=C readelf -h out/Release/node | grep -q 'Type: *DYN '; then
+            if ! LC_ALL=C readelf -h out/Release/node | grep -q 'Type:[[:space:]]*DYN '; then
               LC_ALL=C readelf -h out/Release/node | grep 'Type:'
               echo 'out/Release/node is not a PIE.' >&2; exit 1
             fi

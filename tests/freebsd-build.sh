@@ -63,9 +63,9 @@ chmod +x "$work/configure" "$work/bin/gmake" "$work/bin/sysctl"
  fi
  # The single-file injection needs a PIE here (WeKan v12.51 freebsd-x64):
  # building without the PIE flags must be caught by the workflow's own check.
- LC_ALL=C readelf -h out/Release/node | grep -q 'Type: *DYN '
+ LC_ALL=C readelf -h out/Release/node | grep -q 'Type:[[:space:]]*DYN '
  sed '/export CFLAGS=-fPIE CXXFLAGS=-fPIE LDFLAGS=-pie/d' build.sh > nopie.sh
- grep -q "Type: \*DYN " nopie.sh
+ grep -q "Type:\[\[:space:\]\]\*DYN " nopie.sh
  if sh nopie.sh > nopie.log 2>&1; then
    echo 'FAIL: a non-PIE FreeBSD node was not detected' >&2
    exit 1
