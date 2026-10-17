@@ -63,6 +63,34 @@ handled (their commits carry the short description and link).
 
 </details>
 
+# Upcoming node-patches release
+
+**In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
+a PIE, so that Node.js can inject a single executable application into both.
+
+This release fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/ab1542d">node-i386 is a non-PIE and node-freebsd-x64 a PIE, so a single executable can be injected</a>. Thanks to xet7.</summary>
+
+Node.js injects a single executable application with LIEF, which needs room
+for one more ELF program header. WeKan v12.51's single files failed on both:
+
+- **i386:** Debian's gcc made a PIE. LIEF does not adjust its 1,524 R_386_32
+  relocations when it shifts a PIE, and `--build-sea` stopped with
+  `std::bad_alloc`. It is linked `-no-pie` now, as nodejs.org links Linux.
+- **freebsd-x64:** FreeBSD's cc made a non-PIE, and lld gave it two bss-like
+  segments, which LIEF cannot add a segment to ("Failed to relocate ELF
+  program headers"). It is built `-fPIE -pie` now.
+
+Each build checks the ELF type it produced. `tests/freebsd-build.sh` runs the
+FreeBSD step with a non-PIE default and fails it without the PIE flags, and
+`tests/workflow-logic.sh` pins the i386 flags and the check.
+
+</details>
+
+Thanks to above GitHub users for their contributions and translators for their translations.
+
 # v26.12.0 2026-10-15 node-patches release
 
 **In short:** Node.js for **OpenBSD** (amd64, arm64, built on OpenBSD 7.8)
