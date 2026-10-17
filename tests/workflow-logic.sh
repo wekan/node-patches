@@ -173,7 +173,7 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
 grep -A 5 -E '^ +- platform: win-arm64$' "$ALL" | grep -q 'vcbuild_arch: arm64' \
   && ok "Windows ARM64 uses the upstream arm64 vcbuild target" \
   || fail "Windows ARM64 is not wired to vcbuild arm64"
-grep -q 'uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1' "$ALL" \
+grep -qE 'uses: vmactions/freebsd-vm@[0-9a-f]{40}( |$)' "$ALL" \
   && ok "FreeBSD uses an immutable pinned VM action" \
   || fail "FreeBSD VM action is absent or not commit-pinned"
 # OpenBSD and NetBSD (dist/openbsd, dist/netbsd): pinned VM actions, and the

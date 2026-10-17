@@ -1053,7 +1053,7 @@ jobs:
 
       - name: Build natively in FreeBSD
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'freebsd' }}
-        uses: vmactions/freebsd-vm@f0552d3b69211736abd97f02ff3d4674c56b73b1
+        uses: vmactions/freebsd-vm@c46abacb49f09938ca4e1702d15d836285d694cc # v1.5.9
         with:
           release: '14.3'
           prepare: pkg install -y python3 gmake ninja pkgconf
