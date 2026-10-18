@@ -43,7 +43,10 @@ carried for an amd64/arm64 build with Node's bundled dependencies:
   - llhttp's gyp knows OpenBSD.
 - **Node:**
   - `cares_wrap.h` gets the `ns_*` names OpenBSD's `<arpa/nameser.h>`
-    lacks.
+    lacks - only when c-ares includes that header
+    (`CARES_HAVE_ARPA_NAMESER_H`, a system c-ares as in ports). Node's
+    bundled c-ares defines them itself in `ares_nameser.h`, and a second
+    definition stopped openbsd-x64: "redefinition of '__ns_class'".
   - `env.cc`, `lib/net.js` and the CommonJS loader carry the port's OpenBSD
     behaviour.
 

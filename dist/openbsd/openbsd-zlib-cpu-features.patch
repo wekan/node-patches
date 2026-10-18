@@ -1,0 +1,64 @@
+diff --git a/deps/zlib/cpu_features.c b/deps/zlib/cpu_features.c
+index 6613a65..cad28b1 100644
+--- a/deps/zlib/cpu_features.c
++++ b/deps/zlib/cpu_features.c
+@@ -8,6 +8,25 @@
+ #include "cpu_features.h"
+ #include "zutil.h"
+ 
++/* OpenBSD on arm64: zlib.gyp builds the NEON and ARMv8 CRC32 code there, whose
++ * callers run cpu_check_features(), but defines no ARMV8_OS_* for OpenBSD, so
++ * the function was never defined ("undefined symbol: cpu_check_features").
++ * The features are read with elf_aux_info(AT_HWCAP) where the system has it,
++ * and are otherwise left off - the portable code, never an unsupported
++ * instruction. */
++#if defined(__OpenBSD__) && defined(__aarch64__)
++#define ARMV8_OS_OPENBSD
++#if defined(__has_include)
++#if __has_include(<sys/auxv.h>)
++#include <sys/auxv.h>
++#define ARMV8_OPENBSD_HAVE_AUXV
++#endif
++#if __has_include(<machine/elf.h>)
++#include <machine/elf.h>
++#endif
++#endif
++#endif
++
+ #include <stdint.h>
+ #if defined(_MSC_VER)
+ #include <intrin.h>
+@@ -39,7 +58,8 @@ int ZLIB_INTERNAL riscv_cpu_enable_vclmul = 0;
+ #ifndef CPU_NO_SIMD
+ 
+ #if defined(ARMV8_OS_ANDROID) || defined(ARMV8_OS_LINUX) || \
+-    defined(ARMV8_OS_FUCHSIA) || defined(ARMV8_OS_IOS)
++    defined(ARMV8_OS_FUCHSIA) || defined(ARMV8_OS_IOS) || \
++    defined(ARMV8_OS_OPENBSD)
+ #include <pthread.h>
+ #endif
+ 
+@@ -69,6 +89,7 @@ static void _cpu_check_features(void);
+ #if defined(ARMV8_OS_ANDROID) || defined(ARMV8_OS_LINUX) || \
+     defined(ARMV8_OS_MACOS) || defined(ARMV8_OS_FUCHSIA) || \
+     defined(X86_NOT_WINDOWS) || defined(ARMV8_OS_IOS) || \
++    defined(ARMV8_OS_OPENBSD) || \
+     defined(RISCV_RVV)
+ #if !defined(ARMV8_OS_MACOS)
+ // _cpu_check_features() doesn't need to do anything on mac/arm since all
+@@ -144,6 +165,15 @@ static void _cpu_check_features(void)
+     len = sizeof(val);
+     arm_cpu_enable_pmull = sysctlbyname("hw.optional.arm.FEAT_PMULL", &val, &len, 0, 0) == 0
+                && val != 0;
++#elif defined(ARMV8_OS_OPENBSD)
++#if defined(ARMV8_OPENBSD_HAVE_AUXV) && defined(AT_HWCAP) && \
++    defined(HWCAP_CRC32) && defined(HWCAP_PMULL)
++    unsigned long features = 0;
++    if (elf_aux_info(AT_HWCAP, &features, sizeof(features)) == 0) {
++        arm_cpu_enable_crc32 = !!(features & HWCAP_CRC32);
++        arm_cpu_enable_pmull = !!(features & HWCAP_PMULL);
++    }
++#endif
+ #endif
+ }
+ #endif

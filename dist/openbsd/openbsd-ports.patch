@@ -770,11 +770,15 @@ diff --git a/src/cares_wrap.h b/src/cares_wrap.h
 index fd66a671..b6726041 100644
 --- a/src/cares_wrap.h
 +++ b/src/cares_wrap.h
-@@ -472,4 +472,109 @@ QUERY_TYPES(V)
+@@ -472,4 +472,114 @@ QUERY_TYPES(V)
  
  #endif  // defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
  
-+// arpa/nameser.h does not define these for OpenBSD
++// arpa/nameser.h does not define these for OpenBSD. Only needed when c-ares
++// includes that header (a system c-ares, as in OpenBSD ports): otherwise
++// c-ares' own ares_nameser.h defines them already, and a second definition
++// is an error - "redefinition of '__ns_class'" with Node's bundled c-ares.
++#ifdef CARES_HAVE_ARPA_NAMESER_H
 +typedef enum __ns_class {
 +    ns_c_invalid = 0,       /* Cookie. */
 +    ns_c_in = 1,            /* Internet. */
@@ -877,6 +881,7 @@ index fd66a671..b6726041 100644
 +    ns_r_badkey = 17,
 +    ns_r_badtime = 18
 +} ns_rcode;
++#endif  // CARES_HAVE_ARPA_NAMESER_H
 +
 +
  #endif  // SRC_CARES_WRAP_H_

@@ -17,7 +17,7 @@ sections are version-agnostic and carry forward across upstream releases.
 | `riscv64/` | riscv64 | Use linkable floating-point min/max assembler methods in Maglev. |
 | `mac/` | mac-x64, mac-arm64 | Apple Clang: KMAC brace initialisation. |
 | `win32/` | win32 | Windows 32-bit build restoration (upstream removed it in Node 23). |
-| `openbsd/` | openbsd-x64, openbsd-arm64 | OpenBSD: the OpenBSD ports `lang/node` patches (by Volker Schlecht and others), rebased onto Node 26 - V8's OpenBSD platform and embedded-code section, W^X and retguard, IBT/BTI, abseil/highway, `wxneeded`. |
+| `openbsd/` | openbsd-x64, openbsd-arm64 | OpenBSD: the OpenBSD ports `lang/node` patches (by Volker Schlecht and others), rebased onto Node 26 - V8's OpenBSD platform and embedded-code section, W^X and retguard, IBT/BTI, abseil/highway, `wxneeded`. Also the bundled OpenSSL's source lists, and zlib's `cpu_check_features()` on arm64. |
 | `bsd-arm64/` | openbsd-arm64 | Node's bundled OpenSSL for a BSD on arm64: the no-asm source list and the 31 no-asm dispatcher headers point at `linux-aarch64/no-asm` (configured `--openssl-no-asm`); before, they fell through to linux-x86_64 sources and linux-elf headers. |
 | `netbsd/` | netbsd-x64 | NetBSD: pkgsrc's `lang/nodejs` patches for Node 26.11.1 - `netbsd` in the gyp OS lists, c-ares config, V8 platform and memory fixes, header includes. |
 | `android/` | android-arm64, android-armv7, android-x64, android-x86 | Android/Termux: Termux's nodejs patches adapted (paths, `localhost` on IPv6, gyp `OS=="android"`, bionic runtime fixes) and zlib CPU features via `getauxval`. |

@@ -52,7 +52,12 @@ files="$(cat "$ROOT"/dist/*/*.patch | sed -n 's#^--- a/##p' | sort -u)"
 # And the files the checks below read although no patch touches them any more:
 # upstream took over the histogram fix in v26.11.1, and the i386 check still
 # pins it, so a release that brings the 32-bit AVX2 path back is caught.
-files="$(printf '%s\n' $files deps/histogram/src/hdr_histogram.c | sort -u)"
+# The OpenBSD checks below also read c-ares' own ns_* definitions, and compile
+# cpu_features.c, which needs zlib's headers.
+files="$(printf '%s\n' $files deps/histogram/src/hdr_histogram.c \
+  deps/cares/include/ares_nameser.h \
+  deps/zlib/cpu_features.h deps/zlib/zutil.h deps/zlib/zlib.h deps/zlib/zconf.h deps/zlib/chromeconf.h \
+  | sort -u)"
 
 echo "Fetching the $(printf '%s\n' "$files" | wc -l | tr -d ' ') files the patches touch, at $V:"
 for f in $files; do
@@ -153,6 +158,62 @@ PY
     else
       fail "openbsd-x64 OpenSSL still compiles engines/e_devcrypto.c"
     fi
+  fi
+  # OpenBSD ports' cares_wrap.h defines the ns_* enums OpenBSD's
+  # <arpa/nameser.h> lacks; Node's bundled c-ares defines them itself unless
+  # CARES_HAVE_ARPA_NAMESER_H, so the ports copy must be under that macro or
+  # it is a redefinition - v26.12.0 openbsd-x64: "redefinition of '__ns_class'".
+  case "$p" in
+    openbsd-x64|openbsd-arm64)
+      ns_state="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+def guards(path):
+    # Each `typedef enum __ns_*` with the #if conditions around it.
+    stack, found = [], {}
+    for line in Path(path).read_text().splitlines():
+        d = line.strip()
+        if re.match(r'#\s*if', d):
+            stack.append(d)
+        elif re.match(r'#\s*endif', d):
+            stack and stack.pop()
+        m = re.match(r'typedef enum (__ns_\w+)', d)
+        if m:
+            found[m.group(1)] = list(stack)
+    return found
+
+wrap = guards('src/cares_wrap.h')
+cares = guards('deps/cares/include/ares_nameser.h')
+bad = [n for n in wrap if not any(g.startswith('#ifdef CARES_HAVE_ARPA_NAMESER_H') for g in wrap[n])]
+own = [n for n in wrap if not any(g.startswith('#ifndef CARES_HAVE_ARPA_NAMESER_H') for g in cares.get(n, []))]
+print('ok' if wrap and not bad and not own else 'bad:' + ' '.join(bad + own))
+PY
+)"
+      if [ "$ns_state" = ok ]; then
+        ok "$p cares_wrap.h defines ns_* only where c-ares does not"
+      else
+        fail "$p cares_wrap.h redefines c-ares' ns_* enums ($ns_state)"
+      fi
+      ;;
+  esac
+  # zlib's NEON/CRC32 callers run cpu_check_features(), which cpu_features.c
+  # defined for no OpenBSD - v26.12.0 openbsd-arm64: "undefined symbol:
+  # cpu_check_features". Compiled as OpenBSD aarch64 with zlib.gyp's NEON
+  # defines, the object must define it.
+  if [ "$p" = openbsd-arm64 ]; then
+    cc_bin="$(command -v cc || command -v gcc || command -v clang || true)"
+    if [ -z "$cc_bin" ] || ! command -v nm >/dev/null; then
+      echo "  skip openbsd-arm64 cpu_check_features (no C compiler or nm here)"
+    elif "$cc_bin" -c -w -U__linux__ -D__OpenBSD__ -D__aarch64__ -D__ARM_NEON -D__ARM_NEON__ \
+         -DCRC32_ARMV8_CRC32 -DDEFLATE_SLIDE_HASH_NEON -Ideps/zlib \
+         -o "$TMP/cpu_features.o" deps/zlib/cpu_features.c 2>"$TMP/cpu_features.err" &&
+       nm "$TMP/cpu_features.o" | grep -qE ' T _?cpu_check_features$'; then
+      ok "openbsd-arm64 zlib defines cpu_check_features"
+    else
+      fail "openbsd-arm64 zlib does not define cpu_check_features: $(head -3 "$TMP/cpu_features.err" | tr '\n' ' ')"
+    fi
+    rm -f "$TMP/cpu_features.o" "$TMP/cpu_features.err"
   fi
   if [ "$p" = armv6 ]; then
     armv6_yield_state="$(python3 - <<'PY'
