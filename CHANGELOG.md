@@ -112,6 +112,18 @@ same configuration.
 </details>
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/b491cbf">OpenBSD x64 compiles its bundled OpenSSL without the /dev/crypto engine</a>. Thanks to xet7.</summary>
+
+With BSD-x86_64's sources, the openbsd-x64 build then compiled
+`engines/e_devcrypto.c` and failed with "incomplete definition of type
+'session_op_t'": OpenBSD's kernel has no `/dev/crypto` ioctl interface. The
+same patch now defines `OPENSSL_NO_DEVCRYPTOENG` and drops `e_devcrypto.c`
+from `openssl.gyp`'s openssl target on OpenBSD, as OpenSSL's
+`no-devcryptoeng` does. `tests/patches-apply.sh` checks it for openbsd-x64.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/04b80d2">A staged build saves its workspace outside it, so tar no longer sees it change</a>. Thanks to xet7.</summary>
 
 Every openbsd-arm64 stage of v26.12.0 stopped at its deadline with "tar: .:
