@@ -124,6 +124,25 @@ from `openssl.gyp`'s openssl target on OpenBSD, as OpenSSL's
 </details>
 
 <details>
+<summary><a href="https://github.com/wekan/node-patches/commit/7a0c804">OpenBSD builds no second ns_* beside c-ares, and zlib's CPU check on arm64</a>. Thanks to xet7.</summary>
+
+- **openbsd-x64** then stopped in `src/cares_wrap.h`: "redefinition of
+  '__ns_class'". The OpenBSD ports hunk that defines the `ns_*` enums is for
+  the system c-ares that ports links. Node's bundled c-ares defines them in
+  `ares_nameser.h`, so the hunk now applies only under
+  `CARES_HAVE_ARPA_NAMESER_H`.
+- **openbsd-arm64** stopped linking with "undefined symbol:
+  cpu_check_features". zlib's `cpu_features.c` defines that function for no
+  OpenBSD. The new `dist/openbsd/openbsd-zlib-cpu-features.patch` adds an
+  OpenBSD aarch64 branch, which reads CRC32 and PMULL with `elf_aux_info()`
+  where it exists and otherwise leaves them off.
+
+`tests/patches-apply.sh` checks both for the two OpenBSD builds, and fails
+without these patches.
+
+</details>
+
+<details>
 <summary><a href="https://github.com/wekan/node-patches/commit/04b80d2">A staged build saves its workspace outside it, so tar no longer sees it change</a>. Thanks to xet7.</summary>
 
 Every openbsd-arm64 stage of v26.12.0 stopped at its deadline with "tar: .:
