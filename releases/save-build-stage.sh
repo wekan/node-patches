@@ -12,7 +12,16 @@ set -euo pipefail
 [ -f .stage-partial ] || { echo "::error::No .stage-partial: the build was not stopped at a deadline."; exit 1; }
 printf 'VERSION=%s\nUPSTREAM_COMMIT=%s\n' "${VERSION:?}" "${UPSTREAM_COMMIT:?}" > .stage-env
 # zstd on all cores; the artifact upload then stores it as it is.
-tar --zstd -cf stage.tar.zst --exclude=./stage.tar.zst .
+#
+# Written OUTSIDE the workspace, and moved in once it is complete: tar --zstd
+# hands the output to zstd, which creates stage.tar.zst in . while tar is
+# reading ., so GNU tar saw the directory change under it ("tar: .: file
+# changed as we read it") and exited 1 - every openbsd-arm64 stage of v26.12.0
+# stopped there, before anything was saved for the next one.
+archive="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/stage.tar.zst"
+rm -f "$archive" stage.tar.zst
+tar --zstd -cf "$archive" .
+mv "$archive" stage.tar.zst
 ls -l stage.tar.zst
 echo "STAGED_PARTIAL=true" >> "$GITHUB_ENV"
 {

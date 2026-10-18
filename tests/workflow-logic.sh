@@ -201,7 +201,7 @@ grep -q 'kill -TERM "$make_pid"' "$OBSD" && grep -q 'touch .stage-partial' "$OBS
   && grep -q 'if \[ -f out/Makefile \]; then' "$OBSD" \
   && ok "a staged build stops gmake at its deadline and resumes without configure" \
   || fail "build-openbsd.sh does not stop at STAGE_DEADLINE or resume from out/"
-grep -q "tar --zstd -cf stage.tar.zst" "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
+grep -q 'tar --zstd -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
   && ok "a stage is saved and restored with its timestamps" \
   || fail "the staged workspace is not saved and restored with tar"
 python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-6, the last without a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
@@ -610,6 +610,12 @@ PYEOF
 [ "$pull_step" = ok ] \
   && ok "the build pulls binfmt and its container image through pull-image.sh before any docker run" \
   || fail "the pull step is missing, misplaced or does not cover every container mode ($pull_step)"
+
+if bash "$ROOT/tests/save-build-stage.sh"; then
+  ok "a staged build is saved outside the workspace and restored with its timestamps"
+else
+  fail "save-build-stage.sh cannot save a staged workspace"
+fi
 
 if bash "$ROOT/tests/freebsd-build.sh"; then
   ok "FreeBSD selects the native compiler for configure and make"
