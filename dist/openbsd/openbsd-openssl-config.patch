@@ -1,0 +1,88 @@
+diff --git a/deps/openssl/openssl-cl_asm.gypi b/deps/openssl/openssl-cl_asm.gypi
+index c08000b..eecaefb 100644
+--- a/deps/openssl/openssl-cl_asm.gypi
++++ b/deps/openssl/openssl-cl_asm.gypi
+@@ -10,7 +10,7 @@
+       'includes': ['config/archs/linux-armv4/asm/openssl-cl.gypi'],
+     }, 'target_arch=="arm64" and OS in "linux openharmony"', {
+       'includes': ['config/archs/linux-aarch64/asm/openssl-cl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86/asm/openssl-cl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm/openssl-cl.gypi'],
+@@ -23,7 +23,7 @@
+     }, 'target_arch=="ia32"', {
+       # noasm linux-elf for other ia32 platforms
+       'includes': ['config/archs/linux-elf/asm/openssl-cl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm/openssl-cl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm/openssl-cl.gypi'],
+diff --git a/deps/openssl/openssl-cl_asm_avx2.gypi b/deps/openssl/openssl-cl_asm_avx2.gypi
+index 229e856..0d97e26 100644
+--- a/deps/openssl/openssl-cl_asm_avx2.gypi
++++ b/deps/openssl/openssl-cl_asm_avx2.gypi
+@@ -10,7 +10,7 @@
+       'includes': ['config/archs/linux-armv4/asm_avx2/openssl-cl.gypi'],
+     }, 'target_arch=="arm64" and OS in "linux openharmony"', {
+       'includes': ['config/archs/linux-aarch64/asm_avx2/openssl-cl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86/asm_avx2/openssl-cl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl-cl.gypi'],
+@@ -23,7 +23,7 @@
+     }, 'target_arch=="ia32"', {
+       # noasm linux-elf for other ia32 platforms
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl-cl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm_avx2/openssl-cl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm_avx2/openssl-cl.gypi'],
+diff --git a/deps/openssl/openssl_asm.gypi b/deps/openssl/openssl_asm.gypi
+index 6ad6065..873e6bc 100644
+--- a/deps/openssl/openssl_asm.gypi
++++ b/deps/openssl/openssl_asm.gypi
+@@ -12,7 +12,7 @@
+       'includes': ['config/archs/linux-aarch64/asm/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-arm64-cc/asm/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86/asm/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm/openssl.gypi'],
+@@ -40,7 +40,7 @@
+       ],
+     }, 'target_arch=="ia32"', {
+       'includes': ['config/archs/linux-elf/asm/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm/openssl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm/openssl.gypi'],
+diff --git a/deps/openssl/openssl_asm_avx2.gypi b/deps/openssl/openssl_asm_avx2.gypi
+index 52c89bb..a36d37c 100644
+--- a/deps/openssl/openssl_asm_avx2.gypi
++++ b/deps/openssl/openssl_asm_avx2.gypi
+@@ -10,7 +10,7 @@
+       'includes': ['config/archs/linux-armv4/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="arm64" and OS in ("linux", "openharmony")', {
+       'includes': ['config/archs/linux-aarch64/asm_avx2/openssl.gypi'],
+-    }, 'target_arch=="ia32" and OS=="freebsd"', {
++    }, 'target_arch=="ia32" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="ia32" and OS=="linux"', {
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl.gypi'],
+@@ -38,7 +38,7 @@
+       ],
+     }, 'target_arch=="ia32"', {
+       'includes': ['config/archs/linux-elf/asm_avx2/openssl.gypi'],
+-    }, 'target_arch=="x64" and OS=="freebsd"', {
++    }, 'target_arch=="x64" and OS in ("freebsd", "openbsd")', {
+       'includes': ['config/archs/BSD-x86_64/asm_avx2/openssl.gypi'],
+     }, 'target_arch=="x64" and OS=="mac"', {
+       'includes': ['config/archs/darwin64-x86_64-cc/asm_avx2/openssl.gypi'],

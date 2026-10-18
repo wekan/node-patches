@@ -108,6 +108,27 @@ for p in $matrix; do
       fail "ia32 histogram still enables its 64-bit-lane AVX2 path on i386"
     fi
   fi
+  # The bundled OpenSSL's headers (deps/openssl/config/*_asm.h) send every BSD
+  # on x86-64 to BSD-x86_64 by compiler macro; its source lists must send the
+  # same OS there by gyp OS, or the library is compiled from another
+  # platform's sources - v26.12.0 openbsd-x64: "undefined symbol:
+  # engine_load_devcrypto_int" (dist/openbsd/openbsd-openssl-config.md).
+  case "$p" in
+    freebsd-x64|openbsd-x64|netbsd-x64)
+      os="${p%-x64}"
+      mismatch=""
+      for g in openssl_asm.gypi openssl_asm_avx2.gypi openssl-cl_asm.gypi openssl-cl_asm_avx2.gypi; do
+        line="$(grep -E "'target_arch==\"x64\" and OS" "deps/openssl/$g" | grep -B0 -E 'freebsd' | head -n1)"
+        printf '%s\n' "$line" | grep -qE "OS==\"$os\"|OS in \([^)]*\"$os\"" || mismatch="$mismatch $g"
+        grep -A1 -F "$line" "deps/openssl/$g" | grep -q 'BSD-x86_64' || mismatch="$mismatch $g(not BSD-x86_64)"
+      done
+      if [ -z "$mismatch" ]; then
+        ok "$p OpenSSL sources are BSD-x86_64's, as its headers are"
+      else
+        fail "$p OpenSSL headers are BSD-x86_64's but its sources are not:$mismatch"
+      fi
+      ;;
+  esac
   if [ "$p" = armv6 ]; then
     armv6_yield_state="$(python3 - <<'PY'
 from pathlib import Path
