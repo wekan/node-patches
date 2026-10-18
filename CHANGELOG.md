@@ -66,7 +66,8 @@ handled (their commits carry the short description and link).
 # Upcoming node-patches release
 
 **In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
-a PIE, so that Node.js can inject a single executable application into both.
+a PIE, so that Node.js can inject a single executable application into both,
+and the two **OpenBSD** builds that v26.12.0 could not finish build again.
 
 This release updates the following dependency:
 
@@ -92,6 +93,33 @@ for one more ELF program header. WeKan v12.51's single files failed on both:
 Each build checks the ELF type it produced. `tests/freebsd-build.sh` runs the
 FreeBSD step with a non-PIE default and fails it without the PIE flags, and
 `tests/workflow-logic.sh` pins the i386 flags and the check.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/ac5834c">OpenBSD x64 builds its bundled OpenSSL from the sources that match its headers</a>. Thanks to xet7.</summary>
+
+The v26.12.0 openbsd-x64 build stopped linking `openssl-cli` with
+"undefined symbol: engine_load_devcrypto_int". OpenSSL's headers send
+`__OpenBSD__` to BSD-x86_64, which leaves the `/dev/crypto` engine on. The gyp
+source lists named only `freebsd`, so OpenBSD compiled the linux-x86_64
+sources, which have no `e_devcrypto.c`. The new
+`dist/openbsd/openbsd-openssl-config.patch` gives `openbsd` the BSD entries,
+as `netbsd-openssl-config` does for NetBSD. `tests/patches-apply.sh` now
+checks, for every BSD x64 build, that the sources and the headers name the
+same configuration.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/04b80d2">A staged build saves its workspace outside it, so tar no longer sees it change</a>. Thanks to xet7.</summary>
+
+Every openbsd-arm64 stage of v26.12.0 stopped at its deadline with "tar: .:
+file changed as we read it". The archive was created inside the directory
+that tar was reading, so nothing was saved and stages 2-6 had nothing to
+resume. The archive is now written to `RUNNER_TEMP` and moved in when it is
+complete. `tests/save-build-stage.sh` saves and restores a 3,000-file
+workspace and checks its timestamps.
 
 </details>
 
