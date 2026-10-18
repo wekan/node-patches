@@ -129,6 +129,31 @@ for p in $matrix; do
       fi
       ;;
   esac
+  # And OpenBSD has no /dev/crypto, so BSD-x86_64's engines/e_devcrypto.c does
+  # not compile there - v26.12.0 openbsd-x64: "incomplete definition of type
+  # 'session_op_t'". The library target must configure that engine out.
+  if [ "$p" = openbsd-x64 ]; then
+    devcrypto_state="$(python3 - <<'PY'
+import ast
+from pathlib import Path
+
+gyp = ast.literal_eval(Path('deps/openssl/openssl.gyp').read_text())
+target = next(t for t in gyp['targets'] if t['target_name'] == 'openssl')
+found = any(
+    c[0] == 'OS=="openbsd"'
+    and 'OPENSSL_NO_DEVCRYPTOENG' in c[1].get('defines', [])
+    and 'openssl/engines/e_devcrypto.c' in c[1].get('sources!', [])
+    for c in target.get('conditions', [])
+)
+print('ok' if found else 'missing')
+PY
+)"
+    if [ "$devcrypto_state" = ok ]; then
+      ok "openbsd-x64 OpenSSL builds without the /dev/crypto engine"
+    else
+      fail "openbsd-x64 OpenSSL still compiles engines/e_devcrypto.c"
+    fi
+  fi
   if [ "$p" = armv6 ]; then
     armv6_yield_state="$(python3 - <<'PY'
 from pathlib import Path

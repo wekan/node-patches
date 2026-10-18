@@ -86,3 +86,23 @@ index 52c89bb..a36d37c 100644
        'includes': ['config/archs/BSD-x86_64/asm_avx2/openssl.gypi'],
      }, 'target_arch=="x64" and OS=="mac"', {
        'includes': ['config/archs/darwin64-x86_64-cc/asm_avx2/openssl.gypi'],
+diff --git a/deps/openssl/openssl.gyp b/deps/openssl/openssl.gyp
+index 144085f..0695256 100644
+--- a/deps/openssl/openssl.gyp
++++ b/deps/openssl/openssl.gyp
+@@ -59,6 +59,15 @@
+         ['node_shared_zstd=="false"', {
+           'dependencies': [ '../zstd/zstd.gyp:zstd' ],
+         }],
++        # OpenBSD has no /dev/crypto ioctl interface: its <crypto/cryptodev.h>
++        # declares no session_op, crypt_op or CIOCGSESSION, so BSD-x86_64's
++        # engines/e_devcrypto.c does not compile there. Configure the engine
++        # out as OpenSSL's no-devcryptoeng would: no source, and crypto/init.c
++        # no longer calls engine_load_devcrypto_int.
++        ['OS=="openbsd"', {
++          'defines': [ 'OPENSSL_NO_DEVCRYPTOENG' ],
++          'sources!': [ 'openssl/engines/e_devcrypto.c' ],
++        }],
+       ],
+       'direct_dependent_settings': {
+         'include_dirs': [ 'openssl/include', 'openssl/crypto/include']
