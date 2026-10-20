@@ -154,6 +154,18 @@ workspace and checks its timestamps.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/903c56b">openbsd-arm64 has eleven resume stages, and every stage saves at its deadline</a>. Thanks to xet7.</summary>
+
+v26.12.0's stage 6, the last, was still compiling V8 when GitHub cancelled
+it at the job limit. The aarch64 VM is emulated on an amd64 runner, so a V8
+file takes about 1.5 minutes. The last stage had no deadline, so its five and
+a half hours were lost with nothing saved. Stages now run to 12, and every
+stage, the last too, stops in time and saves. A last stage that is still not
+done fails and says so. `tests/workflow-logic.sh` checks the chain.
+
+</details>
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.12.0 2026-10-15 node-patches release
