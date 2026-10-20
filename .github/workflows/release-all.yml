@@ -1266,9 +1266,12 @@ jobs:
   #
   # There is no combined checksum file to rebuild: every platform carries its
   # own node-<platform>.sha256sum, written and attached by its own build.
-  # openbsd-arm64's staged build (see its matrix entry): up to five more jobs
+  # openbsd-arm64's staged build (see its matrix entry): up to eleven more jobs
   # of about five hours each, one after the other, each resuming the last
   # one's saved workspace. A stage with nothing to resume stops in seconds.
+  # Five were not enough: v26.12.0's stage 6 was still compiling V8 (about 85%
+  # of the files done, the heaviest left) when GitHub cancelled it at the job
+  # limit. An emulated aarch64 VM compiles a V8 file in about 1.5 minutes.
   openbsd_arm64_stage_2:
     needs: [release, build]
     if: ${{ always() && needs.release.result == 'success' }}
@@ -1350,13 +1353,115 @@ jobs:
       configure_flags: --openssl-no-asm
       previous: '5'
       stage: '6'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_7:
+    needs: [release, openbsd_arm64_stage_6]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '6'
+      stage: '7'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_8:
+    needs: [release, openbsd_arm64_stage_7]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '7'
+      stage: '8'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_9:
+    needs: [release, openbsd_arm64_stage_8]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '8'
+      stage: '9'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_10:
+    needs: [release, openbsd_arm64_stage_9]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '9'
+      stage: '10'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_11:
+    needs: [release, openbsd_arm64_stage_10]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '10'
+      stage: '11'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_12:
+    needs: [release, openbsd_arm64_stage_11]
+    if: ${{ always() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '11'
+      stage: '12'
       last: true
       tag: ${{ needs.release.outputs.tag }}
       publish: ${{ inputs.publish }}
 
   publish:
     name: check the release and write its notes
-    needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6]
+    needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6, openbsd_arm64_stage_7, openbsd_arm64_stage_8, openbsd_arm64_stage_9, openbsd_arm64_stage_10, openbsd_arm64_stage_11, openbsd_arm64_stage_12]
     if: ${{ always() && inputs.publish && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:

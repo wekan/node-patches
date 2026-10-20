@@ -32,7 +32,7 @@ on:
         type: string
         required: true
       last:
-        description: the final stage builds to the end, with no deadline
+        description: the final stage - if the build is still not finished, it fails, after saving the workspace
         type: boolean
         default: false
       tag:
@@ -91,8 +91,13 @@ jobs:
           echo "RESUMING=true" >> "$GITHUB_ENV"
           echo "Resuming ${{ inputs.platform }} from stage ${{ inputs.previous }}: $(du -sh out | cut -f1) of out/."
 
+      # Every stage, the last one too. The last stage used to build with no
+      # deadline, "to the end": v26.12.0's stage 6 was still compiling V8 when
+      # GitHub cancelled it at the job limit, and its five and a half hours
+      # were thrown away with nothing saved. Now it stops in time, saves, and
+      # says that the chain was too short.
       - name: Set the build deadline
-        if: ${{ env.RESUMING == 'true' && !inputs.last }}
+        if: ${{ env.RESUMING == 'true' }}
         shell: bash
         run: echo "STAGE_DEADLINE=$(( JOB_START + 295 * 60 ))" >> "$GITHUB_ENV"
 
@@ -120,6 +125,13 @@ jobs:
           if-no-files-found: error
           retention-days: 2
           compression-level: 0
+
+      - name: Say that the stages ran out
+        if: ${{ inputs.last && env.STAGED_PARTIAL == 'true' }}
+        shell: bash
+        run: |
+          echo "::error::${{ inputs.platform }} is still not built after stage ${{ inputs.stage }}, the last one. Its workspace is saved as ${{ inputs.platform }}-stage-${{ inputs.stage }}; add stages to release-all.yml's openbsd_arm64_stage_* chain."
+          exit 1
 
       # The build finished: the same naming, checks and attachment as
       # release-all.yml's build job.

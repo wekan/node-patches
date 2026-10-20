@@ -204,24 +204,28 @@ grep -q 'kill -TERM "$make_pid"' "$OBSD" && grep -q 'touch .stage-partial' "$OBS
 grep -q 'tar --zstd -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
   && ok "a stage is saved and restored with its timestamps" \
   || fail "the staged workspace is not saved and restored with tar"
-python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-6, the last without a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
+python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-12, every one with a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
 import sys, yaml
 wf = yaml.safe_load(open(sys.argv[1]))
 jobs = wf['jobs']
 arm = [e for e in jobs['build']['strategy']['matrix']['include'] if e.get('platform') == 'openbsd-arm64'][0]
 assert arm.get('staged') is True
+# v26.12.0: five resumes were not enough - stage 6, the last, was still
+# compiling V8 when GitHub cancelled it, and nothing was saved.
+LAST = 12
 prev = 'build'
-for n in range(2, 7):
+for n in range(2, LAST + 1):
     j = jobs[f'openbsd_arm64_stage_{n}']
     assert j['uses'] == './.github/workflows/openbsd-resume.yml'
     assert prev in j['needs'] and 'always()' in j['if']
     w = j['with']
-    assert (w['previous'], w['stage'], w['last']) == (str(n - 1), str(n), n == 6), w
+    assert (w['previous'], w['stage'], w['last']) == (str(n - 1), str(n), n == LAST), w
     prev = f'openbsd_arm64_stage_{n}'
-assert all(f'openbsd_arm64_stage_{n}' in jobs['publish']['needs'] for n in range(2, 7))
+assert all(f'openbsd_arm64_stage_{n}' in jobs['publish']['needs'] for n in range(2, LAST + 1))
+assert f'openbsd_arm64_stage_{LAST + 1}' not in jobs, 'the chain ends at LAST'
 # A stage asks whether there is anything to resume before downloading it, and
 # may: actions: read on every link of the chain, from both entry points.
-for n in range(2, 7):
+for n in range(2, LAST + 1):
     assert jobs[f'openbsd_arm64_stage_{n}']['permissions'].get('actions') == 'read'
 import os
 root = os.path.dirname(os.path.dirname(sys.argv[1]))
@@ -232,6 +236,16 @@ ask = next(s for s in steps if s.get('id') == 'staged')
 fetch = next(s for s in steps if s.get('id') == 'fetch')
 assert steps.index(ask) < steps.index(fetch) and 'continue-on-error' not in fetch
 assert fetch['if'] == "${{ steps.staged.outputs.exists == 'true' }}"
+# Every stage has a deadline - the last one too - so a stage never runs into
+# the job limit and loses its work; a last stage that is not done saves, then fails.
+deadline = next(s for s in steps if s.get('name') == 'Set the build deadline')
+assert deadline['if'] == "${{ env.RESUMING == 'true' }}", deadline['if']
+names = [s.get('name') for s in steps]
+ran_out = next(s for s in steps if s.get('name') == 'Say that the stages ran out')
+assert ran_out['if'] == "${{ inputs.last && env.STAGED_PARTIAL == 'true' }}"
+assert 'exit 1' in ran_out['run']
+upload = next(i for i, s in enumerate(steps) if s.get('uses', '').startswith('actions/upload-artifact') and 'stage' in str(s.get('with', {}).get('name', '')))
+assert upload < steps.index(ran_out), 'saved before it fails'
 missing = yaml.safe_load(open(os.path.join(root, 'workflows/release-all-missing.yml')))
 assert missing['jobs']['build']['permissions'].get('actions') == 'read'
 PY
