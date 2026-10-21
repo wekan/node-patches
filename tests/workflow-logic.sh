@@ -750,6 +750,22 @@ name_line="$(grep -n 'name: Name it for the release, and say what it is' "$ALL" 
   && ok "an Android binary is smoke-tested in Termux before it is named or attached" \
   || fail "the Android smoke test is missing or runs after naming"
 
+# ── 5. The slow native builds have room to finish ─────────────────────────────
+#
+# macos-15-intel has 4 CPUs. v26.12.1's mac-x64 build was cancelled at its
+# 240-minute timeout with every object but the last few of v8_initializers
+# compiled (4,682 of them), so only mksnapshot and the link were missing.
+echo
+echo "mac-x64 has the time a 4-CPU Intel runner needs:"
+mac_x64_timeout="$(awk '/^ +- platform: mac-x64$/,/^ +timeout_minutes:/' "$ALL" | sed -nE 's/^ +timeout_minutes: *([0-9]+).*/\1/p')"
+if [ -z "$mac_x64_timeout" ]; then
+  fail "the mac-x64 target has no timeout_minutes of its own (the default 180 is too short)"
+elif [ "$mac_x64_timeout" -gt 240 ] && [ "$mac_x64_timeout" -le 360 ]; then
+  ok "mac-x64 may run $mac_x64_timeout minutes (more than the 240 it ran out of, at most the 360 ceiling)"
+else
+  fail "mac-x64 timeout_minutes is $mac_x64_timeout; it needs more than 240 and at most 360"
+fi
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "workflow-logic: everything holds."

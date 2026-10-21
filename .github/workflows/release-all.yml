@@ -545,12 +545,14 @@ jobs:
           # macos-15-intel (macOS 15 Sequoia on Intel hardware, with Xcode 16),
           # so x64 is built NATIVELY there - no cross-compile, no snapshot
           # simulation, no -arch flag to drop. (macos-13, the old Intel runner,
-          # is retired and only had Xcode 15.)
+          # is retired and only had Xcode 15.) That runner has 4 CPUs: v26.12.1
+          # hit 240 minutes with v8_initializers at 292 of 295 objects, so only
+          # mksnapshot and the link were left.
           - platform: mac-x64
             mode: mac
             runs_on: macos-15-intel
             configure_flags: ''
-            timeout_minutes: 240
+            timeout_minutes: 360        # measured >240, ~99% of the target compiles done; 360 is the runner ceiling
           # macos-15 (Sequoia) ships Xcode 16 by default; macos-14's default is
           # Xcode 15, whose Apple Clang lacks C++20 parenthesized aggregate
           # initialization (P0960). Node 26's V8 uses it (e.g.
