@@ -67,7 +67,8 @@ handled (their commits carry the short description and link).
 
 **In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
 a PIE, so that Node.js can inject a single executable application into both,
-and the two **OpenBSD** builds that v26.12.0 could not finish build again.
+the two **OpenBSD** builds that v26.12.0 could not finish build again, and
+the builds move to Node.js **v26.12.1**.
 
 This release updates the following dependency:
 
@@ -76,6 +77,26 @@ This release updates the following dependency:
   Thanks to xet7.
 
 and fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/7b134b4">Build Node.js v26.12.1: new source baseline, and a release with no binary says so</a>. Thanks to xet7.</summary>
+
+Every build of v26.12.1 stopped at the source audit, whose URL baseline was
+from v26.12.0. The 12 new URLs are in undici 8.12.2: the homepage and
+repository of its vendored milo parser in two `Cargo.toml` files and a
+`package.json`, and RFC 9111, RFC 9659 and Subresource Integrity references in
+comments. None is fetched and no telemetry keyword is new. The baseline is
+re-recorded from the v26.12.1 tag (commit bc2e01dcf6ac, 17,679 files).
+`tests/patches-apply.sh` passes on v26.12.1 for every section.
+
+With no binary on the release, the publish job then ended "Process completed
+with exit code 1" and said nothing. Its asset filter's `grep -v` passed no
+line and, under pipefail, ended the step before the check that reports that
+every build failed and removes the empty release. The grep now may pass
+nothing. `tests/workflow-logic.sh` runs the filter on an empty release and
+fails it without the fix.
+
+</details>
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/ab1542d">node-i386 is a non-PIE and node-freebsd-x64 a PIE, so a single executable can be injected</a>. Thanks to xet7.</summary>
