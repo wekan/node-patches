@@ -63,7 +63,7 @@ handled (their commits carry the short description and link).
 
 </details>
 
-# Upcoming node-patches release
+# v26.12.1 2026-10-21 node-patches release
 
 **In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
 a PIE, so that Node.js can inject a single executable application into both,
