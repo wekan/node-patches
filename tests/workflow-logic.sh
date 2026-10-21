@@ -145,6 +145,35 @@ case " $got " in *" win32.lib "*) fail "the Windows import library is still coun
 case " $got " in *" armhf "*) fail "a binary without its checksum counted as a complete platform" ;;
                  *) ok "a binary without its .sha256sum is not a complete platform" ;; esac
 
+# A release with NO binary on it - every build failed, as all of v26.12.1's did
+# at the source audit. The filter's grep then passes no line and exits 1, and
+# under pipefail that ended the step silently, before the check that says
+# "every build job failed" and removes the empty release. Run with `bash`, not
+# sourced, because the runner runs it that way and a sourced block inside a
+# command substitution can have -e suppressed.
+{ echo 'set -euo pipefail'; cat "$TMP/present.sh"; echo 'printf "reached:%s\n" "$present"'; } > "$TMP/present-run.sh"
+for assets in "" "node-x64.sha256sum"; do
+  printf '%s' "${assets:+$assets
+}" > "$TMP/pub/assets.txt"
+  label="${assets:-no assets at all}"
+  if out="$( cd "$TMP/pub" && bash "$TMP/present-run.sh" 2>&1 )" && [ "$out" = "reached:" ]; then
+    ok "a release with $label gives no platforms, and the step goes on to say so"
+  else
+    fail "the asset filter ended the step on a release with $label: [$out]"
+  fi
+done
+# NEGATIVE: without the `|| true` the same empty release must end the step,
+# which is what the v26.12.1 run did - so this check can tell the two apart.
+: > "$TMP/pub/assets.txt"
+sed 's/{ grep -vE \(.*\) || true; }/grep -vE \1/' "$TMP/present-run.sh" > "$TMP/present-bug.sh"
+if cmp -s "$TMP/present-run.sh" "$TMP/present-bug.sh"; then
+  fail "could not remove the grep's '|| true' from the filter (did its wording change?)"
+elif ( cd "$TMP/pub" && bash "$TMP/present-bug.sh" ) >/dev/null 2>&1; then
+  fail "the filter without '|| true' did NOT fail on an empty release - this check would not catch the regression"
+else
+  ok "the old filter, without '|| true', still ends the step on an empty release"
+fi
+
 # ── 3. The three platform lists have to agree ─────────────────────────────────
 #
 # The build matrix is the truth; release-all-missing.yml repeats the list to

@@ -1523,7 +1523,16 @@ jobs:
           # grep -v the checksum files and `.lib`: the Windows jobs also attach
           # node-win32.lib (the import library native addons link against), and
           # without this it became a "platform" called `win32.lib`.
-          present="$( (cat assets.txt 2>/dev/null || true) | grep -vE '\.(sha256sum|lib)$' \
+          #
+          # `|| true` on that grep: it exits 1 when it passes no line, which is
+          # exactly the case of a release with no binary on it, and under
+          # pipefail that killed the step right here, silently. v26.12.1's
+          # run, whose every build stopped at the source audit, ended "Process
+          # completed with exit code 1" with no word of why, and the empty
+          # release this run had created was never removed. The check below
+          # is what says "every build job failed" and cleans that release up,
+          # so it has to be reached.
+          present="$( (cat assets.txt 2>/dev/null || true) | { grep -vE '\.(sha256sum|lib)$' || true; } \
             | sed -n 's#^node-\(.*\)#\1#p' | sed 's#\.exe$##' \
             | while read -r p; do if grep -qxF "node-${p}.sha256sum" assets.txt; then echo "$p"; fi; done \
             | sort -u)"
