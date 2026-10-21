@@ -63,6 +63,26 @@ handled (their commits carry the short description and link).
 
 </details>
 
+# Upcoming node-patches release
+
+**In short:** the **mac-x64** build gets the time a 4-CPU Intel runner needs
+to finish.
+
+This release fixes the following bug:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/0b24208">mac-x64 may run 360 minutes, as the 4-CPU Intel runner needs</a>. Thanks to xet7.</summary>
+
+v26.12.1's mac-x64 build was cancelled at its 240-minute timeout on
+macos-15-intel. It had compiled 4,682 objects, with v8_initializers at 292 of
+295, so only mksnapshot and the link were left. It now has the 360-minute
+runner ceiling, like the other builds that ran over their limit.
+`tests/workflow-logic.sh` fails when mac-x64 has 240 minutes or fewer.
+
+</details>
+
+Thanks to above GitHub users for their contributions and translators for their translations.
+
 # v26.12.1 2026-10-21 node-patches release
 
 **In short:** **node-i386** is linked as a non-PIE and **node-freebsd-x64** as
