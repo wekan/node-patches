@@ -246,7 +246,7 @@ prev = 'build'
 for n in range(2, LAST + 1):
     j = jobs[f'openbsd_arm64_stage_{n}']
     assert j['uses'] == './.github/workflows/openbsd-resume.yml'
-    assert prev in j['needs'] and 'always()' in j['if']
+    assert prev in j['needs'] and '!cancelled()' in j['if'] and 'always()' not in j['if']  # runs after a failed stage, stops on cancel
     w = j['with']
     assert (w['previous'], w['stage'], w['last']) == (str(n - 1), str(n), n == LAST), w
     prev = f'openbsd_arm64_stage_{n}'
@@ -765,6 +765,32 @@ elif [ "$mac_x64_timeout" -gt 240 ] && [ "$mac_x64_timeout" -le 360 ]; then
 else
   fail "mac-x64 timeout_minutes is $mac_x64_timeout; it needs more than 240 and at most 360"
 fi
+
+# ── 6. A cancelled run stops ──────────────────────────────────────────────────
+#
+# Cancelling a run re-evaluates the `if:` of every running job, and a job whose
+# `if:` is still true is NOT cancelled. always() is true for a cancelled run,
+# so the openbsd-arm64 resume stages - eleven jobs of up to five hours each -
+# kept running after "Cancel workflow". Only the quick publish job may keep
+# always(), so the notes are written for what was attached before the cancel.
+echo
+echo "Cancel workflow stops the long jobs:"
+for wf in "$ALL" "$MISSING" "$ROOT/.github/workflows/openbsd-resume.yml"; do
+  bad="$(awk -v F="$(basename "$wf")" '
+    /^  [A-Za-z0-9_-]+:$/ { job=$1; sub(":","",job) }
+    /^    if: .*always\(\)/ && job != "publish" && job != "done" { print F ": " job }
+  ' "$wf")"
+  if [ -n "$bad" ]; then
+    while IFS= read -r j; do fail "job $j has always() in its if:, so Cancel workflow cannot stop it"; done <<< "$bad"
+  else
+    ok "$(basename "$wf"): no long job has always() in its if:"
+  fi
+done
+stages="$(grep -c "uses: ./.github/workflows/openbsd-resume.yml" "$ALL")"
+guarded="$(grep -c "if: \${{ !cancelled() && needs.release.result == 'success' }}" "$ALL")"
+[ "$stages" -gt 0 ] && [ "$stages" -eq "$guarded" ] \
+  && ok "all $stages openbsd-arm64 resume stages are skipped once the run is cancelled" \
+  || fail "$guarded of $stages openbsd-arm64 resume stages are guarded by !cancelled()"
 
 echo
 if [ "$fails" -eq 0 ]; then

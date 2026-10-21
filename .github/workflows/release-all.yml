@@ -1274,9 +1274,15 @@ jobs:
   # Five were not enough: v26.12.0's stage 6 was still compiling V8 (about 85%
   # of the files done, the heaviest left) when GitHub cancelled it at the job
   # limit. An emulated aarch64 VM compiles a V8 file in about 1.5 minutes.
+  #
+  # !cancelled(), NOT always(). Cancelling a run re-evaluates the `if:` of
+  # every running job, and a job whose `if:` is still true is not cancelled:
+  # with always() the running stage went on for its five hours and every
+  # later stage still started, so "Cancel workflow" did nothing. A failed
+  # stage still lets the next one run, as before.
   openbsd_arm64_stage_2:
     needs: [release, build]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1293,7 +1299,7 @@ jobs:
 
   openbsd_arm64_stage_3:
     needs: [release, openbsd_arm64_stage_2]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1310,7 +1316,7 @@ jobs:
 
   openbsd_arm64_stage_4:
     needs: [release, openbsd_arm64_stage_3]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1327,7 +1333,7 @@ jobs:
 
   openbsd_arm64_stage_5:
     needs: [release, openbsd_arm64_stage_4]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1344,7 +1350,7 @@ jobs:
 
   openbsd_arm64_stage_6:
     needs: [release, openbsd_arm64_stage_5]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1361,7 +1367,7 @@ jobs:
 
   openbsd_arm64_stage_7:
     needs: [release, openbsd_arm64_stage_6]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1378,7 +1384,7 @@ jobs:
 
   openbsd_arm64_stage_8:
     needs: [release, openbsd_arm64_stage_7]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1395,7 +1401,7 @@ jobs:
 
   openbsd_arm64_stage_9:
     needs: [release, openbsd_arm64_stage_8]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1412,7 +1418,7 @@ jobs:
 
   openbsd_arm64_stage_10:
     needs: [release, openbsd_arm64_stage_9]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1429,7 +1435,7 @@ jobs:
 
   openbsd_arm64_stage_11:
     needs: [release, openbsd_arm64_stage_10]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
@@ -1446,7 +1452,7 @@ jobs:
 
   openbsd_arm64_stage_12:
     needs: [release, openbsd_arm64_stage_11]
-    if: ${{ always() && needs.release.result == 'success' }}
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
     uses: ./.github/workflows/openbsd-resume.yml
     permissions:
       contents: write
