@@ -66,9 +66,9 @@ handled (their commits carry the short description and link).
 # Upcoming node-patches release
 
 **In short:** the **mac-x64** build gets the time a 4-CPU Intel runner needs
-to finish.
+to finish, and **Cancel workflow** stops the staged **openbsd-arm64** build.
 
-This release fixes the following bug:
+This release fixes the following bugs:
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/0b24208">mac-x64 may run 360 minutes, as the 4-CPU Intel runner needs</a>. Thanks to xet7.</summary>
@@ -78,6 +78,20 @@ macos-15-intel. It had compiled 4,682 objects, with v8_initializers at 292 of
 295, so only mksnapshot and the link were left. It now has the 360-minute
 runner ceiling, like the other builds that ran over their limit.
 `tests/workflow-logic.sh` fails when mac-x64 has 240 minutes or fewer.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/47759ba">Cancel workflow stops the openbsd-arm64 resume stages</a>. Thanks to xet7.</summary>
+
+Cancelling a run re-evaluates the `if:` of every running job, and a job whose
+`if:` is still true is not cancelled. The eleven `openbsd_arm64_stage_*` jobs
+had `always()`, so a cancelled run kept compiling in its current stage and
+still started the later ones, each up to five hours. They now have
+`!cancelled()`: a failed stage still lets the next one run, and a cancelled
+run skips them. `publish` keeps `always()`, so the notes are still written for
+what was attached before the cancel. `tests/workflow-logic.sh` fails on a long
+job with `always()` in its `if:`.
 
 </details>
 
