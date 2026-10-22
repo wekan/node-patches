@@ -95,6 +95,17 @@ job with `always()` in its `if:`.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/f4e3124">Every job that runs after a cancel has a timeout of its own</a>. Thanks to xet7.</summary>
+
+`publish` and release-all-missing's `done` run on `always()`, which Cancel
+workflow does not stop, and had no `timeout-minutes`, so a hung `gh` call could
+keep a cancelled run going for GitHub's six-hour default. They now have 30 and
+15 minutes. `tests/workflow-logic.sh` fails on a job on `always()` that is a
+reusable workflow or has no timeout of 60 minutes or less.
+
+</details>
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.12.1 2026-10-21 node-patches release
