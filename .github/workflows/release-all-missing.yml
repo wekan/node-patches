@@ -165,6 +165,8 @@ jobs:
     # along with the build it correctly did not run.
     if: ${{ always() }}
     runs-on: ubuntu-latest
+    # always(), which Cancel cannot stop: bounded, so it never runs on for hours.
+    timeout-minutes: 15
     steps:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

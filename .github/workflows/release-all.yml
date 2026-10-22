@@ -1472,6 +1472,8 @@ jobs:
     needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6, openbsd_arm64_stage_7, openbsd_arm64_stage_8, openbsd_arm64_stage_9, openbsd_arm64_stage_10, openbsd_arm64_stage_11, openbsd_arm64_stage_12]
     if: ${{ always() && inputs.publish && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
+    # always(), which Cancel cannot stop: bounded, so it never runs on for hours.
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
