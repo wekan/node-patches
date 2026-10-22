@@ -103,7 +103,7 @@ jobs:
 
       - name: Build natively in OpenBSD
         if: ${{ env.RESUMING == 'true' }}
-        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
+        uses: vmactions/openbsd-vm@f1ca8bc8ecc5b6ef7218e5b914836e067e1546d3 # v1.4.9
         with:
           release: '7.8'
           arch: ${{ inputs.vm_arch }}

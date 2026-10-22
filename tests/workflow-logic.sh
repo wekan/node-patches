@@ -207,9 +207,14 @@ grep -qE 'uses: vmactions/freebsd-vm@[0-9a-f]{40}( |$)' "$ALL" \
   || fail "FreeBSD VM action is absent or not commit-pinned"
 # OpenBSD and NetBSD (dist/openbsd, dist/netbsd): pinned VM actions, and the
 # two things each OS needs before V8 can run the code it generates.
-grep -q 'uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945' "$ALL" \
-  && ok "OpenBSD uses an immutable pinned VM action" \
-  || fail "OpenBSD VM action is absent or not commit-pinned"
+# Commit-pinned, and the resume stages use the same VM action as the build
+# job, so a staged build is resumed in the VM it was started in.
+obsd_files=("$ALL" "$ROOT/.github/workflows/openbsd-resume.yml")
+obsd_uses="$(grep -ohE 'uses: vmactions/openbsd-vm@[^ ]+' "${obsd_files[@]}" | sort -u)"
+[ -n "$obsd_uses" ] && [ "$(printf '%s\n' "$obsd_uses" | wc -l)" -eq 1 ] \
+  && printf '%s\n' "$obsd_uses" | grep -qE '@[0-9a-f]{40}$' \
+  && ok "OpenBSD uses one immutable pinned VM action, in the build and the resume stages" \
+  || fail "OpenBSD VM action is absent, not commit-pinned, or differs between the build and the resume stages"
 grep -q 'uses: vmactions/netbsd-vm@c8a0d7ddb84619a7a8cc4e652efa7950b3fd9f92' "$ALL" \
   && ok "NetBSD uses an immutable pinned VM action" \
   || fail "NetBSD VM action is absent or not commit-pinned"

@@ -1090,7 +1090,7 @@ jobs:
 
       - name: Build natively in OpenBSD
         if: ${{ env.BUILD_THIS == 'true' && matrix.mode == 'openbsd' }}
-        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945
+        uses: vmactions/openbsd-vm@f1ca8bc8ecc5b6ef7218e5b914836e067e1546d3 # v1.4.9
         with:
           # 7.8 is the first release whose base Clang (19.1.7) Node 26
           # accepts: 7.7's 16.0.6 has no std::atomic_ref, which V8 uses.
