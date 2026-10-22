@@ -68,7 +68,13 @@ handled (their commits carry the short description and link).
 **In short:** the **mac-x64** build gets the time a 4-CPU Intel runner needs
 to finish, and **Cancel workflow** stops the staged **openbsd-arm64** build.
 
-This release fixes the following bugs:
+This release updates the following dependency:
+
+- [vmactions/openbsd-vm 1.4.8 → 1.4.9](https://github.com/wekan/node-patches/commit/53b2510),
+  in the build and every resume stage. It adds OpenBSD 8.0 as the VM's default;
+  both OpenBSD jobs keep release 7.8. Thanks to xet7.
+
+and fixes the following bugs:
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/0b24208">mac-x64 may run 360 minutes, as the 4-CPU Intel runner needs</a>. Thanks to xet7.</summary>
