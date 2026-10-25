@@ -235,18 +235,55 @@ grep -q 'kill -TERM "$make_pid"' "$OBSD" && grep -q 'touch .stage-partial' "$OBS
   && grep -q 'if \[ -f out/Makefile \]; then' "$OBSD" \
   && ok "a staged build stops gmake at its deadline and resumes without configure" \
   || fail "build-openbsd.sh does not stop at STAGE_DEADLINE or resume from out/"
+# gyp's action stamps survive between stages: without .SECONDARY every stage
+# re-ran three generators and recompiled what they feed (v26.12.1).
+grep -qF "if ! grep -qx '\\.SECONDARY:' out/Makefile; then" "$OBSD" \
+  && grep -qF "printf '\\n# releases/build-openbsd.sh: keep action stamps between staged builds.\\n.SECONDARY:\\n' >> out/Makefile" "$OBSD" \
+  && ok "a staged build keeps gyp's action stamps, so a stage does not regenerate and recompile" \
+  || fail "build-openbsd.sh lets make delete gyp's .intermediate stamps between stages"
+# ...and it works: gyp's multi-output rule, built, then built again as the
+# next stage would - the script's own lines are run against it.
+STAMPDIR="$(mktemp -d)"
+mkdir -p "$STAMPDIR/out"
+cat > "$STAMPDIR/out/Makefile" <<'MK'
+all: obj.o
+.PHONY: FORCE_DO_CMD all
+FORCE_DO_CMD:
+gen1.h gen2.h: abc.intermediate
+	@:
+.INTERMEDIATE: abc.intermediate
+abc.intermediate: input.json FORCE_DO_CMD
+	@if [ -n "$(filter-out FORCE_DO_CMD,$?)" ]; then touch $@; echo ACTION; echo 1 > gen1.h; echo 2 > gen2.h; fi
+obj.o: gen1.h gen2.h
+	@echo CC; cat gen1.h gen2.h > obj.o
+MK
+echo '{}' > "$STAMPDIR/out/input.json"
+keep="$(sed -n "/^if ! grep -qx '\\\\.SECONDARY:' out\/Makefile; then/,/^fi/p" "$OBSD")"
+( cd "$STAMPDIR" && eval "$keep" && eval "$keep" )
+first="$(make -s -C "$STAMPDIR/out")"
+again="$(make -s -C "$STAMPDIR/out")"
+sleep 1; touch "$STAMPDIR/out/input.json"
+changed="$(make -s -C "$STAMPDIR/out")"
+[ "$(grep -cx '\.SECONDARY:' "$STAMPDIR/out/Makefile")" = 1 ] && [ -n "$keep" ] \
+  && echo "$first" | grep -q ACTION && [ -z "$again" ] && echo "$changed" | grep -q ACTION \
+  && ok "a resumed make runs no gyp action again, once; a changed input still regenerates" \
+  || fail "gyp's actions still run again on every make (first: $first / again: $again / changed: $changed)"
+rm -rf "$STAMPDIR"
 grep -q 'tar --zstd -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
   && ok "a stage is saved and restored with its timestamps" \
   || fail "the staged workspace is not saved and restored with tar"
-python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-12, every one with a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
+python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-14, every one with a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
 import sys, yaml
 wf = yaml.safe_load(open(sys.argv[1]))
 jobs = wf['jobs']
 arm = [e for e in jobs['build']['strategy']['matrix']['include'] if e.get('platform') == 'openbsd-arm64'][0]
 assert arm.get('staged') is True
 # v26.12.0: five resumes were not enough - stage 6, the last, was still
-# compiling V8 when GitHub cancelled it, and nothing was saved.
-LAST = 12
+# compiling V8 when GitHub cancelled it, and nothing was saved. v26.12.1:
+# twelve were not either - every stage compiled the same 78 objects again
+# (the .SECONDARY check below) - and stage 12 stopped at node_main.o; two
+# more give the link and the snapshot room.
+LAST = 14
 prev = 'build'
 for n in range(2, LAST + 1):
     j = jobs[f'openbsd_arm64_stage_{n}']

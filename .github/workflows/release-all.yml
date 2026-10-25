@@ -1463,13 +1463,47 @@ jobs:
       configure_flags: --openssl-no-asm
       previous: '11'
       stage: '12'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_13:
+    needs: [release, openbsd_arm64_stage_12]
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '12'
+      stage: '13'
+      last: false
+      tag: ${{ needs.release.outputs.tag }}
+      publish: ${{ inputs.publish }}
+
+  openbsd_arm64_stage_14:
+    needs: [release, openbsd_arm64_stage_13]
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    uses: ./.github/workflows/openbsd-resume.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      platform: openbsd-arm64
+      vm_arch: aarch64
+      configure_flags: --openssl-no-asm
+      previous: '13'
+      stage: '14'
       last: true
       tag: ${{ needs.release.outputs.tag }}
       publish: ${{ inputs.publish }}
 
   publish:
     name: check the release and write its notes
-    needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6, openbsd_arm64_stage_7, openbsd_arm64_stage_8, openbsd_arm64_stage_9, openbsd_arm64_stage_10, openbsd_arm64_stage_11, openbsd_arm64_stage_12]
+    needs: [release, build, openbsd_arm64_stage_2, openbsd_arm64_stage_3, openbsd_arm64_stage_4, openbsd_arm64_stage_5, openbsd_arm64_stage_6, openbsd_arm64_stage_7, openbsd_arm64_stage_8, openbsd_arm64_stage_9, openbsd_arm64_stage_10, openbsd_arm64_stage_11, openbsd_arm64_stage_12, openbsd_arm64_stage_13, openbsd_arm64_stage_14]
     if: ${{ always() && inputs.publish && needs.release.result == 'success' }}
     runs-on: ubuntu-latest
     # always(), which Cancel cannot stop: bounded, so it never runs on for hours.

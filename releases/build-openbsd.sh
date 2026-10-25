@@ -39,6 +39,21 @@ else
   ./configure "$@"
 fi
 
+# Keep gyp's action stamps between make runs. An action with several outputs
+# (the libffi headers, the inspector protocol sources, torque) is written as a
+# <hash>.intermediate stamp the outputs depend on, declared .INTERMEDIATE, so
+# make deletes the stamp when it exits - and the stamp also depends on the
+# phony FORCE_DO_CMD, so the next make, finding it gone, counts every input as
+# newer and runs the action again. One build never notices; a staged build
+# ran all three actions at the start of every stage, and their new headers
+# made it compile the same 78 objects again each time - v26.12.1's
+# openbsd-arm64 used twelve five-hour stages and still did not link.
+# .SECONDARY with no prerequisites keeps every such file, so a stage resumes
+# where the last one stopped; a changed input still regenerates.
+if ! grep -qx '\.SECONDARY:' out/Makefile; then
+  printf '\n# releases/build-openbsd.sh: keep action stamps between staged builds.\n.SECONDARY:\n' >> out/Makefile
+fi
+
 jobs="$(sysctl -n hw.ncpuonline)"
 if [ -n "${STAGE_DEADLINE:-}" ]; then
   echo "Building until $(date -r "$STAGE_DEADLINE") at the latest; the rest goes to the next job."
