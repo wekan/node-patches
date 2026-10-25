@@ -65,8 +65,10 @@ handled (their commits carry the short description and link).
 
 # Upcoming node-patches release
 
-**In short:** the **mac-x64** build gets the time a 4-CPU Intel runner needs
-to finish, and **Cancel workflow** stops the staged **openbsd-arm64** build.
+**In short:** the staged **openbsd-arm64** build resumes each stage where the
+last one stopped instead of compiling the same objects again, the **mac-x64**
+build gets the time a 4-CPU Intel runner needs to finish, and **Cancel
+workflow** stops the staged build.
 
 This release updates the following dependency:
 
@@ -75,6 +77,23 @@ This release updates the following dependency:
   both OpenBSD jobs keep release 7.8. Thanks to xet7.
 
 and fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/e5e3e0e">openbsd-arm64 resumes each stage where the last one stopped, with two more stages</a>. Thanks to xet7.</summary>
+
+v26.12.1's openbsd-arm64 ran all twelve five-hour stages and stopped at
+`node_main.o`, just before the link. Every stage began by running the libffi
+header, inspector protocol and torque generators again and compiling the same
+78 objects again: gyp writes an action with several outputs as a
+`<hash>.intermediate` stamp declared `.INTERMEDIATE`, which make deletes when it
+exits, and the stamp depends on the phony `FORCE_DO_CMD`, so the next make
+counts every input as newer. `releases/build-openbsd.sh` now adds `.SECONDARY:`
+to `out/Makefile`, which keeps the stamps; a changed input still regenerates.
+Stages 13 and 14 give the link and the snapshot room.
+`tests/workflow-logic.sh` runs the script's lines against a gyp-pattern
+Makefile and checks the chain runs to stage 14.
+
+</details>
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/0b24208">mac-x64 may run 360 minutes, as the 4-CPU Intel runner needs</a>. Thanks to xet7.</summary>
