@@ -236,38 +236,53 @@ grep -q 'kill -TERM "$make_pid"' "$OBSD" && grep -q 'touch .stage-partial' "$OBS
   && ok "a staged build stops gmake at its deadline and resumes without configure" \
   || fail "build-openbsd.sh does not stop at STAGE_DEADLINE or resume from out/"
 # gyp's action stamps survive between stages: without .SECONDARY every stage
-# re-ran three generators and recompiled what they feed (v26.12.1).
-grep -qF "if ! grep -qx '\\.SECONDARY:' out/Makefile; then" "$OBSD" \
-  && grep -qF "printf '\\n# releases/build-openbsd.sh: keep action stamps between staged builds.\\n.SECONDARY:\\n' >> out/Makefile" "$OBSD" \
+# re-ran three generators and recompiled what they feed (v26.12.1). Only the
+# stamps are named: a bare `.SECONDARY:` made every target secondary, and GNU
+# make then never ran a command - v26.13.0's openbsd-x64 printed nothing after
+# "gmake -C out" for 340 minutes and every openbsd-arm64 stage compiled
+# nothing (a deliberate change of what this pins, 2026-10-29).
+grep -qF "stamps=\"\$( (find out -name '*.mk' -exec grep -h '^\\.INTERMEDIATE:' {} + || true)" "$OBSD" \
+  && grep -qF "printf '\\n# releases/build-openbsd.sh: keep action stamps between staged builds.\\n.SECONDARY:%s\\n' \"\$stamps\" >> out/Makefile" "$OBSD" \
   && ok "a staged build keeps gyp's action stamps, so a stage does not regenerate and recompile" \
   || fail "build-openbsd.sh lets make delete gyp's .intermediate stamps between stages"
-# ...and it works: gyp's multi-output rule, built, then built again as the
-# next stage would - the script's own lines are run against it.
+! grep -qF ".SECONDARY:\\n' >> out/Makefile" "$OBSD" \
+  && ok "negative: build-openbsd.sh never writes a bare .SECONDARY:, which stops GNU make from running anything" \
+  || fail "build-openbsd.sh writes a bare .SECONDARY: into out/Makefile"
+# ...and it works: gyp's multi-output rule in a .mk, as gyp writes it, built,
+# then built again as the next stage would - the script's own lines are run
+# against it, starting from a Makefile saved by a stage with the bare line.
 STAMPDIR="$(mktemp -d)"
 mkdir -p "$STAMPDIR/out"
 cat > "$STAMPDIR/out/Makefile" <<'MK'
 all: obj.o
 .PHONY: FORCE_DO_CMD all
 FORCE_DO_CMD:
+include gen.target.mk
+obj.o: gen1.h gen2.h
+	@echo CC; cat gen1.h gen2.h > obj.o
+
+# releases/build-openbsd.sh: keep action stamps between staged builds.
+.SECONDARY:
+MK
+cat > "$STAMPDIR/out/gen.target.mk" <<'MK'
 gen1.h gen2.h: abc.intermediate
 	@:
 .INTERMEDIATE: abc.intermediate
 abc.intermediate: input.json FORCE_DO_CMD
 	@if [ -n "$(filter-out FORCE_DO_CMD,$?)" ]; then touch $@; echo ACTION; echo 1 > gen1.h; echo 2 > gen2.h; fi
-obj.o: gen1.h gen2.h
-	@echo CC; cat gen1.h gen2.h > obj.o
 MK
 echo '{}' > "$STAMPDIR/out/input.json"
-keep="$(sed -n "/^if ! grep -qx '\\\\.SECONDARY:' out\/Makefile; then/,/^fi/p" "$OBSD")"
-( cd "$STAMPDIR" && eval "$keep" && eval "$keep" )
+keep="$(sed -n "/^grep -vx -e '\\\\.SECONDARY:'/,/^fi/p" "$OBSD")"
+( cd "$STAMPDIR" && set -eu && eval "$keep" && eval "$keep" )
 first="$(make -s -C "$STAMPDIR/out")"
 again="$(make -s -C "$STAMPDIR/out")"
 sleep 1; touch "$STAMPDIR/out/input.json"
 changed="$(make -s -C "$STAMPDIR/out")"
-[ "$(grep -cx '\.SECONDARY:' "$STAMPDIR/out/Makefile")" = 1 ] && [ -n "$keep" ] \
+[ "$(grep -cx '\.SECONDARY: abc\.intermediate ' "$STAMPDIR/out/Makefile")" = 1 ] \
+  && [ "$(grep -cx '\.SECONDARY:' "$STAMPDIR/out/Makefile")" = 0 ] && [ -n "$keep" ] \
   && echo "$first" | grep -q ACTION && [ -z "$again" ] && echo "$changed" | grep -q ACTION \
-  && ok "a resumed make runs no gyp action again, once; a changed input still regenerates" \
-  || fail "gyp's actions still run again on every make (first: $first / again: $again / changed: $changed)"
+  && ok "a resumed make runs no gyp action again, once, with only the stamps secondary; a changed input still regenerates" \
+  || fail "gyp's stamps are not kept by name (first: $first / again: $again / changed: $changed / $(grep '^\.SECONDARY' "$STAMPDIR/out/Makefile"))"
 rm -rf "$STAMPDIR"
 grep -q 'tar --zstd -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
   && ok "a stage is saved and restored with its timestamps" \

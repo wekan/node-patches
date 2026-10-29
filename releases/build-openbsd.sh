@@ -48,10 +48,22 @@ fi
 # ran all three actions at the start of every stage, and their new headers
 # made it compile the same 78 objects again each time - v26.12.1's
 # openbsd-arm64 used twelve five-hour stages and still did not link.
-# .SECONDARY with no prerequisites keeps every such file, so a stage resumes
-# where the last one stopped; a changed input still regenerates.
-if ! grep -qx '\.SECONDARY:' out/Makefile; then
-  printf '\n# releases/build-openbsd.sh: keep action stamps between staged builds.\n.SECONDARY:\n' >> out/Makefile
+# Naming those stamps .SECONDARY keeps them, so a stage resumes where the last
+# one stopped; a changed input still regenerates.
+#
+# Only those stamps. A bare `.SECONDARY:` makes EVERY target secondary, and
+# with Node's makefiles GNU make then works out the graph without running a
+# single command: v26.13.0's openbsd-x64 printed nothing after
+# "gmake -C out" for its whole 340 minutes (v26.12.1's built in 78), and
+# every openbsd-arm64 stage compiled nothing. `gmake -n` on that Makefile
+# answers in a second without the line and not in ten minutes with it. A
+# stage saved with the bare line has it removed here.
+grep -vx -e '\.SECONDARY:' -e '# releases/build-openbsd.sh: keep action stamps between staged builds.' \
+  out/Makefile > out/Makefile.stage-tmp || true
+mv out/Makefile.stage-tmp out/Makefile
+stamps="$( (find out -name '*.mk' -exec grep -h '^\.INTERMEDIATE:' {} + || true) | sed 's/^\.INTERMEDIATE://' | tr '\n' ' ')"
+if [ -n "$stamps" ] && ! grep -q '^\.SECONDARY: .*\.intermediate' out/Makefile; then
+  printf '\n# releases/build-openbsd.sh: keep action stamps between staged builds.\n.SECONDARY:%s\n' "$stamps" >> out/Makefile
 fi
 
 jobs="$(sysctl -n hw.ncpuonline)"
