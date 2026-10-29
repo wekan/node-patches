@@ -66,7 +66,8 @@ handled (their commits carry the short description and link).
 # Upcoming node-patches release
 
 **In short:** the staged **openbsd-arm64** build resumes each stage where the
-last one stopped instead of compiling the same objects again, the **mac-x64**
+last one stopped instead of compiling the same objects again, both **OpenBSD**
+builds compile again after that change had stopped GNU make, the **mac-x64**
 build gets the time a 4-CPU Intel runner needs to finish, and **Cancel
 workflow** stops the staged build.
 
@@ -92,6 +93,22 @@ to `out/Makefile`, which keeps the stamps; a changed input still regenerates.
 Stages 13 and 14 give the link and the snapshot room.
 `tests/workflow-logic.sh` runs the script's lines against a gyp-pattern
 Makefile and checks the chain runs to stage 14.
+
+</details>
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/bfe7741">OpenBSD builds compile again: only gyp's action stamps are .SECONDARY</a>. Thanks to xet7.</summary>
+
+The bare `.SECONDARY:` the entry above appended to `out/Makefile` makes every
+target secondary, and with Node's makefiles GNU make then never ran a command:
+openbsd-x64, which is not staged, printed nothing after `gmake -C out` for its
+whole 340 minutes and was cancelled at its timeout (v26.12.1's built in 78), and
+every openbsd-arm64 stage compiled nothing. On v26.13.0's `out/Makefile`, GNU
+make 4.4.1's `gmake -n` answers in a second without the line and had printed
+nothing after ten minutes with it. `build-openbsd.sh` now names the five stamps
+it reads from gyp's `.mk` files and removes the bare line from a stage saved
+with it. `tests/workflow-logic.sh` pins the named form, that no bare line is
+written, and that the stamps are still kept on a gyp-shaped makefile.
 
 </details>
 
