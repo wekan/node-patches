@@ -69,7 +69,8 @@ handled (their commits carry the short description and link).
 last one stopped instead of compiling the same objects again, both **OpenBSD**
 builds compile again after that change had stopped GNU make, the **mac-x64**
 build gets the time a 4-CPU Intel runner needs to finish, and **Cancel
-workflow** stops the staged build.
+workflow** stops the staged build. A **finished** staged build is now published
+instead of being saved as unfinished again.
 
 This release updates the following dependency:
 
@@ -78,6 +79,19 @@ This release updates the following dependency:
   both OpenBSD jobs keep release 7.8. Thanks to xet7.
 
 and fixes the following bugs:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/adc748d">A finished staged openbsd-arm64 build is published, not saved as partial again</a>. Thanks to xet7.</summary>
+
+v26.13.0's openbsd-arm64 linked `node` and passed runtime-smoke in stage 11,
+yet stages 11 to 14 were each saved as partial and the run ended "still not
+built after stage 14". The `.stage-partial` marker travelled in the saved
+workspace: the VM build removed it inside the VM, but the copy back never
+deletes a file on the runner. The archive is now saved without it, and a
+resume removes it after restoring, so only the current stage's deadline can
+mark a build unfinished. `tests/save-build-stage.sh` checks both halves.
+
+</details>
 
 <details>
 <summary><a href="https://github.com/wekan/node-patches/commit/e5e3e0e">openbsd-arm64 resumes each stage where the last one stopped, with two more stages</a>. Thanks to xet7.</summary>
