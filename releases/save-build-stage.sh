@@ -20,7 +20,10 @@ printf 'VERSION=%s\nUPSTREAM_COMMIT=%s\n' "${VERSION:?}" "${UPSTREAM_COMMIT:?}" 
 # stopped there, before anything was saved for the next one.
 archive="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/stage.tar.zst"
 rm -f "$archive" stage.tar.zst
-tar --zstd -cf "$archive" .
+# Without .stage-partial: the marker says THIS job stopped at its deadline.
+# Carried into the next stage it would mark a build that then finishes as
+# unfinished too (openbsd-resume.yml also removes it after restoring).
+tar --zstd --exclude=./.stage-partial -cf "$archive" .
 mv "$archive" stage.tar.zst
 ls -l stage.tar.zst
 echo "STAGED_PARTIAL=true" >> "$GITHUB_ENV"

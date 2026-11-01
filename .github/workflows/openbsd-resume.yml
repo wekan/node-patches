@@ -87,6 +87,13 @@ jobs:
           # than the sources they came from, as they were in the VM.
           tar --zstd -xpf stage.tar.zst
           rm -f stage.tar.zst
+          # Only THIS stage's deadline may mark the build unfinished. The VM
+          # build removes .stage-partial in the VM, but the copy back from the
+          # VM never deletes a file on the runner, so a marker restored here
+          # outlived a finished build: v26.13.0's openbsd-arm64 linked node
+          # and passed runtime-smoke in stage 11, and stages 11 to 14 were
+          # each saved as partial again until the chain ran out.
+          rm -f .stage-partial
           cat .stage-env >> "$GITHUB_ENV"
           echo "RESUMING=true" >> "$GITHUB_ENV"
           echo "Resuming ${{ inputs.platform }} from stage ${{ inputs.previous }}: $(du -sh out | cut -f1) of out/."

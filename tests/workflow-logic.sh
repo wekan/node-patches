@@ -284,8 +284,8 @@ changed="$(make -s -C "$STAMPDIR/out")"
   && ok "a resumed make runs no gyp action again, once, with only the stamps secondary; a changed input still regenerates" \
   || fail "gyp's stamps are not kept by name (first: $first / again: $again / changed: $changed / $(grep '^\.SECONDARY' "$STAMPDIR/out/Makefile"))"
 rm -rf "$STAMPDIR"
-grep -q 'tar --zstd -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
-  && ok "a stage is saved and restored with its timestamps" \
+grep -q 'tar --zstd --exclude=./.stage-partial -cf "$archive" \.' "$ROOT/releases/save-build-stage.sh" && grep -q 'tar --zstd -xpf stage.tar.zst' "$RESUME" \
+  && ok "a stage is saved and restored with its timestamps, without the last stage's .stage-partial" \
   || fail "the staged workspace is not saved and restored with tar"
 python3 - "$ALL" <<'PY' && ok "openbsd-arm64 is staged through stages 2-14, every one with a deadline, and publish waits on them" || fail "the openbsd-arm64 stage chain is incomplete"
 import sys, yaml
