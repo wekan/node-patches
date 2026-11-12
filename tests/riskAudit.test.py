@@ -46,6 +46,17 @@ class RiskAudit(unittest.TestCase):
         self.file.write_text('fetch("https://new-telemetry.invalid/report")')
         with self.assertRaisesRegex(ValueError, 'new URL'): r.inspect(self.root, policy)
 
+    def test_upstream_sqlite_reference_is_allowed_only_in_its_source_file(self):
+        policy = json.loads((ROOT/'releases/upstream-risk-baseline.json').read_text())
+        self.file.write_text('')
+        path = self.root/'deps/undici/src/lib/cache/sqlite-cache-store.js'
+        path.parent.mkdir(parents=True)
+        path.write_text('// https://www.sqlite.org/rescode.html#busy')
+        r.inspect(self.root, policy)
+        self.file.write_text('// https://www.sqlite.org/rescode.html#busy')
+        with self.assertRaisesRegex(ValueError, 'main.js: new URL'):
+            r.inspect(self.root, policy)
+
     def test_ordinary_hash_changes_and_local_logging_do_not_block(self):
         self.file.write_text('console.log("more local diagnostics"); fetch("https://service.example/api");')
         r.inspect(self.root,self.policy)
