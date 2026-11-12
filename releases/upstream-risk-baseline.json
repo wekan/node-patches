@@ -12,6 +12,11 @@
     "source": "https://github.com/nodejs/node/tree/v26.12.1",
     "scope": "Automated URL/hash comparison baseline from official source. No configured suspicious keywords or denied hashes detected; not a certification of all upstream behavior."
   },
+  "allowUrlPatternsByFile": {
+    "deps/undici/src/lib/cache/sqlite-cache-store.js": [
+      "https://www\\.sqlite\\.org/rescode\\.html#busy"
+    ]
+  },
   "files": {
     ".configurations/configuration.dsc.yaml": {"sha256":"0aedcf8c6d9ff85131af545c59363d71345169fed7bdebfe3214bf227895b380","urls":["https://aka.ms/configuration-dsc-schema/0.2","https://github.com/nodejs/node/blob/main/BUILDING.md#windows"],"keywords":{}},
     ".configurations/configuration.vsBuildTools.dsc.yaml": {"sha256":"677cf51c48a461c6caa220a8b51cd034bd7108bc3c601d4a6df2b25cb0565856","urls":["https://aka.ms/configuration-dsc-schema/0.2","https://github.com/nodejs/node/blob/main/BUILDING.md#windows"],"keywords":{}},
