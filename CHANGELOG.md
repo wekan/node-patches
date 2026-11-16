@@ -72,11 +72,15 @@ build gets the time a 4-CPU Intel runner needs to finish, and **Cancel
 workflow** stops the staged build. A **finished** staged build is now published
 instead of being saved as unfinished again.
 
-This release updates the following dependency:
+This release updates the following dependencies:
 
 - [vmactions/openbsd-vm 1.4.8 → 1.4.9](https://github.com/wekan/node-patches/commit/53b2510),
   in the build and every resume stage. It adds OpenBSD 8.0 as the VM's default;
   both OpenBSD jobs keep release 7.8. Thanks to xet7.
+- [vmactions/freebsd-vm 1.5.9 → 1.6.0](https://github.com/wekan/node-patches/commit/1e3f2ee),
+  the same commit WeKan's BSD bundles now build their native modules in
+  (wekan/wekan#6907). It moves the 15.x images from a ZFS to a UFS root; the
+  14.3 image used here is unchanged. Thanks to xet7.
 
 and fixes the following bugs:
 
