@@ -166,6 +166,20 @@ reusable workflow or has no timeout of 60 minutes or less.
 
 </details>
 
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/ab3e7af">The upstream Node.js clone is tried four times</a>. Thanks to xet7.</summary>
+
+v26.13.1's mac-arm64 build died 13 seconds in, when GitHub answered the public
+clone of nodejs/node with an authentication prompt ("could not read Username
+... Device not configured"). The clone now runs without a terminal prompt and
+is tried up to four times, 20, 40 and 60 seconds apart. android-armv7 of the
+same run lost its runner after 49 minutes with no step started and no log; both
+platforms were built by the Release All Missing run of 2026-11-16.
+`tests/workflow-logic.sh` runs the workflow's own loop against a fake git: two
+refusals are retried, and four fail the step.
+
+</details>
+
 Thanks to above GitHub users for their contributions and translators for their translations.
 
 # v26.12.1 2026-10-21 node-patches release
