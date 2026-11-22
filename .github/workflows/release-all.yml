@@ -721,8 +721,21 @@ jobs:
           #   --depth 1         just the tag's commit, no history behind it.
           # Node vendors its deps (v8, zlib, icu) in-tree at a release tag, so
           # there are no submodules to init.
-          git clone --quiet --depth 1 --single-branch --branch "$V" \
-            https://github.com/nodejs/node.git nodesrc
+          # Up to four tries: v26.13.1's mac-arm64 died in 13 s when GitHub
+          # answered this public clone with an authentication prompt ("could
+          # not read Username ... Device not configured", "expected flush
+          # after ref listing"), a transient refusal a retry gets past. No
+          # prompt: a refusal fails the try instead of waiting for a terminal.
+          for try in 1 2 3 4; do
+            rm -rf nodesrc
+            if GIT_TERMINAL_PROMPT=0 git clone --quiet --depth 1 --single-branch --branch "$V" \
+              https://github.com/nodejs/node.git nodesrc; then
+              break
+            fi
+            [ "$try" -lt 4 ] || { echo "::error::Could not clone nodejs/node ${V} in four tries."; exit 1; }
+            echo "::warning::Cloning nodejs/node ${V} failed (try ${try} of 4); trying again."
+            sleep $((try * 20))
+          done
           # The exact commit that tag resolved to - recorded on the release and in
           # the run summary, so a binary can be traced to the upstream source it
           # was built from. The tag names the release; this pins the bytes.

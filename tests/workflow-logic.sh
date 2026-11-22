@@ -888,6 +888,46 @@ else
   while IFS= read -r l; do fail "$l, so Cancel workflow cannot stop it"; done <<< "$cancel_bad"
 fi
 
+# ── The upstream clone is retried ─────────────────────────────────────────────
+#
+# v26.13.1's mac-arm64 died 13 seconds in: GitHub answered the public clone of
+# nodejs/node with an authentication prompt, once. The real loop, out of the
+# workflow, runs here against a fake git that fails a given number of times.
+echo
+echo "The upstream clone is retried:"
+{ echo 'set -euo pipefail'
+  echo 'sleep() { :; }'
+  sed -n '/^          for try in 1 2 3 4; do$/,/^          done$/p' "$ALL" | sed 's/^          //'
+} > "$TMP/clone.sh"
+if grep -q 'git clone' "$TMP/clone.sh" && grep -q 'GIT_TERMINAL_PROMPT=0' "$TMP/clone.sh"; then
+  ok "the clone loop was found in release-all.yml, with no terminal prompt"
+else
+  fail "could not extract the clone loop from release-all.yml"
+fi
+mkdir -p "$TMP/fakebin"
+cat > "$TMP/fakebin/git" <<'FAKE'
+#!/usr/bin/env bash
+n=$(( $(cat "$COUNT" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$COUNT"
+[ "$n" -gt "$FAILS" ] || { echo "fatal: could not read Username" >&2; exit 128; }
+mkdir -p nodesrc/.git
+FAKE
+chmod +x "$TMP/fakebin/git"
+clone_try() { # $1 = how many tries fail
+  rm -rf "$TMP/cw" && mkdir -p "$TMP/cw"
+  ( cd "$TMP/cw" && PATH="$TMP/fakebin:$PATH" COUNT="$TMP/cw/count" FAILS="$1" V=v26.0.0 \
+      bash "$TMP/clone.sh" ) >"$TMP/cw.log" 2>&1
+}
+if clone_try 2 && [ -d "$TMP/cw/nodesrc/.git" ] && [ "$(cat "$TMP/cw/count")" = 3 ]; then
+  ok "two refused clones are retried and the third one is used"
+else
+  fail "two refused clones were not retried: $(tail -1 "$TMP/cw.log")"
+fi
+if ! clone_try 4 && [ "$(cat "$TMP/cw/count")" = 4 ]; then
+  ok "negative: four refused clones fail the step, after exactly four tries"
+else
+  fail "negative: four refused clones did not fail the step after four tries"
+fi
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "workflow-logic: everything holds."
