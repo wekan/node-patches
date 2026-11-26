@@ -35,8 +35,8 @@ in by the build from the tag it cloned.
 - The binaries a release carries are named `node-<platform>` (`node-<platform>.exe`
   on Windows), each with a `node-<platform>.sha256sum`. A release accumulates
   binaries — a rebuilt platform clobbers its own asset and leaves the rest alone.
-- The twenty platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
-  `arm64`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win-arm64`, `win32`,
+- The platforms: `i386`, `armv6`, `armhf`, `armv7`, `loong64`, `x64`,
+  `arm64`, `x64-musl`, `arm64-musl`, `ppc64le`, `s390x`, `riscv64`, `win64`, `win-arm64`, `win32`,
   `mac-x64`, `mac-arm64`, `freebsd-x64`, and for Android/Termux
   `android-arm64`, `android-armv7`, `android-x64`, `android-x86`.
 
