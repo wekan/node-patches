@@ -28,6 +28,10 @@ name: Release All
 #
 #   node-x64       64-bit x86 Linux          native
 #   node-arm64     64-bit ARM Linux          native
+#   node-x64-musl  64-bit x86 Linux, musl    native, in an Alpine container
+#   node-arm64-musl 64-bit ARM Linux, musl   native, in an Alpine container -
+#                                            both for WeKan's Docker image,
+#                                            whose runtime is musl, not glibc
 #   node-i386      32-bit x86                (--dest-cpu=x86)
 #   node-armv6     32-bit ARM (ARMv6)        hard-float, VFPv2 — Raspberry Pi 1
 #                                            and Zero, and any other ARMv6
@@ -461,6 +465,31 @@ jobs:
             runs_on: ubuntu-24.04-arm
             configure_flags: ''
             timeout_minutes: 240
+          # musl libc instead of glibc, for WeKan's Docker image: its glibc and
+          # GCC runtime packages were every one of the image's scanner findings
+          # (Artifact Hub, v13.33: 42, none with a Debian fix), and a musl
+          # runtime has none of them. Built natively inside Alpine on a runner
+          # of the same CPU, so the compiler, the C library and the host are
+          # Alpine's; the build runs the JavaScript smoke test in that same
+          # container, since a musl binary does not start on the glibc runner.
+          - platform: x64-musl
+            mode: container
+            runs_on: ubuntu-24.04
+            image: alpine:3.22
+            docker_platform: linux/amd64
+            pkg_install: apk add --no-cache build-base python3 linux-headers
+            configure_flags: ''
+            musl_smoke: true
+            timeout_minutes: 240
+          - platform: arm64-musl
+            mode: container
+            runs_on: ubuntu-24.04-arm
+            image: alpine:3.22
+            docker_platform: linux/arm64
+            pkg_install: apk add --no-cache build-base python3 linux-headers
+            configure_flags: ''
+            musl_smoke: true
+            timeout_minutes: 240
           # The host-simulator snapshot can build successfully yet abort during
           # V8 startup on PPC64LE. Build and execute real target snapshot tools,
           # as for s390x, then run JavaScript before accepting the artifact.
@@ -851,12 +880,13 @@ jobs:
             ${{ matrix.image }} \
             sh -c '
               set -eu
-              apt-get update
-              apt-get install -y --no-install-recommends \
-                build-essential python3 ninja-build ca-certificates
+              ${{ matrix.pkg_install || 'apt-get update && apt-get install -y --no-install-recommends build-essential python3 ninja-build ca-certificates' }}
               ./configure ${{ matrix.configure_flags }}
               make -j"$(nproc)"
               strip out/Release/node
+              if [ "${{ matrix.musl_smoke }}" = true ]; then
+                sh _patches/tests/runtime-smoke.sh ./out/Release/node ${{ matrix.platform }}
+              fi
               want="${{ matrix.elf_type }}"
               if [ -n "$want" ] && ! LC_ALL=C readelf -h out/Release/node | grep -q "Type:[[:space:]]*$want "; then
                 LC_ALL=C readelf -h out/Release/node | grep "Type:"
@@ -1594,11 +1624,11 @@ jobs:
             | while read -r p; do if grep -qxF "node-${p}.sha256sum" assets.txt; then echo "$p"; fi; done \
             | sort -u)"
           plats=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
+          for a in x64 arm64 x64-musl arm64-musl i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" && plats="${plats:+$plats }$a"
           done
           for a in $present; do
-            printf ' %s ' "x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86" | grep -q " $a " || plats="${plats:+$plats }$a"
+            printf ' %s ' "x64 arm64 x64-musl arm64-musl i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86" | grep -q " $a " || plats="${plats:+$plats }$a"
           done
           if [ -z "$plats" ]; then
             echo "::error::The release carries no complete platform - every build job failed. Their logs say why."
@@ -1620,7 +1650,7 @@ jobs:
           # release-all-missing.yml exists to build exactly the platforms this
           # prints, once whatever caused the gap has cleared.
           missing=""
-          for a in x64 arm64 i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
+          for a in x64 arm64 x64-musl arm64-musl i386 armv6 armhf armv7 ppc64le s390x riscv64 loong64 win64 win-arm64 win32 mac-x64 mac-arm64 freebsd-x64 openbsd-x64 openbsd-arm64 netbsd-x64 android-arm64 android-armv7 android-x64 android-x86; do
             printf '%s\n' "$present" | grep -qx "$a" || missing="${missing:+$missing }$a"
           done
           if [ -n "$missing" ]; then

@@ -196,9 +196,20 @@ notes_list="$(grep -E '^ +for a in x64 ' "$ALL" | head -1 | sed 's/.*for a in //
   && ok "the release notes' platform order covers the matrix" \
   || fail "the release notes' platform list differs from the matrix: $(diff <(echo "$matrix") <(echo "$notes_list") | tr '\n' ' ')"
 
-[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 23 ] \
-  && ok "the matrix contains all 23 release targets" \
-  || fail "expected 23 release targets (20 + openbsd-x64, openbsd-arm64, netbsd-x64)"
+[ "$(printf '%s\n' "$matrix" | wc -l | tr -d ' ')" = 25 ] \
+  && ok "the matrix contains all 25 release targets" \
+  || fail "expected 25 release targets (20 + openbsd-x64, openbsd-arm64, netbsd-x64, x64-musl, arm64-musl)"
+# musl: built inside Alpine, smoke-tested there, for WeKan's Docker image.
+for p in x64-musl arm64-musl; do
+  printf '%s\n' "$matrix" | grep -qx "$p" && ok "$p is in the build matrix" || fail "$p is missing from the build matrix"
+done
+grep -A8 -- '- platform: x64-musl' "$ALL" | grep -q 'image: alpine:' \
+  && grep -A8 -- '- platform: arm64-musl' "$ALL" | grep -q 'image: alpine:' \
+  && grep -q 'matrix.musl_smoke' "$ALL" \
+  && ok "the musl builds are built and smoke-tested inside Alpine" \
+  || fail "a musl build is not built or smoke-tested inside Alpine"
+# Negative: no musl platform builds on the glibc runner itself.
+if grep -A3 -- '- platform: x64-musl' "$ALL" | grep -q 'mode: native'; then fail "x64-musl builds natively on the glibc runner"; else ok "negative: no musl build runs on the glibc runner"; fi
 grep -A 5 -E '^ +- platform: win-arm64$' "$ALL" | grep -q 'vcbuild_arch: arm64' \
   && ok "Windows ARM64 uses the upstream arm64 vcbuild target" \
   || fail "Windows ARM64 is not wired to vcbuild arm64"

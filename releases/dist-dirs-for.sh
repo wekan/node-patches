@@ -51,6 +51,6 @@ case "${1:?usage: dist-dirs-for.sh <platform>}" in
   # configuration, and is built --openssl-no-asm from linux-aarch64's.
   openbsd-arm64)     echo openbsd; echo bsd-arm64 ;;
   netbsd-x64)        echo netbsd ;;
-  # x64, arm64, ppc64le, loong64, s390x, win64, win-arm64 and
-  # freebsd-x64 take the common set only.
+  # x64, arm64, x64-musl, arm64-musl, ppc64le, loong64, s390x, win64,
+  # win-arm64 and freebsd-x64 take the common set only.
 esac

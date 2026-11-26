@@ -16,6 +16,13 @@ if (bsd) {
   assert.equal(process.platform, bsd[1], 'built runtime is not this BSD');
   assert.equal(process.arch, bsd[2], 'built runtime has wrong architecture');
 }
+// musl (WeKan's Docker image, built in Alpine): that CPU, and no glibc - the
+// report names the glibc a binary runs on, and a musl binary has none.
+const musl = /^(x64|arm64)-musl$/.exec(String(process.argv[2]));
+if (musl) {
+  assert.equal(process.arch, musl[1], 'built runtime has wrong architecture');
+  assert.equal(process.report.getReport().header.glibcVersionRuntime, undefined, 'built runtime runs on glibc, not musl');
+}
 // Android (run inside Termux): the platform is android, and dist/android's
 // paths patch put the temporary directory in Termux's prefix, not /tmp.
 if (String(process.argv[2]).startsWith('android-')) {
