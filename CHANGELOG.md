@@ -65,14 +65,32 @@ handled (their commits carry the short description and link).
 
 # Upcoming node-patches release
 
-**In short:** the staged **openbsd-arm64** build resumes each stage where the
+**In short:** **musl** builds for x64 and arm64 join the release, for WeKan's
+Docker image. The staged **openbsd-arm64** build resumes each stage where the
 last one stopped instead of compiling the same objects again, both **OpenBSD**
 builds compile again after that change had stopped GNU make, the **mac-x64**
 build gets the time a 4-CPU Intel runner needs to finish, and **Cancel
 workflow** stops the staged build. A **finished** staged build is now published
 instead of being saved as unfinished again.
 
-This release updates the following dependencies:
+This release adds the following new feature:
+
+<details>
+<summary><a href="https://github.com/wekan/node-patches/commit/80653f4">node-x64-musl and node-arm64-musl, built in Alpine, for WeKan's Docker image</a>. Thanks to xet7.</summary>
+
+Every one of the WeKan image's scanner findings is in glibc and the GCC
+runtime (Artifact Hub, WeKan v13.33: 42, none with a Debian fix), which the
+glibc Node.js needs. Both musl builds run natively inside `alpine:3.22` on a
+runner of their own CPU, and run `tests/runtime-smoke.sh` there, since a musl
+binary does not start on the glibc runner; the smoke test now also checks
+that a `-musl` binary is that CPU and runs on no glibc. They take the common
+patch set. `tests/workflow-logic.sh` checks they are in the matrix, the
+release notes and release-all-missing.yml, built and smoke-tested in Alpine,
+and never built on the glibc runner.
+
+</details>
+
+and updates the following dependencies:
 
 - [vmactions/openbsd-vm 1.4.8 → 1.4.9](https://github.com/wekan/node-patches/commit/53b2510),
   in the build and every resume stage. It adds OpenBSD 8.0 as the VM's default;
